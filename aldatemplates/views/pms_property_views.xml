@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Hotel Settings -->
+    <record id="view_property_form_pms_l10n_es" model="ir.ui.view">
+        <field name="name">Property Form l10n_es</field>
+        <field name="model">pms.property</field>
+        <field name="inherit_id" ref="pms.pms_property_views_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='property_rooms']" position="after">
+                <page string="Alda Email Templates">
+                    <group string="Templates">
+                        <field name="confirmation_template" />
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

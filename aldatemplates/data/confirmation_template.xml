@@ -1,0 +1,1659 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data>
+        <record id="alda_confirmation_email" model="mail.template">
+            <field name="name">Alda Confirmation Email</field>
+            <field name="model_id" ref="pms.model_pms_reservation" />
+            <field
+                name="subject"
+            >${object.company_id.name} has confirmed your reservation in ${object.pms_property_id.name}</field>
+            <field
+                name="email_from"
+            >${object.pms_property_id.partner_id.email | safe}</field>
+            <field
+                name="email_to"
+            >${(object.email and '"%s" &lt;%s&gt;' % (object.name, object.email) or object.partner_id.email_formatted or '') | safe}</field>
+            <field name="body_html" type="html">
+                <style type="text/css">
+/*Global Styles*/
+.marco {
+    bgcolor: #f6f6f6;
+    margin: 0;
+    padding: 0;
+    min-width: 100% !important;
+}
+a {
+    color: #45c2b1;
+    text-decoration: none;
+    font-weight: bold;
+}
+img {
+    height: auto;
+}
+.content {
+    border: 1px solid #eeeeee;
+}
+.logo {
+    font-family: sans-serif;
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffffff;
+}
+.link a {
+    font-family: sans-serif;
+    font-size: 12px;
+    color: #45c2b1;
+}
+.subheading {
+    font-size: 14px;
+    color: #cccccc;
+    font-family: sans-serif;
+    font-weight: bold;
+    padding: 0 0 0 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.h1 {
+    font-family: sans-serif;
+    font-size: 48px;
+    font-weight: bold;
+    line-height: 56px;
+    color: #ffffff;
+    padding: 0 0 0 0;
+}
+.h2 {
+    font-family: sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #444444;
+    padding: 0 0 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.h3 {
+    font-family: sans-serif;
+    font-size: 24px;
+    font-weight: regular;
+    color: #555555;
+    padding: 0 0 0 0;
+}
+.h4 {
+    font-family: sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #666666;
+    padding: 0 0 0 0;
+}
+.paragraph {
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: #666666;
+    font-weight: 200;
+    padding: 20px 0 0 0;
+}
+.listitem {
+    font-family: sans-serif;
+    font-size: 15px;
+    color: #666666;
+    font-weight: 200;
+    padding: 0 0 20px 0;
+}
+.smalltext {
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #cccccc;
+    padding: 3px 0 0 0;
+}
+.borderbottom {
+    border-bottom: 1px solid #f2eeed;
+}
+/*Media Queries*/
+@media only screen and (max-width: 651px) {
+    .columns {
+        width: 100% !important;
+    }
+    .columncontainer {
+        display: block !important;
+        width: 100% !important;
+    }
+    .paragraph,
+    .listitem {
+        font-size: 18px;
+    }
+    .link {
+        float: left;
+    }
+}
+@media only screen and (min-width: 651px) {
+    .content {
+        width: 650px !important;
+    }
+}
+                </style>
+                <div
+                    style="background-color:#ffffff; margin: 0; padding: 0; min-width: 100%!important;font-family: sans-serif; font-size: 16px; line-height: 22px; color: #666666; font-weight: 200; padding: 20px 0 0 0;"
+                />
+                <div
+                    style="background-color:#ffffff; margin: 0; padding: 0; min-width: 100%!important;font-family: sans-serif; font-size: 16px; line-height: 22px; color: #666666; font-weight: 200; padding: 20px 0 0 0;"
+                >
+                    <table
+                        width="100%"
+                        background-color="#ffffff"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                    />
+                    <tr />
+                    <td />
+                    <!--[if (gte mso 9)|(IE)]>
+                    <table width="540" align="center" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td>
+                          <![endif]-->
+                    <!--Content Wrapper-->
+                    <table
+                        class="content"
+                        background-color="#f6f6f6"
+                        align="center"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                        style="width: 650px !important; border: 1px solid #eeeeee; background-color:#f6f6f6;"
+                    />
+                    <!--Header-->
+                    <tr>
+                        <td
+                            style="padding: 30px 30px 20px 30px;background-color:#1B1B1B"
+                        >
+                            <table
+                                border="0x"
+                                cellpadding="0"
+                                cellspacing="0"
+                                width="100%"
+                                class="columns"
+                            >
+                                <tr valign="top">
+                                </tr>
+                            </table>
+                            <img
+                                src="https://www.aldahotels.es/firma/email/llegada/logobl.png"
+                                width="251"
+                                height="57"
+                                alt="Alda Hotels"
+                            />
+                            <table
+                                border="0x"
+                                cellpadding="0"
+                                cellspacing="0"
+                                width="100%"
+                                class="columns"
+                            >
+                                <tr valign="top">
+                                    <td
+                                        width="50%"
+                                        valign="middle"
+                                        class="columncontainer"
+                                    >
+                                        <table
+                                            border="0"
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            width="100%"
+                                        >
+                                            <tr>
+                                                <td
+                                                    align="right"
+                                                    valign="middle"
+                                                    style="padding: 0px 0px 0px 0px;"
+                                                >
+                                                    <table
+                                                        border="0"
+                                                        cellspacing="0"
+                                                        cellpadding="0"
+                                                        class="link"
+                                                    >
+                                                        <tr>
+                                                            <td
+                                                                style="padding: 0px 15px 0px 0px;"
+                                                            >
+                                                                <a
+                                                                    href="#"
+                                                                    style="color:#FFFFFF"
+                                                                >www.aldahotels.com</a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!--1 Column resume-->
+                    <tr>
+                        <td class="borderbottom" style="padding: 60px 30px 60px 30px;">
+                            <table
+                                width="100%"
+                                border="0"
+                                cellspacing="0"
+                                cellpadding="0"
+                            >
+                                <tr>
+                                    <td
+                                        align="center"
+                                        class="h2"
+                                        style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #444444; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                    > Confirmación de reserva
+                                        en
+                                        ${object.pms_property_id.name}</td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding: 20px 0 0 0;">
+                                        <p
+                                            style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                        >__</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        align="justify"
+                                        class="paragraph"
+                                        style="padding: 10px 0 0 0;"
+                                    >Hola
+                                        % if object.partner_id.firstname:
+                                        ${object.partner_id.firstname}:
+                                        % endif
+                                        % if object.partner_id.firstname == False:
+                                        % if object.partner_id.name:
+                                        ${object.partner_id.name}:
+                                        % endif
+                                        % endif
+                                        <br />
+                                        Tu reserva en <strong
+                                        >${object.pms_property_id.name}</strong> queda confirmada. Te esperamos el día <strong
+                                        >${object.checkin[8:10]} del ${object.checkin[5:7]} de
+                                            ${object.checkin[0:4]}</strong>. Si podemos ayudarte en cualquier tipo de gestión, no dudes en hacérnoslo saber.<br
+                                        /><br />
+                                    </td>
+                                </tr>
+                                <td
+                                    align="justify"
+                                    class="paragraph"
+                                    style="padding: 0px 0 0 0;"
+                                >
+                                    <center><p
+                                            style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                        ><strong>IMPORTANTE</strong></p></center>
+                                    <strong><center>
+                                        Dependiendo del tipo de tarifa seleccionado, puede que la reserva requiera <u
+                                            >un pago por adelantado</u> para mantenerla. De ser así, revisa tu teléfono y sigue las instrucciones que recibirás por SMS para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el hotel podrá proceder a la cancelación de tu reserva.<br
+                                            />
+                                        <center><br /><img
+                                                    src="https://www.aldahotels.es/firma/email/llegada/sms.png"
+                                                    width="80px"
+                                                    height="80px"
+                                                /></center>
+                                        <center><br /><img
+                                                    src="https://www.aldahotels.es/firma/email/llegada/ps.gif"
+                                                /></center>
+                                        <p
+                                                style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                            >__</p>
+                                        Realiza ya tu check-in y ahorra tiempo
+                                    </center></strong><br />
+                                    Accede a <strong
+                                    >nuestro sistema de registro rápido</strong>. En pocos pasos conseguirás registrar tus datos de manera ágil, sencilla y segura, <strong
+                                    >evitando colas en recepción</strong>.
+                                    Además, debido a la situación actual, queremos evitar al máximo posible el contacto físico y respetar las distancias. Si registras tus datos en nuestro sistema, <strong
+                                    >tu paso por recepción será mucho más rápido</strong>, pudiendo disfrutar de la comodidad de tu habitación enseguida.</td>
+                                <tr>
+                                    <td align="center" style="padding: 20px 0 0px 0; ">
+                                        <table
+                                            border="0"
+                                            cellspacing="0"
+                                            cellpadding="0"
+                                        >
+                                            <tr>
+                                                <td align="center">
+                                                    <p>
+                                                        <!--                                                        <a href="${object.room_lines[0].fc_url}" target="_blank" style="text-decoration: none; color: #FFFFFF; font-size: 2em; padding: 10px 20px 10px 20px;">-->
+                                                        <div
+                                                            style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;font-size: 12px;"
+                                                        >Hacer check-in
+                                                        </div>
+                                                        <center><img
+                                                                src="https://www.aldahotels.es/firma/email/llegada/check-in.png"
+                                                                alt="Hacer check-in"
+                                                                width="80px"
+                                                                height="80px"
+                                                            /></center>
+                                                        <!--                                                        </a>-->
+                                                    </p>
+                                                    <tr>
+                                                        <td
+                                                            align="justify"
+                                                            class="paragraph"
+                                                            style="padding: 10px 0 0 0;"
+                                                        >También te invitamos a que <a
+                                                                href="https://www.aldahotels.es/covid-free/"
+                                                                target="_blank"
+                                                            >conozcas nuestras medidas de prevención del COVID-19</a> y saber qué es lo que estamos haciendo para garantizar tu seguridad y la de todos.<br
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!--Section with sidebar info and services-->
+                    <tr>
+                    </tr>
+                    <td class="borderbottom" style="padding: 10px 0px 10px 30px;">
+                    </td>
+                    <table
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        width="620"
+                        class="columns"
+                    >
+                        <tr valign="top">
+                            <td width="50%" class="columncontainer">
+                                <table
+                                    border="0"
+                                    cellpadding="0"
+                                    cellspacing="0"
+                                    width="100%"
+                                >
+                                    <tr>
+                                        <td
+                                            valign="top"
+                                            style="padding: 20px 30px 20px 0px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellspacing="0"
+                                                cellpadding="0"
+                                                width="100%"
+                                            >
+                                                <tr>
+                                                    <td
+                                                        class="h2"
+                                                        style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #444444; padding: 10px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                    >¡POR CIERTO!</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding: 20px 0 10px 0;">
+                                                        <p
+                                                            style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                                        >__</p>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td
+                                                        align="justify"
+                                                        class="paragraph"
+                                                        style="padding: 10px 0 0 0;"
+                                                    >Si tienes prevista la llegada al hotel <strong
+                                                        >más tarde de las 14:00 h</strong>, te rogamos que contactes con nosotros a través del correo electrónico <a
+                                                            href="mailto:aldaalgalia@aldahotels.com"
+                                                        >aldaalgalia@aldahotels.com</a> o en los teléfonos <a
+                                                            href="tel:+34 881 300 109"
+                                                        >+34 881 300 109</a> y <a
+                                                            href="tel:+34 881 092 980"
+                                                        >+34 881 092 980</a>.<br /></td>
+                                                </tr>
+                                                <tr> </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--Article with thumbnail reservation data-->
+                                    <tr>
+                                        <td
+                                            class="borderbottom"
+                                            style="padding: 30px 0px 0px 0px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="650"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="10%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    height="115"
+                                                                    style="padding: 20px 0px 0px 30px;"
+                                                                >
+                                                                    <img
+                                                                        src="https://www.aldahotels.es/firma/email/llegada/reserva.png"
+                                                                        border="0"
+                                                                        alt="Alda Hotels"
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="90%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    style="padding: 20px 30px 20px 30px;"
+                                                                >
+                                                                    <table
+                                                                        border="0"
+                                                                        cellspacing="0"
+                                                                        cellpadding="0"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                class="h2"
+                                                                                style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                            >Datos de tu
+                                                                                reserva</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="justify"
+                                                                                class="subheading"
+                                                                                style="color: #555555"
+                                                                            >
+                                                                                <strong
+                                                                                >${object.partner_id.name}</strong>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="justify"
+                                                                                class="paragraph"
+                                                                                style="padding: 10px 0 0 0;"
+                                                                            >
+                                                                                % if object.partner_id.contact_address:
+                                                                                ${object.partner_id.contact_address}<br
+                                                                                />
+                                                                                % endif
+                                                                                % if object.partner_id.phone:
+                                                                                Tel.: ${object.partner_id.phone}<br
+                                                                                />
+                                                                                % endif
+                                                                                % if object.partner_id.mobile:
+                                                                                Mov.: ${object.partner_id.mobile}<br
+                                                                                />
+                                                                                % endif
+                                                                                <br />
+                                                                                % for rline in object.reservation_line_ids:
+                                                                                <strong>
+                                                                                    ${rline['num']} x ${rline['room_type']['name']}
+                                                                                    % if rline['childrens'] == 0:
+                                                                                    (${rline['adults']} Adultos)
+                                                                                    % else:
+                                                                                    (${rline['adults']} Adultos + ${rline['childrens']} Niños)
+                                                                                    % endif
+                                                                                    <br
+                                                                                    />
+                                                                                </strong>
+                                                                                <strong
+                                                                                    style="margin-left:2em"
+                                                                                >Entrada</strong>: ${format_tz(rline['checkin']+ ' 00:00:00', format="%d de %B de %Y")}<br
+                                                                                />
+                                                                                <strong
+                                                                                    style="margin-left:2em"
+                                                                                >Salida</strong>: ${format_tz(rline['checkout']+ ' 00:00:00', format="%d de %B de %Y")}<br
+                                                                                />
+                                                                                <strong
+                                                                                    style="margin-left:2em"
+                                                                                >Nº de noches</strong>: ${rline['nights']}<br
+                                                                                /><br />
+
+                                                                                % endfor
+
+                                                                                <br />
+                                                                                <b><p
+                                                                                        style="color:#45C2B1"
+                                                                                    >Información importante</p></b>
+                                                                                <p
+                                                                                >Las condiciones de pago y cancelación variarán según la tipología de tarifa seleccionada:</p>
+                                                                                <ul>
+                                                                                    <li
+                                                                                    >Las <strong
+                                                                                        >reservas con tarifa flexible</strong> podrán ser canceladas de manera gratuita hasta las 12:00 h del día antes de tu llegada. Estas reservas están sujetas al pago anticipado de la primera noche.</li>
+                                                                                    <li
+                                                                                    >Las <strong
+                                                                                        >reservas con tarifa semiflexible</strong> admiten cancelación gratuita hasta 7 días antes de la entrada, pasado ese plazo no admite cambios ni devoluciones.  Deben ser abonadas en el momento de su confirmación.</li>
+                                                                                    <li
+                                                                                    >Las <strong
+                                                                                        >reservas con tarifa no reembolsable</strong>, no admiten cancelación ni modificación y, por tanto, no se reembolsará el dinero abonado en ningún caso.  Deben ser abonadas en el momento de su confirmación.</li>
+                                                                                    <li
+                                                                                    >En <strong
+                                                                                        >reservas con tarifa semiflexible y no reembolsable</strong>, de manera excepcional y bajo aceptación expresa del alojamiento, se podrá, mediante pago de la diferencia de precio si la hubiera, además de un suplemento de 10 €, solicitar un cambio en las fechas de estancia, pero nunca devolución del dinero al tratarse ambas de tarifas no reembolsables.</li>
+                                                                                    <li
+                                                                                    >De acuerdo con el tipo de tarifa seleccionada, se requiere <strong
+                                                                                        >un pago total o parcial</strong> de la reserva para poder mantenerla. Por favor, revisa tu teléfono y sigue las instrucciones para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el alojamiento podrá proceder a la cancelación de su reserva.</li>
+                                                                                    <li
+                                                                                    >Y recuerda, las <strong
+                                                                                        >reservas de 4 o más habitaciones</strong> pueden estar sujetas a condiciones especiales y comportar suplementos adicionales.</li>
+                                                                                    <p
+                                                                                    >En caso de duda, contáctanos. ¡Estaremos encantados de ayudarte!</p>
+                                                                                </ul></td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--2 Column maps-->
+                                    <tr>
+                                        <td
+                                            class="borderbottom"
+                                            style="padding: 10px 0px 0px 30px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="620"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="50%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                            </tr>
+                                                            <tr>
+                                                                <td
+                                                                    class="h2"
+                                                                    style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                > Mapa</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td
+                                                                    align="center"
+                                                                    valign="middle"
+                                                                    style="padding: 20px 0px 0px 0px;"
+                                                                >
+                                                                    <table
+                                                                        border="0"
+                                                                        cellspacing="0"
+                                                                        cellpadding="0"
+                                                                    >
+                                                                        <tr>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <a
+                                                                                href="http://maps.google.es/?q=${object.pms_property_id.display_name}%20${object.pms_property_id.street}%20${object.pms_property_id.city}"
+                                                                                style="background-color:transparent"
+                                                                                target="_blank"
+                                                                            >
+                                                                                <br />
+                                                                                <img
+                                                                                    src="https://www.aldahotels.es/firma/email/llegada/como-llegar.png"
+                                                                                    alt="Ver mapa"
+                                                                                    border="0"
+                                                                                />
+                                                                            </a>
+                                                                            <p>
+                                                                                <br />
+                                                                                <a
+                                                                                    href="https://www.google.com/maps/dir/?api=1destination=${object.pms_property_id.display_name}%20${object.pms_property_id.street}%20${object.pms_property_id.city}"
+                                                                                    target="_blank"
+                                                                                    style="text-decoration: none; color: #FFFFFF; font-size: 20px; padding: 10px 20px 10px 20px;"
+                                                                                >
+                                                                                    <div
+                                                                                        style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;"
+                                                                                    >¿Como
+                                                                                        llegar desde su ubicación actual?</div>
+                                                                                </a>
+                                                                            </p>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                style="padding: 20px 0 20px 0; "
+                                                                            >
+                                                                                <table
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="center"
+                                                                                        >
+                                                                                            <!--[if gte mso 12>
+                                                                        <div style="border: 2px solid #5e96ea;">
+                                                                          <![endif]-->
+                                                                                            <!--[if gte mso 12>
+                                                                        </div>
+                                                                        <![endif]-->
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--Article with thumbnail amount-->
+                                    <tr>
+                                        <td
+                                            class="borderbottom"
+                                            style="padding: 30px 0px 0px 0px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="650"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="10%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    height="115"
+                                                                    style="padding: 20px 0px 0px 30px;"
+                                                                >
+                                                                    <img
+                                                                        src="https://www.aldahotels.es/firma/email/llegada/importes.png"
+                                                                        border="0"
+                                                                        alt="Importes"
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="90%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    style="padding: 20px 30px 20px 30px;"
+                                                                >
+                                                                    <table
+                                                                        border="0"
+                                                                        cellspacing="0"
+                                                                        cellpadding="0"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                class="h2"
+                                                                                style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                            >IMPORTES</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="justify"
+                                                                                class="subheading"
+                                                                                style="color: #555555"
+                                                                            >
+                                                                                <strong
+                                                                                >Noches</strong>: ${object.folio_id.reservation_ids|sum(attribute='nights')}
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="justify"
+                                                                                class="paragraph"
+                                                                                style="padding: 10px 0 0 0;"
+                                                                            >
+                                                                                <strong
+                                                                                >Base imponible</strong>: ${object.folio_id.amount_untaxed} €<br
+                                                                                />
+                                                                                <strong
+                                                                                >I.V.A (10%)</strong>: ${object.folio_id.amount_tax} €<br
+                                                                                />
+                                                                                <strong
+                                                                                >Precio total</strong>: ${object.folio_id.amount_total} €<br
+                                                                                />
+                                                                                <br />
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--Article with thumbnail rooms data-->
+                                    <tr>
+                                        <td
+                                            class="borderbottom"
+                                            style="padding: 30px 0px 0px 0px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="650"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="10%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    height="115"
+                                                                    style="padding: 20px 0px 0px 30px;"
+                                                                >
+                                                                    <img
+                                                                        src="https://www.aldahotels.es/firma/email/llegada/habitaciones.png"
+                                                                        border="0"
+                                                                        alt="Habitacion"
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="90%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    style="padding: 20px 30px 20px 30px;"
+                                                                >
+                                                                    <div>
+                                                                        <div
+                                                                            class="h2"
+                                                                            style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                        >Información de la
+                                                                            habitación</div>
+                                                                        % set room_type_ids = object.room_lines.filtered('to_send').mapped('room_type_id.id')
+                                                                        % set room_types = user.env['hotel.room.type'].browse(room_type_ids)
+                                                                        % for room_type in room_types:
+
+                                                                        % if room_type.product_id.name:
+                                                                        <div
+                                                                            style="font-family: sans-serif; font-size: 12px; color: #555555; padding: 10px 0 0 0; text-transform: uppercase"
+                                                                            class="subheading"
+                                                                        >
+                                                                            <strong
+                                                                            >${room_type.product_id.name}</strong>
+                                                                        </div>
+                                                                        % else:
+                                                                        <div
+                                                                            style="font-family: sans-serif; font-size: 12px; color: #555555; padding: 10px 0 0 0; text-transform: uppercase"
+                                                                            class="subheading"
+                                                                        >
+                                                                            <strong
+                                                                            >Habitación ${loop.index}</strong>
+                                                                        </div>
+                                                                        % endif
+                                                                        <div
+                                                                            align="justify"
+                                                                            class="paragraph"
+                                                                            style="padding: 8px 0 0 0;"
+                                                                        >
+                                                                            Esta habitación cuenta con TV, Wi-Fi gratuita, calefacción y baño privado.
+                                                                        </div>
+                                                                        % endfor
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+
+
+
+                                    <!--Article with thumbnail-->
+                                    <tr> </tr>
+                                    <!--Section with sidebar-->
+                                    <tr> </tr>
+                                    <!--Article with thumbnail-->
+                                    <tr> </tr>
+                                    <!--Article with thumbnail-->
+                                    <tr> </tr>
+                                    <!--Block Layout-->
+                                    <tr>
+                                        <td>
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="650"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="50%"
+                                                        class="columncontainer"
+                                                        style="background-color:#f9f9f9"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    width="50%"
+                                                                    background-color="#f9f9f9"
+                                                                >
+                                                                    <table
+                                                                        border="0"
+                                                                        cellpadding="0"
+                                                                        cellspacing="0"
+                                                                        width="100%"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                valign="top"
+                                                                                style="padding: 30px 30px 20px 30px; height: 230px;"
+                                                                                height="230px"
+                                                                            >
+                                                                                <table
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="justify"
+                                                                                            class="h2"
+                                                                                            style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 15px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                                        >${object.pms_property_id.city}</td>
+                                                                                    </tr>
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="justify"
+                                                                                            class="paragraph"
+                                                                                            style="padding: 10px 0 0 0;"
+                                                                                        >Ciudad declarada Patrimonio de la Humanidad por la UNESCO y meta de una milenaria ruta de peregrinación: el Camino de Santiago.</td>
+                                                                                    </tr>
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            style="padding: 20px 0 20px 0;  background-color:#F9F9F9"
+                                                                                        >
+                                                                                            <table
+                                                                                                border="0"
+                                                                                                cellspacing="0"
+                                                                                                cellpadding="0"
+                                                                                            >
+                                                                                                <tr
+                                                                                                >
+                                                                                                    <td
+                                                                                                        align="center"
+                                                                                                    >
+                                                                                                        <!--[if gte mso 12>
+                                                                                <div style="border: 2px solid #5e96ea;">
+                                                                                  <![endif]-->
+                                                                                                        <div
+                                                                                                            style="border: 2px solid #45C2B1; border-radius: 3px; -webkit-border-radius: 3px; -moz-border-radius: 3px;"
+                                                                                                        >
+                                                                                                            <a
+                                                                                                                href="http://www.santiagoturismo.com/"
+                                                                                                                target="_blank"
+                                                                                                                style="font-size: 12px; font-family: sans-serif; text-transform: uppercase; color: #45C2B1; border-color: #45C2B1; border: 2px solid #45C2B1; background-color: #ffffff; text-decoration: none; border-top: 12px solid #ffffff; border-bottom: 12px solid #ffffff; border-left: 12px solid #ffffff; border-right: 12px solid #ffffff; padding: 0 0 0 0; display: inline-block;"
+                                                                                                            >Más
+                                                                                                                información</a>
+                                                                                                        </div>
+                                                                                                        <!--[if gte mso 12>
+                                                                                </div>
+                                                                                <![endif]-->
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                            </table>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="50%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    width="50%"
+                                                                    height="280px"
+                                                                >
+                                                                    <img
+                                                                        src="https://www.aldahotels.es/firma/email/llegada/aa.jpg"
+                                                                        alt=""
+                                                                        width="330"
+                                                                        border="0"
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                                <tr valign="top">
+                                                    <td
+                                                        width="50%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    width="50%"
+                                                                    height="280px"
+                                                                >
+                                                                    <img
+                                                                        src="https://www.aldahotels.es/firma/email/llegada/aa2.jpg"
+                                                                        width="330"
+                                                                        border="0"
+                                                                        alt=""
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="50%"
+                                                        class="columncontainer"
+                                                        style="background-color:#45C2B1"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    width="50%"
+                                                                >
+                                                                    <table
+                                                                        border="0"
+                                                                        cellpadding="0"
+                                                                        cellspacing="0"
+                                                                        width="100%"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                valign="top"
+                                                                                style="padding: 30px 30px 20px 30px; height: 230px; background-color:#45C2B1 "
+                                                                            >
+                                                                                <table
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="justify"
+                                                                                            class="h2"
+                                                                                            style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #FFFFFF; padding: 15px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                                        >${object.pms_property_id.display_name}</td>
+                                                                                    </tr>
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="justify"
+                                                                                            class="paragraph"
+                                                                                            style="padding: 10px 0 0 0;color: #FFFFFF;"
+                                                                                        >       El Hotel Alda Algalia cuenta con el privilegio de ocupar una antigua casona de 1796 totalmente restaurada y cargada de encanto. Su inmejorable ubicación combinada con una decoración cuidada, otorgan a este hotel una identidad única compostelana.</td>
+                                                                                    </tr>
+                                                                                    <tr>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--2 Column-->
+                                    <tr>
+                                        <td
+                                            class="borderbottom"
+                                            style="padding: 10px 0px 0px 30px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="620"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="50%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    class="h2"
+                                                                    style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                >NUESTRAS REDES SOCIALES</td>
+                                                                <td
+                                                                    style="padding: 0 0 50px 0;"
+                                                                > </td>
+                                                            </tr>
+                                                            <tr>
+                                                            </tr>
+                                                            <tr>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--3 Column-->
+                                    <tr>
+                                        <td
+                                            class="borderbottom"
+                                            style="padding: 10px 0px 0px 30px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="620"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                    <td
+                                                        width="33%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    style="padding: 20px 15px 15px 0px;"
+                                                                >
+                                                                    <table
+                                                                        width="100%"
+                                                                        border="0"
+                                                                        cellspacing="0"
+                                                                        cellpadding="0"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 0 0 20px 0;"
+                                                                            >
+                                                                                <a
+                                                                                    href="https://www.facebook.com/aldahotels"
+                                                                                    target="_blank"
+                                                                                >
+                                                                                    <img
+                                                                                        src="http://www.aldahotels.es/firma/email/llegada/fb.png"
+                                                                                        width="51"
+                                                                                        height="50"
+                                                                                        border="0"
+                                                                                        alt="Facebook"
+                                                                                    />
+                                                                                </a>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                class="h2"
+                                                                                style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #3B5998; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                            >
+                                                                                Facebook</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 20px 0 10px 0;"
+                                                                            >
+                                                                                <table
+                                                                                    width="50px"
+                                                                                    style="width: 50px;"
+                                                                                    height="5px"
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            background-color="#3B5998"
+                                                                                            height="5px"
+                                                                                            style="font-size: 1px; line-height: 5px;"
+                                                                                        >
+
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                class="paragraph"
+                                                                                style="padding: 10px 0 0 0;"
+                                                                            > Toda la actualidad de nuestros alojamientos, así como ofertas y promociones.</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 20px 0 20px 0; "
+                                                                            >
+                                                                                <table
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="center"
+                                                                                        >
+                                                                                            <!--[if gte mso 12>
+                                                                          <div style="border: 2px solid #5e96ea;">
+                                                                            <![endif]-->
+                                                                                            <a
+                                                                                                href="https://www.facebook.com/aldahotels"
+                                                                                                target="_blank"
+                                                                                                style="text-decoration: none; color: #FFFFFF; font-size: 20px; padding: 10px 20px 10px 20px;"
+                                                                                            >
+                                                                                                <div
+                                                                                                    style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;"
+                                                                                                >Dale
+                                                                                                    a Me gusta</div>
+                                                                                            </a>
+                                                                                            <!--[if gte mso 12>
+                                                                          </div>
+                                                                          <![endif]-->
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="33%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    style="padding: 20px 15px 15px 0px;"
+                                                                >
+                                                                    <table
+                                                                        width="100%"
+                                                                        border="0"
+                                                                        cellspacing="0"
+                                                                        cellpadding="0"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 0 0 20px 0;"
+                                                                            >
+                                                                                <a
+                                                                                    href="https://www.instagram.com/aldahotels"
+                                                                                    target="_blank"
+                                                                                >
+                                                                                    <img
+                                                                                        src="http://www.aldahotels.es/firma/email/llegada/ig.png"
+                                                                                        width="50"
+                                                                                        height="50"
+                                                                                        border="0"
+                                                                                        alt="Instagram"
+                                                                                    />
+                                                                                </a>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                class="h2"
+                                                                                style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #E56459; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                            >
+                                                                                Instagram</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 20px 0 10px 0;"
+                                                                            >
+                                                                                <table
+                                                                                    width="50px"
+                                                                                    style="width: 50px;"
+                                                                                    height="5px"
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            background-color="#E56459"
+                                                                                            height="5px"
+                                                                                            style="font-size: 1px; line-height: 5px;"
+                                                                                        >
+
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                class="paragraph"
+                                                                                style="padding: 10px 0 0 0;"
+                                                                            > Cada detalle cuenta, y es por eso que tratamos de reflejarlo en nuestras fotos.</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 20px 0 20px 0; "
+                                                                            >
+                                                                                <table
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="center"
+                                                                                        >
+                                                                                            <!--[if gte mso 12>
+                                                                          <div style="border: 2px solid #5e96ea;">
+                                                                            <![endif]-->
+                                                                                            <a
+                                                                                                href="https://www.instagram.com/aldahotels/"
+                                                                                                target="_blank"
+                                                                                                style="text-decoration: none; color: #FFFFFF; font-size: 20px; padding: 10px 20px 10px 20px;"
+                                                                                            >
+                                                                                                <div
+                                                                                                    style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;"
+                                                                                                >#Entra
+                                                                                                </div>
+                                                                                            </a>
+                                                                                            <!--[if gte mso 12>
+                                                                          </div>
+                                                                          <![endif]-->
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                    <td
+                                                        width="33%"
+                                                        class="columncontainer"
+                                                    >
+                                                        <table
+                                                            border="0"
+                                                            cellpadding="0"
+                                                            cellspacing="0"
+                                                            width="100%"
+                                                        >
+                                                            <tr>
+                                                                <td
+                                                                    valign="top"
+                                                                    style="padding: 20px 15px 15px 0px;"
+                                                                >
+                                                                    <table
+                                                                        width="100%"
+                                                                        border="0"
+                                                                        cellspacing="0"
+                                                                        cellpadding="0"
+                                                                    >
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 0 0 20px 0;"
+                                                                            >
+                                                                                <a
+                                                                                    href="https://www.twitter.com/aldahotels"
+                                                                                    target="_blank"
+                                                                                >
+                                                                                    <img
+                                                                                        src="http://www.aldahotels.es/firma/email/llegada/tw.png"
+                                                                                        width="50"
+                                                                                        height="50"
+                                                                                        border="0"
+                                                                                        alt="Twitter"
+                                                                                    />
+                                                                                </a>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                class="h2"
+                                                                                style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #1DA1F2; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                            >
+                                                                                Twitter</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 20px 0 10px 0;"
+                                                                            >
+                                                                                <table
+                                                                                    width="50px"
+                                                                                    style="width: 50px;"
+                                                                                    height="5px"
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            background-color="#1DA1F2"
+                                                                                            height="5px"
+                                                                                            style="font-size: 1px; line-height: 5px;"
+                                                                                        >
+
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                class="paragraph"
+                                                                                style="padding: 10px 0 0 0;"
+                                                                            > Propuestas al minuto para hacer de tu viaje una experiencia inmejorable.</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td
+                                                                                align="center"
+                                                                                style="padding: 20px 0 20px 0; "
+                                                                            >
+                                                                                <table
+                                                                                    border="0"
+                                                                                    cellspacing="0"
+                                                                                    cellpadding="0"
+                                                                                >
+                                                                                    <tr>
+                                                                                        <td
+                                                                                            align="center"
+                                                                                        >
+                                                                                            <!--[if gte mso 12>
+                                                                          <div style="border: 2px solid #5e96ea;">
+                                                                            <![endif]-->
+                                                                                            <a
+                                                                                                href="https://www.twitter.com/aldahotels"
+                                                                                                target="_blank"
+                                                                                                style="text-decoration: none; color: #FFFFFF; font-size: 20px; padding: 10px 20px 10px 20px;"
+                                                                                            >
+                                                                                                <div
+                                                                                                    style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;"
+                                                                                                >Síguenos
+                                                                                                </div>
+                                                                                            </a>
+                                                                                            <!--[if gte mso 12>
+                                                                          </div>
+                                                                          <![endif]-->
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </table>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--2 Column-->
+                                    <tr>
+                                    </tr>
+                                    <!--1 Column-->
+                                    <tr>
+                                        <td
+                                            style="padding: 30px 30px 20px 30px;background-color:#45C2B1"
+                                        >
+                                            <table
+                                                width="100%"
+                                                border="0"
+                                                cellspacing="0"
+                                                cellpadding="0"
+                                            >
+                                                <tr>
+                                                    <td
+                                                        align="center"
+                                                        class="h2"
+                                                        style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #FFFFFF; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                    > ¡Muchas gracias por
+                                                        alojarte
+                                                        con nosotros!</td>
+                                                </tr>
+                                                <tr>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                            align="center"
+                                            valign="middle"
+                                            class="borderbottom"
+                                            style="padding: 45px 0px 30px 30px;"
+                                        >
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="620"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                </tr>
+                                            </table>
+                                            <img
+                                                src="https://www.aldahotels.es/firma/email/llegada/logo.png"
+                                                width="300"
+                                                height="75"
+                                                alt="Alda Hotels"
+                                            />
+                                            <table
+                                                border="0"
+                                                cellpadding="0"
+                                                cellspacing="0"
+                                                width="620"
+                                                class="columns"
+                                            >
+                                                <tr valign="top">
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <!--Footer-->
+                                    <tr>
+                                        <td class="footer">
+                                            <table
+                                                width="100%"
+                                                border="0"
+                                                cellspacing="0"
+                                                cellpadding="0"
+                                            >
+                                                <tr>
+                                                    <td
+                                                        align="justify"
+                                                        class="smalltext"
+                                                        style="color: #828282; padding: 20px 20px 20px 20px;"
+                                                    >En cumplimiento de la Ley 34/2002 de Servicios de la Sociedad de la Información y del Comercio Electrónico, así como
+                                                        de
+                                                        la Ley Orgánica 15/1999 del 13 de Diciembre de Protección de Datos de Carácter Personal y demás legislación concordante, se le informa que sus datos personales figuran en un fichero automatizado cuya
+                                                        responsabilidad es de Alda Compostela S.L. Praza da Algalia de Arriba, 3 C.P. 15704 Santiago de Compostela. Los datos personales que existen en nuestro poder están protegidos por nuestra Política de
+                                                        Privacidad
+                                                        y solo serán utilizados para los fines propios de nuestra actividad. Para ejercer sus derechos de acceso, rectificación, cancelación u oposición debe enviar un correo electrónico a info@aldahotels.com
+                                                        indicándonos la opción a realizar. Este correo podría ser confidencial. Si recibe este e-mail por error, por favor elimínelo, así como cualquier documento adjunto, y notifíquelo a su emisor. Si usted no es
+                                                        el
+                                                        destinatario del mensaje, sepa que no está permitida ninguna difusión, copia o utilización no autorizada.</td>
+                                                </tr>
+                                                <tr>
+                                                </tr>
+                                            </table>
+                                            <table
+                                                width="100%"
+                                                border="0"
+                                                cellspacing="0"
+                                                cellpadding="0"
+                                            >
+                                                <tr>
+                                                    <td
+                                                        align="center"
+                                                        valign="middle"
+                                                        class="listitem"
+                                                        style="color: #0A5F19; padding: 0px 0px 0px 0px"
+                                                    >
+                                                        <img
+                                                            src="https://www.aldahotels.es/firma/email/llegada/eco.png"
+                                                            width="30"
+                                                            height="30"
+                                                            alt="ECO"
+                                                        />
+                                                        <strong
+                                                        >Antes de imprimir este mensaje, compruebe que es verdaderamente necesario. El medioambiente es cosa de todos. </strong>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <!--[if (gte mso 9)|(IE)]>
+                                        </td>
+                                      </tr>
+                                    </table>
+                                    <![endif]-->
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </field>
+        </record>
+    </data>
+</odoo>
