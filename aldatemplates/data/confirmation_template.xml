@@ -262,20 +262,11 @@ img {
                                         align="justify"
                                         class="paragraph"
                                         style="padding: 10px 0 0 0;"
-                                    >Hola
-                                        % if object.partner_id.firstname:
-                                        ${object.partner_id.firstname}:
-                                        % endif
-                                        % if object.partner_id.firstname == False:
-                                        % if object.partner_id.name:
-                                        ${object.partner_id.name}:
-                                        % endif
-                                        % endif
+                                    >Hola ${object.partner_id.name or object.partner_id.firstname or ''}
                                         <br />
                                         Tu reserva en <strong
                                         >${object.pms_property_id.name}</strong> queda confirmada. Te esperamos el día <strong
-                                        >${object.checkin[8:10]} del ${object.checkin[5:7]} de
-                                            ${object.checkin[0:4]}</strong>. Si podemos ayudarte en cualquier tipo de gestión, no dudes en hacérnoslo saber.<br
+                                        >${object.checkin}</strong>. Si podemos ayudarte en cualquier tipo de gestión, no dudes en hacérnoslo saber.<br
                                         /><br />
                                     </td>
                                 </tr>
@@ -319,7 +310,6 @@ img {
                                             <tr>
                                                 <td align="center">
                                                     <p>
-                                                        <!--                                                        <a href="${object.room_lines[0].fc_url}" target="_blank" style="text-decoration: none; color: #FFFFFF; font-size: 2em; padding: 10px 20px 10px 20px;">-->
                                                         <div
                                                             style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;font-size: 12px;"
                                                         >Hacer check-in
@@ -361,7 +351,7 @@ img {
                         border="0"
                         cellpadding="0"
                         cellspacing="0"
-                        width="620"
+                        width="100%"
                         class="columns"
                     >
                         <tr valign="top">
@@ -386,192 +376,198 @@ img {
                                                 <tr>
                                                     <td
                                                         class="h2"
-                                                        style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #444444; padding: 10px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                        style="width: 100%; font-family: sans-serif; font-size: 18px; font-weight: bold; color: #444444; padding: 10px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
                                                     >¡POR CIERTO!</td>
                                                 </tr>
-                                                <tr>
-                                                    <td style="padding: 20px 0 10px 0;">
-                                                        <p
-                                                            style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                                    <tr>
+                                                        <td
+                                                        style="padding: 20px 0 10px 0;"
+                                                    >
+                                                            <p
+                                                            style="width: 100%; font-size: 2em; line_height=0px; color: #45C2B1;"
                                                         >__</p>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td
-                                                        align="justify"
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td
                                                         class="paragraph"
-                                                        style="padding: 10px 0 0 0;"
+                                                        style="padding: 10px 0 0 0; marging:0; width: 100%"
                                                     >Si tienes prevista la llegada al hotel <strong
                                                         >más tarde de las 14:00 h</strong>, te rogamos que contactes con nosotros a través del correo electrónico <a
-                                                            href="mailto:aldaalgalia@aldahotels.com"
-                                                        >aldaalgalia@aldahotels.com</a> o en los teléfonos <a
-                                                            href="tel:+34 881 300 109"
-                                                        >+34 881 300 109</a> y <a
-                                                            href="tel:+34 881 092 980"
-                                                        >+34 881 092 980</a>.<br /></td>
-                                                </tr>
+                                                            href="mailto:${object.pms_property_id.partner_id.email}"
+                                                        >${object.pms_property_id.partner_id.email}</a> o en el teléfono ${object.pms_property_id.partner_id.phone}<br
+                                                        /></td>
+                                                    </tr>
                                                 <tr> </tr>
                                             </table>
                                         </td>
                                     </tr>
+
                                     <!--Article with thumbnail reservation data-->
-                                    <tr>
-                                        <td
-                                            class="borderbottom"
-                                            style="padding: 30px 0px 0px 0px;"
-                                        >
-                                            <table
-                                                border="0"
-                                                cellpadding="0"
-                                                cellspacing="0"
-                                                width="650"
-                                                class="columns"
+                                    <center>
+                                        <tr>
+                                            <td
+                                                class="borderbottom"
+                                                style="padding: 30px 0px 0px 0px;"
                                             >
-                                                <tr valign="top">
-                                                    <td
-                                                        width="10%"
-                                                        class="columncontainer"
-                                                    >
-                                                        <table
-                                                            border="0"
-                                                            cellpadding="0"
-                                                            cellspacing="0"
-                                                            width="100%"
+                                                <table
+                                                    border="0"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    width="650"
+                                                    class="columns"
+                                                >
+                                                    <tr valign="top">
+                                                        <td
+                                                            width="10%"
+                                                            class="columncontainer"
                                                         >
-                                                            <tr>
-                                                                <td
-                                                                    height="115"
-                                                                    style="padding: 20px 0px 0px 30px;"
-                                                                >
-                                                                    <img
-                                                                        src="https://www.aldahotels.es/firma/email/llegada/reserva.png"
-                                                                        border="0"
-                                                                        alt="Alda Hotels"
-                                                                    />
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                    <td
-                                                        width="90%"
-                                                        class="columncontainer"
-                                                    >
-                                                        <table
-                                                            border="0"
-                                                            cellpadding="0"
-                                                            cellspacing="0"
-                                                            width="100%"
-                                                        >
-                                                            <tr>
-                                                                <td
-                                                                    valign="top"
-                                                                    style="padding: 20px 30px 20px 30px;"
-                                                                >
-                                                                    <table
-                                                                        border="0"
-                                                                        cellspacing="0"
-                                                                        cellpadding="0"
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        height="115"
+                                                                        style="padding: 20px 0px 0px 30px;"
                                                                     >
-                                                                        <tr>
-                                                                            <td
-                                                                                class="h2"
-                                                                                style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
-                                                                            >Datos de tu
-                                                                                reserva</td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td
-                                                                                align="justify"
-                                                                                class="subheading"
-                                                                                style="color: #555555"
-                                                                            >
-                                                                                <strong
-                                                                                >${object.partner_id.name}</strong>
-                                                                            </td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td
-                                                                                align="justify"
-                                                                                class="paragraph"
-                                                                                style="padding: 10px 0 0 0;"
-                                                                            >
-                                                                                % if object.partner_id.contact_address:
-                                                                                ${object.partner_id.contact_address}<br
-                                                                                />
-                                                                                % endif
-                                                                                % if object.partner_id.phone:
-                                                                                Tel.: ${object.partner_id.phone}<br
-                                                                                />
-                                                                                % endif
-                                                                                % if object.partner_id.mobile:
-                                                                                Mov.: ${object.partner_id.mobile}<br
-                                                                                />
-                                                                                % endif
-                                                                                <br />
-                                                                                % for rline in object.reservation_line_ids:
-                                                                                <strong>
-                                                                                    ${rline['num']} x ${rline['room_type']['name']}
-                                                                                    % if rline['childrens'] == 0:
-                                                                                    (${rline['adults']} Adultos)
-                                                                                    % else:
-                                                                                    (${rline['adults']} Adultos + ${rline['childrens']} Niños)
+                                                                        <img
+                                                                            src="https://www.aldahotels.es/firma/email/llegada/reserva.png"
+                                                                            border="0"
+                                                                            alt="Alda Hotels"
+                                                                        />
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                        <td
+                                                            width="90%"
+                                                            class="columncontainer"
+                                                        >
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        valign="top"
+                                                                        style="padding: 20px 30px 20px 30px;"
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellspacing="0"
+                                                                            cellpadding="0"
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    class="h2"
+                                                                                    style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
+                                                                                >Datos de tu
+                                                                                    reserva</td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td
+                                                                                    align="justify"
+                                                                                    class="subheading"
+                                                                                    style="color: #555555"
+                                                                                >
+                                                                                    <strong
+                                                                                    >${object.partner_id.name}</strong>
+                                                                                </td>
+                                                                            </tr>
+                                                                            <tr>
+                                                                                <td
+                                                                                    align="justify"
+                                                                                    class="paragraph"
+                                                                                    style="padding: 10px 0 0 0;"
+                                                                                >
+                                                                                    % if object.partner_id.contact_address:
+                                                                                    ${object.partner_id.contact_address}<br
+                                                                                    />
+                                                                                    % endif
+                                                                                    % if object.partner_id.phone:
+                                                                                    Tel.: ${object.partner_id.phone}<br
+                                                                                    />
+                                                                                    % endif
+                                                                                    % if object.partner_id.mobile:
+                                                                                    Mov.: ${object.partner_id.mobile}<br
+                                                                                    />
                                                                                     % endif
                                                                                     <br
                                                                                     />
-                                                                                </strong>
-                                                                                <strong
-                                                                                    style="margin-left:2em"
-                                                                                >Entrada</strong>: ${format_tz(rline['checkin']+ ' 00:00:00', format="%d de %B de %Y")}<br
-                                                                                />
-                                                                                <strong
-                                                                                    style="margin-left:2em"
-                                                                                >Salida</strong>: ${format_tz(rline['checkout']+ ' 00:00:00', format="%d de %B de %Y")}<br
-                                                                                />
-                                                                                <strong
-                                                                                    style="margin-left:2em"
-                                                                                >Nº de noches</strong>: ${rline['nights']}<br
-                                                                                /><br />
+                                                                                    % for reservations in object.folio_id.reservation_ids:
+                                                                                    <strong
+                                                                                    >
+                                                                                        ${reservations['room_type_id']['name']}
+                                                                                        % if reservations['children'] == 0:
+                                                                                        (${reservations['adults']} Adultos)
+                                                                                        % else:
+                                                                                        (${reservations['adults']} Adultos + ${reservations['children']} Niños)
+                                                                                        % endif
+                                                                                        <br
+                                                                                        />
+                                                                                    </strong>
+                                                                                    <strong
+                                                                                        style="margin-left:2em"
+                                                                                    >Entrada</strong>: ${reservations['checkin_datetime']}<br
+                                                                                    />
+                                                                                    <strong
+                                                                                        style="margin-left:2em"
+                                                                                    >Salida</strong>: ${reservations['checkout_datetime']}<br
+                                                                                    />
+                                                                                    <strong
+                                                                                        style="margin-left:2em"
+                                                                                    >Nº de noches</strong>: ${reservations['nights']}<br
+                                                                                    /><br
+                                                                                    />
 
-                                                                                % endfor
+                                                                                    % endfor
 
-                                                                                <br />
-                                                                                <b><p
-                                                                                        style="color:#45C2B1"
-                                                                                    >Información importante</p></b>
-                                                                                <p
-                                                                                >Las condiciones de pago y cancelación variarán según la tipología de tarifa seleccionada:</p>
-                                                                                <ul>
-                                                                                    <li
-                                                                                    >Las <strong
-                                                                                        >reservas con tarifa flexible</strong> podrán ser canceladas de manera gratuita hasta las 12:00 h del día antes de tu llegada. Estas reservas están sujetas al pago anticipado de la primera noche.</li>
-                                                                                    <li
-                                                                                    >Las <strong
-                                                                                        >reservas con tarifa semiflexible</strong> admiten cancelación gratuita hasta 7 días antes de la entrada, pasado ese plazo no admite cambios ni devoluciones.  Deben ser abonadas en el momento de su confirmación.</li>
-                                                                                    <li
-                                                                                    >Las <strong
-                                                                                        >reservas con tarifa no reembolsable</strong>, no admiten cancelación ni modificación y, por tanto, no se reembolsará el dinero abonado en ningún caso.  Deben ser abonadas en el momento de su confirmación.</li>
-                                                                                    <li
-                                                                                    >En <strong
-                                                                                        >reservas con tarifa semiflexible y no reembolsable</strong>, de manera excepcional y bajo aceptación expresa del alojamiento, se podrá, mediante pago de la diferencia de precio si la hubiera, además de un suplemento de 10 €, solicitar un cambio en las fechas de estancia, pero nunca devolución del dinero al tratarse ambas de tarifas no reembolsables.</li>
-                                                                                    <li
-                                                                                    >De acuerdo con el tipo de tarifa seleccionada, se requiere <strong
-                                                                                        >un pago total o parcial</strong> de la reserva para poder mantenerla. Por favor, revisa tu teléfono y sigue las instrucciones para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el alojamiento podrá proceder a la cancelación de su reserva.</li>
-                                                                                    <li
-                                                                                    >Y recuerda, las <strong
-                                                                                        >reservas de 4 o más habitaciones</strong> pueden estar sujetas a condiciones especiales y comportar suplementos adicionales.</li>
+                                                                                    <br
+                                                                                    />
+                                                                                    <b
+                                                                                    ><p
+                                                                                            style="color:#45C2B1"
+                                                                                        >Información importante</p></b>
                                                                                     <p
-                                                                                    >En caso de duda, contáctanos. ¡Estaremos encantados de ayudarte!</p>
-                                                                                </ul></td>
-                                                                        </tr>
-                                                                    </table>
-                                                                </td>
-                                                            </tr>
-                                                        </table>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                    </tr>
+                                                                                    >Las condiciones de pago y cancelación variarán según la tipología de tarifa seleccionada:</p>
+                                                                                    <ul>
+                                                                                        <li
+                                                                                        >Las <strong
+                                                                                            >reservas con tarifa flexible</strong> podrán ser canceladas de manera gratuita hasta las 12:00 h del día antes de tu llegada. Estas reservas están sujetas al pago anticipado de la primera noche.</li>
+                                                                                        <li
+                                                                                        >Las <strong
+                                                                                            >reservas con tarifa semiflexible</strong> admiten cancelación gratuita hasta 7 días antes de la entrada, pasado ese plazo no admite cambios ni devoluciones.  Deben ser abonadas en el momento de su confirmación.</li>
+                                                                                        <li
+                                                                                        >Las <strong
+                                                                                            >reservas con tarifa no reembolsable</strong>, no admiten cancelación ni modificación y, por tanto, no se reembolsará el dinero abonado en ningún caso.  Deben ser abonadas en el momento de su confirmación.</li>
+                                                                                        <li
+                                                                                        >En <strong
+                                                                                            >reservas con tarifa semiflexible y no reembolsable</strong>, de manera excepcional y bajo aceptación expresa del alojamiento, se podrá, mediante pago de la diferencia de precio si la hubiera, además de un suplemento de 10 €, solicitar un cambio en las fechas de estancia, pero nunca devolución del dinero al tratarse ambas de tarifas no reembolsables.</li>
+                                                                                        <li
+                                                                                        >De acuerdo con el tipo de tarifa seleccionada, se requiere <strong
+                                                                                            >un pago total o parcial</strong> de la reserva para poder mantenerla. Por favor, revisa tu teléfono y sigue las instrucciones para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el alojamiento podrá proceder a la cancelación de su reserva.</li>
+                                                                                        <li
+                                                                                        >Y recuerda, las <strong
+                                                                                            >reservas de 4 o más habitaciones</strong> pueden estar sujetas a condiciones especiales y comportar suplementos adicionales.</li>
+                                                                                        <p
+                                                                                        >En caso de duda, contáctanos. ¡Estaremos encantados de ayudarte!</p>
+                                                                                    </ul></td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </center>
                                     <!--2 Column maps-->
                                     <tr>
                                         <td
@@ -839,8 +835,8 @@ img {
                                                                             style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
                                                                         >Información de la
                                                                             habitación</div>
-                                                                        % set room_type_ids = object.room_lines.filtered('to_send').mapped('room_type_id.id')
-                                                                        % set room_types = user.env['hotel.room.type'].browse(room_type_ids)
+                                                                        % set room_type_ids = object.mapped('room_type_id.id')
+                                                                        % set room_types = object.folio_id.reservation_ids['room_type_id']
                                                                         % for room_type in room_types:
 
                                                                         % if room_type.product_id.name:
@@ -895,7 +891,7 @@ img {
                                                 border="0"
                                                 cellpadding="0"
                                                 cellspacing="0"
-                                                width="650"
+                                                width="100%"
                                                 class="columns"
                                             >
                                                 <tr valign="top">
@@ -945,7 +941,7 @@ img {
                                                                                             align="justify"
                                                                                             class="paragraph"
                                                                                             style="padding: 10px 0 0 0;"
-                                                                                        >Ciudad declarada Patrimonio de la Humanidad por la UNESCO y meta de una milenaria ruta de peregrinación: el Camino de Santiago.</td>
+                                                                                        >${object.pms_property_id.text_image1 |safe}</td>
                                                                                     </tr>
                                                                                     <tr>
                                                                                         <td
@@ -968,7 +964,7 @@ img {
                                                                                                             style="border: 2px solid #45C2B1; border-radius: 3px; -webkit-border-radius: 3px; -moz-border-radius: 3px;"
                                                                                                         >
                                                                                                             <a
-                                                                                                                href="http://www.santiagoturismo.com/"
+                                                                                                                href="${object.pms_property_id.web_city_information}"
                                                                                                                 target="_blank"
                                                                                                                 style="font-size: 12px; font-family: sans-serif; text-transform: uppercase; color: #45C2B1; border-color: #45C2B1; border: 2px solid #45C2B1; background-color: #ffffff; text-decoration: none; border-top: 12px solid #ffffff; border-bottom: 12px solid #ffffff; border-left: 12px solid #ffffff; border-right: 12px solid #ffffff; padding: 0 0 0 0; display: inline-block;"
                                                                                                             >Más
@@ -1007,7 +1003,7 @@ img {
                                                                     height="280px"
                                                                 >
                                                                     <img
-                                                                        src="https://www.aldahotels.es/firma/email/llegada/aa.jpg"
+                                                                        src="${object.pms_property_id.image2|safe}"
                                                                         alt=""
                                                                         width="330"
                                                                         border="0"
@@ -1034,12 +1030,7 @@ img {
                                                                     width="50%"
                                                                     height="280px"
                                                                 >
-                                                                    <img
-                                                                        src="https://www.aldahotels.es/firma/email/llegada/aa2.jpg"
-                                                                        width="330"
-                                                                        border="0"
-                                                                        alt=""
-                                                                    />
+                                                                    ${object.pms_property_id.image2}
                                                                 </td>
                                                             </tr>
                                                         </table>
@@ -1088,7 +1079,7 @@ img {
                                                                                             align="justify"
                                                                                             class="paragraph"
                                                                                             style="padding: 10px 0 0 0;color: #FFFFFF;"
-                                                                                        >       El Hotel Alda Algalia cuenta con el privilegio de ocupar una antigua casona de 1796 totalmente restaurada y cargada de encanto. Su inmejorable ubicación combinada con una decoración cuidada, otorgan a este hotel una identidad única compostelana.</td>
+                                                                                        >       ${object.pms_property_id.text_image2 |safe}</td>
                                                                                     </tr>
                                                                                     <tr>
                                                                                     </tr>
@@ -1114,7 +1105,7 @@ img {
                                                 border="0"
                                                 cellpadding="0"
                                                 cellspacing="0"
-                                                width="620"
+                                                width="100%"
                                                 class="columns"
                                             >
                                                 <tr valign="top">
@@ -1157,7 +1148,7 @@ img {
                                                 border="0"
                                                 cellpadding="0"
                                                 cellspacing="0"
-                                                width="620"
+                                                width="100%"
                                                 class="columns"
                                             >
                                                 <tr valign="top">

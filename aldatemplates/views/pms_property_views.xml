@@ -15,11 +15,11 @@
                     <group string="Images">
                         <field name="image1" />
                         <field name="image2" />
-                        <field name="text_image1"/>
-                        <field name="text_image2"/>
+                        <field name="text_image1" />
+                        <field name="text_image2" />
                     </group>
                     <group string="Settings">
-                        <field name="web_city_information"/>
+                        <field name="web_city_information" />
                     </group>
                 </page>
             </xpath>
