@@ -8,9 +8,18 @@
         <field name="inherit_id" ref="pms.pms_property_views_form" />
         <field name="arch" type="xml">
             <xpath expr="//page[@name='property_rooms']" position="after">
-                <page string="Alda Email Templates">
+                <page string="Alda Email Configuration">
                     <group string="Templates">
                         <field name="confirmation_template" />
+                    </group>
+                    <group string="Images">
+                        <field name="image1" />
+                        <field name="image2" />
+                        <field name="text_image1"/>
+                        <field name="text_image2"/>
+                    </group>
+                    <group string="Settings">
+                        <field name="web_city_information"/>
                     </group>
                 </page>
             </xpath>
