@@ -15,147 +15,207 @@
             >${(object.email and '"%s" &lt;%s&gt;' % (object.name, object.email) or object.partner_id.email_formatted or '') | safe}</field>
             <field name="body_html" type="html">
                 <style type="text/css">
-                    /*Global Styles*/
-                    .marco {
-                    bgcolor: #f6f6f6;
-                    margin: 0;
-                    padding: 0;
-                    min-width: 100% !important;
-                    }
-                    a {
-                    color: #45c2b1;
-                    text-decoration: none;
-                    font-weight: bold;
-                    }
-                    img {
-                    height: auto;
-                    }
-                    .content {
-                    border: 1px solid #eeeeee;
-                    }
-                    .logo {
-                    font-family: sans-serif;
-                    font-size: 36px;
-                    font-weight: bold;
-                    color: #ffffff;
-                    }
-                    .link a {
-                    font-family: sans-serif;
-                    font-size: 12px;
-                    color: #45c2b1;
-                    }
-                    .subheading {
-                    font-size: 14px;
-                    color: #cccccc;
-                    font-family: sans-serif;
-                    font-weight: bold;
-                    padding: 0 0 0 0;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    }
-                    .h1 {
-                    font-family: sans-serif;
-                    font-size: 48px;
-                    font-weight: bold;
-                    line-height: 56px;
-                    color: #ffffff;
-                    padding: 0 0 0 0;
-                    }
-                    .h2 {
-                    font-family: sans-serif;
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #444444;
-                    padding: 0 0 0 0;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    }
-                    .h3 {
-                    font-family: sans-serif;
-                    font-size: 24px;
-                    font-weight: regular;
-                    color: #555555;
-                    padding: 0 0 0 0;
-                    }
-                    .h4 {
-                    font-family: sans-serif;
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #666666;
-                    padding: 0 0 0 0;
-                    }
-                    .paragraph {
-                    font-family: sans-serif;
-                    font-size: 14px;
-                    line-height: 22px;
-                    color: #666666;
-                    font-weight: 200;
-                    padding: 20px 0 0 0;
-                    }
-                    .listitem {
-                    font-family: sans-serif;
-                    font-size: 15px;
-                    color: #666666;
-                    font-weight: 200;
-                    padding: 0 0 20px 0;
-                    }
-                    .smalltext {
-                    font-family: sans-serif;
-                    font-size: 14px;
-                    color: #cccccc;
-                    padding: 3px 0 0 0;
-                    }
-                    .borderbottom {
-                    border-bottom: 1px solid #f2eeed;
-                    }
-                    /*Media Queries*/
-                    @media only screen and (max-width: 651px) {
-                    .columns {
-                    width: 100% !important;
-                    }
-                    .columncontainer {
-                    display: block !important;
-                    width: 100% !important;
-                    }
-                    .paragraph,
-                    .listitem {
-                    font-size: 18px;
-                    }
-                    .link {
-                    float: left;
-                    }
-                    }
-                    @media only screen and (min-width: 651px) {
-                    .content {
-                    width: 650px !important;
-                    }
-                    }
+/*Global Styles*/
+.marco {
+    bgcolor: #f6f6f6;
+    margin: 0;
+    padding: 0;
+    min-width: 100% !important;
+}
+a {
+    color: #45c2b1;
+    text-decoration: none;
+    font-weight: bold;
+}
+img {
+    height: auto;
+}
+.content {
+    border: 1px solid #eeeeee;
+}
+.logo {
+    font-family: sans-serif;
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffffff;
+}
+.link a {
+    font-family: sans-serif;
+    font-size: 12px;
+    color: #45c2b1;
+}
+.subheading {
+    font-size: 14px;
+    color: #cccccc;
+    font-family: sans-serif;
+    font-weight: bold;
+    padding: 0 0 0 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.h1 {
+    font-family: sans-serif;
+    font-size: 48px;
+    font-weight: bold;
+    line-height: 56px;
+    color: #ffffff;
+    padding: 0 0 0 0;
+}
+.h2 {
+    font-family: sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #444444;
+    padding: 0 0 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.h3 {
+    font-family: sans-serif;
+    font-size: 24px;
+    font-weight: regular;
+    color: #555555;
+    padding: 0 0 0 0;
+}
+.h4 {
+    font-family: sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #666666;
+    padding: 0 0 0 0;
+}
+.paragraph {
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: #666666;
+    font-weight: 200;
+    padding: 20px 0 0 0;
+}
+.listitem {
+    font-family: sans-serif;
+    font-size: 15px;
+    color: #666666;
+    font-weight: 200;
+    padding: 0 0 20px 0;
+}
+.smalltext {
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #cccccc;
+    padding: 3px 0 0 0;
+}
+.borderbottom {
+    border-bottom: 1px solid #f2eeed;
+}
+/*Media Queries*/
+@media only screen and (max-width: 651px) {
+    .columns {
+        width: 100% !important;
+    }
+    .columncontainer {
+        display: block !important;
+        width: 100% !important;
+    }
+    .paragraph,
+    .listitem {
+        font-size: 18px;
+    }
+    .link {
+        float: left;
+    }
+}
+@media only screen and (min-width: 651px) {
+    .content {
+        width: 650px !important;
+    }
+}
                 </style>
-                <div style="background-color:#ffffff; margin: 0; padding: 0; min-width: 100%!important;font-family: sans-serif; font-size: 16px; line-height: 22px; color: #666666; font-weight: 200; padding: 20px 0 0 0;">
-                    <div style="background-color:#ffffff; margin: 0; padding: 0; min-width: 100%!important;font-family: sans-serif; font-size: 16px; line-height: 22px; color: #666666; font-weight: 200; padding: 20px 0 0 0;">
-                        <table width="100%" background-color="#ffffff" border="0" cellpadding="0" cellspacing="0">
-                        <tr/>
-                        <td/>
+                <div
+                    style="background-color:#ffffff; margin: 0; padding: 0; min-width: 100%!important;font-family: sans-serif; font-size: 16px; line-height: 22px; color: #666666; font-weight: 200; padding: 20px 0 0 0;"
+                >
+                    <div
+                        style="background-color:#ffffff; margin: 0; padding: 0; min-width: 100%!important;font-family: sans-serif; font-size: 16px; line-height: 22px; color: #666666; font-weight: 200; padding: 20px 0 0 0;"
+                    >
+                        <table
+                            width="100%"
+                            background-color="#ffffff"
+                            border="0"
+                            cellpadding="0"
+                            cellspacing="0"
+                        >
+                        <tr />
+                        <td />
 
-                        <table class="content" background-color="#f6f6f6" align="center" cellpadding="0" cellspacing="0" border="0" style="width: 650px !important; border: 1px solid #eeeeee; background-color:#f6f6f6;">
+                        <table
+                                class="content"
+                                background-color="#f6f6f6"
+                                align="center"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                                style="width: 650px !important; border: 1px solid #eeeeee; background-color:#f6f6f6;"
+                            >
                             <!--Header-->
                             <tr width="100%">
-                                <td style="padding: 30px 30px 20px 30px;background-color:#1B1B1B; width:100%">
-                                    <table border="0x" cellpadding="0" cellspacing="0" width="100%" class="columns">
+                                <td
+                                        style="padding: 30px 30px 20px 30px;background-color:#1B1B1B; width:100%"
+                                    >
+                                    <table
+                                            border="0x"
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            width="100%"
+                                            class="columns"
+                                        >
                                         <tr valign="top">
                                         </tr>
                                     </table>
-                                    <img src="https://www.aldahotels.es/firma/email/llegada/logobl.png" width="251" height="57" alt="Alda Hotels" />
-                                    <table border="0x" cellpadding="0" cellspacing="0" width="100%" class="columns">
+                                    <img
+                                            src="https://www.aldahotels.es/firma/email/llegada/logobl.png"
+                                            width="251"
+                                            height="57"
+                                            alt="Alda Hotels"
+                                        />
+                                    <table
+                                            border="0x"
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            width="100%"
+                                            class="columns"
+                                        >
                                         <tr valign="top">
-                                            <td width="50%" valign="middle" class="columncontainer">
-                                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <td
+                                                    width="50%"
+                                                    valign="middle"
+                                                    class="columncontainer"
+                                                >
+                                                <table
+                                                        border="0"
+                                                        cellpadding="0"
+                                                        cellspacing="0"
+                                                        width="100%"
+                                                    >
                                                     <tr>
-                                                        <td align="right" valign="middle" style="padding: 0px 0px 0px 0px;">
-                                                            <table border="0" cellspacing="0" cellpadding="0" class="link">
+                                                        <td
+                                                                align="right"
+                                                                valign="middle"
+                                                                style="padding: 0px 0px 0px 0px;"
+                                                            >
+                                                            <table
+                                                                    border="0"
+                                                                    cellspacing="0"
+                                                                    cellpadding="0"
+                                                                    class="link"
+                                                                >
                                                                 <tr>
-                                                                    <td style="padding: 0px 15px 0px 0px;">
-                                                                        <a href="#" style="color:#FFFFFF">www.aldahotels.com</a>
+                                                                    <td
+                                                                            style="padding: 0px 15px 0px 0px;"
+                                                                        >
+                                                                        <a
+                                                                                href="#"
+                                                                                style="color:#FFFFFF"
+                                                                            >www.aldahotels.com</a>
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -173,7 +233,10 @@
                         </tr>
                         <!--1 Column resume-->
                         <tr>
-                            <td class="borderbottom" style="padding: 60px 30px 60px 30px;">
+                            <td
+                                class="borderbottom"
+                                style="padding: 60px 30px 60px 30px;"
+                            >
                                 <table
                                     width="100%"
                                     border="0"
@@ -215,32 +278,35 @@
                                         style="padding: 0px 0 0 0;"
                                     >
                                         <center><p
-                                            style="font-size: 2em; line_height=0px; color: #45C2B1;"
-                                        ><strong>IMPORTANTE</strong></p></center>
+                                                style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                            ><strong>IMPORTANTE</strong></p></center>
                                         <strong><center>
                                             Dependiendo del tipo de tarifa seleccionado, puede que la reserva requiera <u
-                                        >un pago por adelantado</u> para mantenerla. De ser así, revisa tu teléfono y sigue las instrucciones que recibirás por SMS para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el hotel podrá proceder a la cancelación de tu reserva.<br
-                                        />
+                                                >un pago por adelantado</u> para mantenerla. De ser así, revisa tu teléfono y sigue las instrucciones que recibirás por SMS para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el hotel podrá proceder a la cancelación de tu reserva.<br
+                                                />
                                             <center><br /><img
-                                                src="https://www.aldahotels.es/firma/email/llegada/sms.png"
-                                                width="80px"
-                                                height="80px"
-                                            /></center>
+                                                        src="https://www.aldahotels.es/firma/email/llegada/sms.png"
+                                                        width="80px"
+                                                        height="80px"
+                                                    /></center>
                                             <center><br /><img
-                                                src="https://www.aldahotels.es/firma/email/llegada/ps.gif"
-                                            /></center>
+                                                        src="https://www.aldahotels.es/firma/email/llegada/ps.gif"
+                                                    /></center>
                                             <p
-                                                style="font-size: 2em; line_height=0px; color: #45C2B1;"
-                                            >__</p>
+                                                    style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                                >__</p>
                                             Realiza ya tu check-in y ahorra tiempo
                                         </center></strong><br />
                                         Accede a <strong
-                                    >nuestro sistema de registro rápido</strong>. En pocos pasos conseguirás registrar tus datos de manera ágil, sencilla y segura, <strong
-                                    >evitando colas en recepción</strong>.
+                                        >nuestro sistema de registro rápido</strong>. En pocos pasos conseguirás registrar tus datos de manera ágil, sencilla y segura, <strong
+                                        >evitando colas en recepción</strong>.
                                         Además, debido a la situación actual, queremos evitar al máximo posible el contacto físico y respetar las distancias. Si registras tus datos en nuestro sistema, <strong
-                                    >tu paso por recepción será mucho más rápido</strong>, pudiendo disfrutar de la comodidad de tu habitación enseguida.</td>
+                                        >tu paso por recepción será mucho más rápido</strong>, pudiendo disfrutar de la comodidad de tu habitación enseguida.</td>
                                     <tr>
-                                        <td align="center" style="padding: 20px 0 0px 0; ">
+                                        <td
+                                            align="center"
+                                            style="padding: 20px 0 0px 0; "
+                                        >
                                             <table
                                                 border="0"
                                                 cellspacing="0"
@@ -254,11 +320,11 @@
                                                             >Hacer check-in
                                                             </div>
                                                             <center><img
-                                                                src="https://www.aldahotels.es/firma/email/llegada/check-in.png"
-                                                                alt="Hacer check-in"
-                                                                width="80px"
-                                                                height="80px"
-                                                            /></center>
+                                                                    src="https://www.aldahotels.es/firma/email/llegada/check-in.png"
+                                                                    alt="Hacer check-in"
+                                                                    width="80px"
+                                                                    height="80px"
+                                                                /></center>
                                                             <!--                                                        </a>-->
                                                         </p>
                                                         <tr>
@@ -267,10 +333,10 @@
                                                                 class="paragraph"
                                                                 style="padding: 10px 0 0 0;"
                                                             >También te invitamos a que <a
-                                                                href="https://www.aldahotels.es/covid-free/"
-                                                                target="_blank"
-                                                            >conozcas nuestras medidas de prevención del COVID-19</a> y saber qué es lo que estamos haciendo para garantizar tu seguridad y la de todos.<br
-                                                            />
+                                                                    href="https://www.aldahotels.es/covid-free/"
+                                                                    target="_blank"
+                                                                >conozcas nuestras medidas de prevención del COVID-19</a> y saber qué es lo que estamos haciendo para garantizar tu seguridad y la de todos.<br
+                                                                />
                                                             </td>
                                                         </tr>
                                                     </td>
@@ -332,10 +398,10 @@
                                                             class="paragraph"
                                                             style="padding: 10px 0 0 0; marging:0; width: 100%"
                                                         >Si tienes prevista la llegada al hotel <strong
-                                                        >más tarde de las 14:00 h</strong>, te rogamos que contactes con nosotros a través del correo electrónico <a
-                                                            href="mailto:${object.pms_property_id.partner_id.email}"
-                                                        >${object.pms_property_id.partner_id.email}</a> o en el teléfono ${object.pms_property_id.partner_id.phone}<br
-                                                        /></td>
+                                                            >más tarde de las 14:00 h</strong>, te rogamos que contactes con nosotros a través del correo electrónico <a
+                                                                href="mailto:${object.pms_property_id.partner_id.email}"
+                                                            >${object.pms_property_id.partner_id.email}</a> o en el teléfono ${object.pms_property_id.partner_id.phone}<br
+                                                            /></td>
                                                     </tr>
                                                     <tr> </tr>
                                                 </table>
@@ -426,15 +492,15 @@
                                                                                     >
                                                                                         % if object.partner_id.contact_address:
                                                                                         ${object.partner_id.contact_address}<br
-                                                                                    />
+                                                                                        />
                                                                                         % endif
                                                                                         % if object.partner_id.phone:
                                                                                         Tel.: ${object.partner_id.phone}<br
-                                                                                    />
+                                                                                        />
                                                                                         % endif
                                                                                         % if object.partner_id.mobile:
                                                                                         Mov.: ${object.partner_id.mobile}<br
-                                                                                    />
+                                                                                        />
                                                                                         % endif
                                                                                         <br
                                                                                         />
@@ -453,16 +519,16 @@
                                                                                         <strong
                                                                                             style="margin-left:2em"
                                                                                         >Entrada</strong>: ${reservations['checkin_datetime']}<br
-                                                                                    />
+                                                                                        />
                                                                                         <strong
                                                                                             style="margin-left:2em"
                                                                                         >Salida</strong>: ${reservations['checkout_datetime']}<br
-                                                                                    />
+                                                                                        />
                                                                                         <strong
                                                                                             style="margin-left:2em"
                                                                                         >Nº de noches</strong>: ${reservations['nights']}<br
-                                                                                    /><br
-                                                                                    />
+                                                                                        /><br
+                                                                                        />
 
                                                                                         % endfor
 
@@ -470,29 +536,30 @@
                                                                                         />
                                                                                         <b
                                                                                         ><p
-                                                                                            style="color:#45C2B1"
-                                                                                        >Información importante</p></b>
+                                                                                                style="color:#45C2B1"
+                                                                                            >Información importante</p></b>
                                                                                         <p
                                                                                         >Las condiciones de pago y cancelación variarán según la tipología de tarifa seleccionada:</p>
-                                                                                        <ul>
+                                                                                        <ul
+                                                                                        >
                                                                                             <li
                                                                                             >Las <strong
-                                                                                            >reservas con tarifa flexible</strong> podrán ser canceladas de manera gratuita hasta las 12:00 h del día antes de tu llegada. Estas reservas están sujetas al pago anticipado de la primera noche.</li>
+                                                                                                >reservas con tarifa flexible</strong> podrán ser canceladas de manera gratuita hasta las 12:00 h del día antes de tu llegada. Estas reservas están sujetas al pago anticipado de la primera noche.</li>
                                                                                             <li
                                                                                             >Las <strong
-                                                                                            >reservas con tarifa semiflexible</strong> admiten cancelación gratuita hasta 7 días antes de la entrada, pasado ese plazo no admite cambios ni devoluciones.  Deben ser abonadas en el momento de su confirmación.</li>
+                                                                                                >reservas con tarifa semiflexible</strong> admiten cancelación gratuita hasta 7 días antes de la entrada, pasado ese plazo no admite cambios ni devoluciones.  Deben ser abonadas en el momento de su confirmación.</li>
                                                                                             <li
                                                                                             >Las <strong
-                                                                                            >reservas con tarifa no reembolsable</strong>, no admiten cancelación ni modificación y, por tanto, no se reembolsará el dinero abonado en ningún caso.  Deben ser abonadas en el momento de su confirmación.</li>
+                                                                                                >reservas con tarifa no reembolsable</strong>, no admiten cancelación ni modificación y, por tanto, no se reembolsará el dinero abonado en ningún caso.  Deben ser abonadas en el momento de su confirmación.</li>
                                                                                             <li
                                                                                             >En <strong
-                                                                                            >reservas con tarifa semiflexible y no reembolsable</strong>, de manera excepcional y bajo aceptación expresa del alojamiento, se podrá, mediante pago de la diferencia de precio si la hubiera, además de un suplemento de 10 €, solicitar un cambio en las fechas de estancia, pero nunca devolución del dinero al tratarse ambas de tarifas no reembolsables.</li>
+                                                                                                >reservas con tarifa semiflexible y no reembolsable</strong>, de manera excepcional y bajo aceptación expresa del alojamiento, se podrá, mediante pago de la diferencia de precio si la hubiera, además de un suplemento de 10 €, solicitar un cambio en las fechas de estancia, pero nunca devolución del dinero al tratarse ambas de tarifas no reembolsables.</li>
                                                                                             <li
                                                                                             >De acuerdo con el tipo de tarifa seleccionada, se requiere <strong
-                                                                                            >un pago total o parcial</strong> de la reserva para poder mantenerla. Por favor, revisa tu teléfono y sigue las instrucciones para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el alojamiento podrá proceder a la cancelación de su reserva.</li>
+                                                                                                >un pago total o parcial</strong> de la reserva para poder mantenerla. Por favor, revisa tu teléfono y sigue las instrucciones para acceder a la plataforma de pago. En caso de no realizarlo en el plazo señalado, el alojamiento podrá proceder a la cancelación de su reserva.</li>
                                                                                             <li
                                                                                             >Y recuerda, las <strong
-                                                                                            >reservas de 4 o más habitaciones</strong> pueden estar sujetas a condiciones especiales y comportar suplementos adicionales.</li>
+                                                                                                >reservas de 4 o más habitaciones</strong> pueden estar sujetas a condiciones especiales y comportar suplementos adicionales.</li>
                                                                                             <p
                                                                                             >En caso de duda, contáctanos. ¡Estaremos encantados de ayudarte!</p>
                                                                                         </ul></td>
@@ -558,7 +625,8 @@
                                                                                     style="background-color:transparent"
                                                                                     target="_blank"
                                                                                 >
-                                                                                    <br />
+                                                                                    <br
+                                                                                    />
                                                                                     <img
                                                                                         src="https://www.aldahotels.es/firma/email/llegada/como-llegar.png"
                                                                                         alt="Ver mapa"
@@ -566,7 +634,8 @@
                                                                                     />
                                                                                 </a>
                                                                                 <p>
-                                                                                    <br />
+                                                                                    <br
+                                                                                    />
                                                                                     <a
                                                                                         href="https://www.google.com/maps/dir/?api=1destination=${object.pms_property_id.display_name}%20${object.pms_property_id.street}%20${object.pms_property_id.city}"
                                                                                         target="_blank"
@@ -588,7 +657,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="center"
                                                                                             >
@@ -694,14 +764,15 @@
                                                                                 >
                                                                                     <strong
                                                                                     >Base imponible</strong>: ${object.folio_id.amount_untaxed} €<br
-                                                                                />
+                                                                                    />
                                                                                     <strong
                                                                                     >I.V.A (10%)</strong>: ${object.folio_id.amount_tax} €<br
-                                                                                />
+                                                                                    />
                                                                                     <strong
                                                                                     >Precio total</strong>: ${object.folio_id.amount_total} €<br
-                                                                                />
-                                                                                    <br />
+                                                                                    />
+                                                                                    <br
+                                                                                    />
                                                                                 </td>
                                                                             </tr>
                                                                             <tr>
@@ -868,21 +939,24 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="justify"
                                                                                                 class="h2"
                                                                                                 style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #45C2B1; padding: 15px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
                                                                                             >${object.pms_property_id.city}</td>
                                                                                         </tr>
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="justify"
                                                                                                 class="paragraph"
                                                                                                 style="padding: 10px 0 0 0;"
                                                                                             >${object.pms_property_id.text_image1 |safe}</td>
                                                                                         </tr>
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 style="padding: 20px 0 20px 0;  background-color:#F9F9F9"
                                                                                             >
@@ -1006,21 +1080,24 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="justify"
                                                                                                 class="h2"
                                                                                                 style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #FFFFFF; padding: 15px 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
                                                                                             >${object.pms_property_id.display_name}</td>
                                                                                         </tr>
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="justify"
                                                                                                 class="paragraph"
                                                                                                 style="padding: 10px 0 0 0;color: #FFFFFF;"
                                                                                             >       ${object.pms_property_id.text_image2 |safe}</td>
                                                                                         </tr>
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                         </tr>
                                                                                     </table>
                                                                                 </td>
@@ -1152,7 +1229,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 background-color="#3B5998"
                                                                                                 height="5px"
@@ -1181,7 +1259,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="center"
                                                                                             >
@@ -1272,7 +1351,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 background-color="#E56459"
                                                                                                 height="5px"
@@ -1301,7 +1381,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="center"
                                                                                             >
@@ -1392,7 +1473,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 background-color="#1DA1F2"
                                                                                                 height="5px"
@@ -1421,7 +1503,8 @@
                                                                                         cellspacing="0"
                                                                                         cellpadding="0"
                                                                                     >
-                                                                                        <tr>
+                                                                                        <tr
+                                                                                        >
                                                                                             <td
                                                                                                 align="center"
                                                                                             >

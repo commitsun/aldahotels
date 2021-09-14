@@ -10,7 +10,10 @@
             <xpath expr="//page[@name='property_rooms']" position="after">
                 <page string="Alda Email Configuration">
                     <group string="Templates">
-                        <field name="confirmation_template" />
+                        <field
+                            name="confirmation_template_id"
+                            ref="aldatemplates.alda_confirmation_email"
+                        />
                     </group>
                     <group string="Images">
                         <field name="image1" />
@@ -19,7 +22,8 @@
                         <field name="text_image2" />
                     </group>
                     <group string="Settings">
-                        <field name="web_city_information" />
+                        <field name="web_city_information_url" />
+                        <field name="survey_url" />
                     </group>
                 </page>
             </xpath>

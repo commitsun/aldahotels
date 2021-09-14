@@ -14,6 +14,8 @@
     ],
     "data": [
         "data/confirmation_template.xml",
+        "data/exit_template.xml",
+        "data/cancelation_template.xml",
         "security/ir.model.access.csv",
         "views/pms_property_views.xml",
     ],
