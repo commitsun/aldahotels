@@ -18,6 +18,7 @@
         "data/cancelation_template.xml",
         "security/ir.model.access.csv",
         "views/pms_property_views.xml",
+        "views/product_pricelist_views.xml",
     ],
     "installable": True,
 }
