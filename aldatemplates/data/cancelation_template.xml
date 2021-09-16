@@ -3,7 +3,7 @@
     <data>
         <record id="alda_cancelation_email" model="mail.template">
             <field name="name">Alda Cancelation Email</field>
-            <field name="model_id" ref="pms.model_pms_reservation" />
+            <field name="model_id" ref="pms.model_pms_folio" />
             <field
                 name="subject"
             >Su reserva en ${object.pms_property_id.name} ha sido cancelada</field>
@@ -259,7 +259,7 @@ img {
                                                                 <td
                                                                     class="h2"
                                                                     align="center"
-                                                                > Tu reserva se ha cancelado en ${object.company_id.property_name}</td>
+                                                                > Tu reserva se ha cancelado en ${object.pms_property_id.name}</td>
                                                             </tr>
                                                             <tr>
                                                                 <td
@@ -293,15 +293,7 @@ img {
                                                                     class="paragraph"
                                                                     style="padding: 10px 0 0 0;"
                                                                     align="justify"
-                                                                >Hola
-                                                                    % if object.firstname:
-                                                                    ${object.firstname}:
-                                                                    % endif
-                                                                    % if object.firstname == False:
-                                                                    % if object.name:
-                                                                    ${object.name}:
-                                                                    % endif
-                                                                    % endif
+                                                                >Hola ${object.partner_id.name or object.partner_id.firstname or ''}
                                                                     <br />
                                                                     Tu reserva en <b
                                                                     >${object.pms_property_id.name}</b> se ha anulado correctamente. No es necesario que hagas nada más.
@@ -442,51 +434,35 @@ img {
                                                                                                     % endif
                                                                                                     <br
                                                                                                     />
-                                                                                                    % for rline in object.room_lines:
-                                                                                                    % if rline.state == 'cancelled'
-
-                                                                                                    % for reservations in object.folio_id.reservation_ids:
+                                                                                                    % for reservation in object.reservation_ids:
+                                                                                                    % if reservation.state == 'cancel'
                                                                                                     <strong
                                                                                                     >
-                                                                                                        ${reservations['room_type_id']['name']}
-                                                                                                        % if reservations['children'] == 0:
-                                                                                                        (${reservations['adults']} Adultos)
+                                                                                                        ${reservation['room_type_id']['name']}
+                                                                                                        % if reservation['children'] == 0:
+                                                                                                        (${reservation['adults']} Adultos)
                                                                                                         % else:
-                                                                                                        (${reservations['adults']} Adultos + ${reservations['children']} Niños)
+                                                                                                        (${reservation['adults']} Adultos + ${reservation['children']} Niños)
                                                                                                         % endif
                                                                                                         <br
                                                                                                         />
                                                                                                     </strong>
                                                                                                     <strong
                                                                                                         style="margin-left:2em"
-                                                                                                    >Entrada</strong>: ${reservations['checkin_datetime']}<br
+                                                                                                    >Entrada</strong>: ${reservation['checkin_datetime']}<br
                                                                                                     />
                                                                                                     <strong
                                                                                                         style="margin-left:2em"
-                                                                                                    >Salida</strong>: ${reservations['checkout_datetime']}<br
+                                                                                                    >Salida</strong>: ${reservation['checkout_datetime']}<br
                                                                                                     />
                                                                                                     <strong
                                                                                                         style="margin-left:2em"
-                                                                                                    >Nº de noches</strong>: ${reservations['nights']}<br
+                                                                                                    >Nº de noches</strong>: ${reservation['nights']}<br
                                                                                                     /><br
                                                                                                     />
-
-                                                                                                    % endfor
                                                                                                     <br
-                                                                                                    />
-                                                                                                    <strong
-                                                                                                        style="margin-left:2em"
-                                                                                                    >Entrada</strong>: ${format_tz(rline.real_checkin+ ' 00:00:00', format="%d de %B de %Y")}<br
-                                                                                                    />
-                                                                                                    <strong
-                                                                                                        style="margin-left:2em"
-                                                                                                    >Salida</strong>: ${format_tz(rline.real_checkout+ ' 00:00:00', format="%d de %B de %Y")}<br
-                                                                                                    />
-                                                                                                    <br
-                                                                                                    /><br
                                                                                                     />
                                                                                                     % endif
-
                                                                                                     % endfor
                                                                                                 </td>
                                                                                             </tr>
@@ -595,16 +571,16 @@ img {
                                                                                                     align="justify"
                                                                                                 >
                                                                                                     <strong
-                                                                                                    >Base imponible</strong>: ${object.folio_id.amount_untaxed} €<br
+                                                                                                    >Base imponible</strong>: ${object.amount_untaxed} €<br
                                                                                                     />
                                                                                                     <strong
-                                                                                                    >I.V.A (10%)</strong>: ${object.folio_id.amount_tax} €<br
+                                                                                                    >I.V.A (10%)</strong>: ${object.amount_tax} €<br
                                                                                                     />
                                                                                                     <strong
-                                                                                                    >Precio total</strong>: ${object.folio_id.amount_total} €<br
+                                                                                                    >Precio total</strong>: ${object.amount_total} €<br
                                                                                                     />
                                                                                                     <strong
-                                                                                                    >Coste de cancelación: ${object.amount_total} €<br
+                                                                                                    >Coste de cancelación: ${object.pending_amount} €<br
                                                                                                         /></strong>
                                                                                                     <br
                                                                                                     />
@@ -1258,6 +1234,7 @@ img {
                                             <!--Footer-->
                                             <tr>
                                                 <td class="footer">
+                                                    % if object.pms_property_id.privacy_policy
                                                     <table
                                                         width="100%"
                                                         cellspacing="0"
@@ -1270,12 +1247,13 @@ img {
                                                                     class="smalltext"
                                                                     style="color: #828282; padding: 20px 20px 20px 20px;"
                                                                     align="justify"
-                                                                >“En cumplimiento de la Ley 34/2002 de Servicios de la Sociedad de la Información y del Comercio Electrónico (LSSI-CE), así como lo dispuesto en el Reglamento General de Protección de Datos y demás legislación concordante, le informamos de que sus datos personales figuran en un sistema de tratamiento automatizado cuya responsabilidad es de GRUPO ALDA compuesto por las siguientes sociedades: Alda Rías Baixas SL CIF B70476494; Alda Compostela SL CIF B70108931; Alda Castilla SL CIF B70408224; Hoteles Rías Altas SL CIF B70503206; Comphostel Gestión Patrimonial SL CIF B70235452; Consultores Hoteleros Integrales SL CIF B70537121, con dirección postal a efecto de notificación en PLAZA DE ALGALIA DE ARRIBA, Nº 3 – 15704 SANTIAGO DE COMPOSTELA. Los datos personales que existen en nuestro poder están protegidos por nuestra Política de Privacidad y serán tratados con la finalidad de atender su solicitud de información o contacto, así como mantenerle informado de nuestros productos y servicios, actuales o futuros. Los datos no se cederán a terceros salvo en los casos en que exista una obligación legal. Para ejercer sus derechos de acceso, rectificación, cancelación, oposición, limitación, supresión y/o portabilidad debe enviar un correo electrónico a protecciondatos@aldahotels.com” “Este correo podría ser confidencial. Si recibe este e-mail por error, por favor elimínelo, así como cualquier documento adjunto, y notifíquelo a su emisor. Si usted no es el destinatario del mensaje, sepa que no está permitida ninguna difusión, copia o utilización no autorizada.”</td>
+                                                                >${object.pms_property_id.privacy_policy | safe}</td>
                                                             </tr>
                                                             <tr>
                                                             </tr>
                                                         </tbody>
                                                     </table>
+                                                    % endif
                                                     <table
                                                         width="100%"
                                                         cellspacing="0"

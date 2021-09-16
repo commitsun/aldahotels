@@ -3,7 +3,7 @@
     <data>
         <record id="alda_exit_email" model="mail.template">
             <field name="name">Alda Exit Email</field>
-            <field name="model_id" ref="pms.model_pms_reservation" />
+            <field name="model_id" ref="pms.model_pms_folio" />
             <field
                 name="subject"
             >Gracias por reservar en ${object.pms_property_id.name}</field>
@@ -255,15 +255,7 @@ img {
                                                         class="paragraph"
                                                         style="padding: 10px 0 0 0;"
                                                         align="justify"
-                                                    >Hola
-                                                        % if object.firstname:
-                                                        ${object.firstname}:
-                                                        % endif
-                                                        % if object.firstname == False:
-                                                        % if object.name:
-                                                        ${object.name}:
-                                                        % endif
-                                                        % endif
+                                                    >Hola ${object.partner_id.name or object.partner_id.firstname or ''}
                                                         <br />
                                                         Todo el equipo del <strong
                                                         >${object.pms_property_id.name}</strong> queremos darte las gracias por habernos elegido para quedarte en la ciudad. Esperamos que hayas disfrutado de tu estancia y que te hayamos hecho sentir como en casa en nuestro alojamiento.<br
@@ -295,6 +287,7 @@ img {
                                                                         >Código de descuento: REPITECONALDA
                                                                         </div>
                                                                     </a>
+                                                                    % if object.pms_property_id.quiz_url
                                                                     <tr>
                                                                         <td
                                                                             align="justify"
@@ -320,9 +313,8 @@ img {
                                                                             <td
                                                                                 align="center"
                                                                             >
-                                                                                % if object.pms_property_id.survey_url
                                                                                 <a
-                                                                                    href="${object.pms_property_id.survey_url}"
+                                                                                    href="${object.pms_property_id.quiz_url}"
                                                                                     target="_blank"
                                                                                     style="text-decoration: none; color: #FFFFFF; font-size: 2em; padding: 10px 20px 10px 20px;"
                                                                                 >
@@ -609,6 +601,7 @@ img {
                                                 <!--Footer-->
                                                 <tr>
                                                     <td class="footer">
+                                                        % if object.pms_property_id.privacy_policy
                                                         <table
                                                             width="100%"
                                                             border="0"
@@ -620,19 +613,12 @@ img {
                                                                     align="justify"
                                                                     class="smalltext"
                                                                     style="color: #828282; padding: 20px 20px 20px 20px;"
-                                                                >En cumplimiento de la Ley 34/2002 de Servicios de la Sociedad de la Información y del Comercio Electrónico, así como
-                                                                    de
-                                                                    la Ley Orgánica 15/1999 del 13 de Diciembre de Protección de Datos de Carácter Personal y demás legislación concordante, se le informa que sus datos personales figuran en un fichero automatizado cuya
-                                                                    responsabilidad es de GRUPO ALDA compuesto por las siguientes sociedades: Alda Rías Baixas SL CIF B70476494; Alda Compostela SL CIF B70108931; Alda Castilla SL CIF B70408224; Hoteles Rías Altas SL CIF B70503206; Comphostel Gestión Patrimonial SL CIF B70235452; Consultores Hoteleros Integrales SL CIF B70537121, con dirección postal a efecto de notificación en Praza da Algalia de Arriba,  3 – 15704 Santiago de Compostela. Los datos personales que existen en nuestro poder están protegidos por nuestra Política de
-                                                                    Privacidad
-                                                                    y solo serán utilizados para los fines propios de nuestra actividad. Para ejercer sus derechos de acceso, rectificación, cancelación u oposición debe enviar un correo electrónico a protecciondatos@aldahotels.com
-                                                                    indicándonos la opción a realizar. Este correo podría ser confidencial. Si recibe este e-mail por error, por favor elimínelo, así como cualquier documento adjunto, y notifíquelo a su emisor. Si usted no es
-                                                                    el
-                                                                    destinatario del mensaje, sepa que no está permitida ninguna difusión, copia o utilización no autorizada.</td>
+                                                                >${object.pms_property_id.privacy_policy | safe}</td>
                                                             </tr>
                                                             <tr>
                                                             </tr>
                                                         </table>
+                                                        % endif
                                                         <table
                                                             width="100%"
                                                             border="0"
