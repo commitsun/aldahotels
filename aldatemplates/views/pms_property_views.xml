@@ -7,25 +7,26 @@
         <field name="model">pms.property</field>
         <field name="inherit_id" ref="pms.pms_property_views_form" />
         <field name="arch" type="xml">
-            <xpath expr="//page[@name='property_rooms']" position="after">
-                <page string="Alda Email Configuration">
-                    <group string="Templates">
-                        <field
-                            name="confirmation_template_id"
-                            ref="aldatemplates.alda_confirmation_email"
-                        />
-                    </group>
-                    <group string="Images">
-                        <field name="image1" />
-                        <field name="image2" />
-                        <field name="text_image1" />
-                        <field name="text_image2" />
-                    </group>
-                    <group string="Settings">
-                        <field name="web_city_information_url" />
-                        <field name="survey_url" />
-                    </group>
-                </page>
+            <xpath expr="//field[@name='property_modified_template']" position="after">
+                <field name="property_exit_template" />
+            </xpath>
+            <xpath expr="//group[@name='mail_information']" position="before">
+                <group string="Settings">
+                    <field name="web_city_information_url" />
+                    <field name="quiz_url" />
+                </group>
+                <group string="Images">
+                    <field name="image1" />
+                    <field
+                        name="text_image1"
+                        attrs="{'invisible':[('image1','=',False)]}"
+                    />
+                    <field name="image2" />
+                    <field
+                        name="text_image2"
+                        attrs="{'invisible':[('image2','=',False)]}"
+                    />
+                </group>
             </xpath>
         </field>
     </record>
