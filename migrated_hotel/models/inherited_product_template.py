@@ -6,10 +6,10 @@ from odoo import models, fields
 
 class ProductTemplate(models.Model):
 
-    _inherit = 'product.template'
+    _inherit = "product.template"
 
     remote_id = fields.Integer(
         copy=False,
         readonly=True,
-        help="ID of the target record in the previous version"
+        help="ID of the target record in the previous version",
     )

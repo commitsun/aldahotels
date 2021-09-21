@@ -5,7 +5,6 @@ import logging
 
 from itertools import groupby
 import urllib.error
-from odoo.tools.mail import email_escape_char
 import odoorpc.odoo
 from odoo.exceptions import UserError, ValidationError
 from odoo import models, fields, api, _
@@ -2241,7 +2240,7 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         try:
             _logger.info("Importing Remote Jorunals...")
-            import_datetime = fields.Datetime.now()
+            fields.Datetime.now()
             remote_ids = noderpc.env['account.journal'].search([])
             remote_records = noderpc.env['account.journal'].browse(remote_ids)
             journal_migrated_ids = self.mapped("migrated_journal_ids.remote_id")

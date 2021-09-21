@@ -6,10 +6,10 @@ from odoo import models, fields
 
 class ResPartner(models.Model):
 
-    _inherit = 'res.partner'
+    _inherit = "res.partner"
 
     remote_id = fields.Integer(
         copy=False,
         readonly=True,
-        help="ID of the target record in the previous version"
+        help="ID of the target record in the previous version",
     )
