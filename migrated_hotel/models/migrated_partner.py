@@ -5,13 +5,14 @@ from odoo import models, fields
 
 
 class MigratePartner(models.Model):
-    _name = "migrated.partner"
+    _name = 'migrated.partner'
 
     date_time = fields.Datetime()
-    migrated_hotel_id = fields.Many2one("migrated.hotel")
+    migrated_hotel_id = fields.Many2one('migrated.hotel')
     remote_id = fields.Integer(
-        copy=False,
-        readonly=True,
-        help="ID of the remote record in the previous version",
+        copy=False, readonly=True,
+        help="ID of the remote record in the previous version")
+    partner_id = fields.Many2one(
+        string="V14 Partner",
+        comodel_name="res.partner"
     )
-    partner_id = fields.Many2one(string="V14 Partner", comodel_name="res.partner")

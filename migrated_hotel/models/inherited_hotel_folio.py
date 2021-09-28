@@ -6,10 +6,10 @@ from odoo import models, fields
 
 class PmsFolio(models.Model):
 
-    _inherit = "pms.folio"
+    _inherit = 'pms.folio'
 
     remote_id = fields.Integer(
         copy=False,
         readonly=True,
-        help="ID of the target record in the previous version",
+        help="ID of the target record in the previous version"
     )

@@ -4,10 +4,10 @@ from odoo import models, fields
 
 
 class MigrateChannelType(models.Model):
-    _name = "migrated.channel.type"
+    _name = 'migrated.channel.type'
 
-    last_sync = fields.Datetime("Last syncronization")
-    migrated_hotel_id = fields.Many2one("migrated.hotel", readonly=True)
+    last_sync = fields.Datetime('Last syncronization')
+    migrated_hotel_id = fields.Many2one('migrated.hotel', readonly=True)
     remote_name = fields.Char("Remote Channel")
     channel_type_id = fields.Many2one(
         string="Current Channel",
