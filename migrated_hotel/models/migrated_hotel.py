@@ -580,7 +580,7 @@ class MigratedHotel(models.Model):
             self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
             count += 1
             total_count += 1
-        self.last_import_partners = self.fields.Datetime.now()
+        self.last_import_partners = fields.Datetime.now()
         self.count_migrated_partners = self.env["migrated.partner"].search_count([("migrated_hotel_id", "=", self.id)])
         noderpc.logout()
 
@@ -1274,11 +1274,7 @@ class MigratedHotel(models.Model):
                 ("pms_property_id", "=", self.pms_property_id.id)
             ]).mapped("remote_id")
             remote_payment_vals = noderpc.env['account.payment'].search_read(
-                [
-                    '|',
-                    ("folio_id", "=", False),
-                    ("folio_id", "in", migrated_folio_ids)
-                ],
+                [],
                 [
                     "payment_type",
                     "partner_type",
@@ -1293,6 +1289,7 @@ class MigratedHotel(models.Model):
                     "create_uid"
                 ],
             )
+            # TODO
             total = len(remote_payment_vals)
             _logger.info("Total Number of Payments: %s", total)
             remote_payment_by_journal_vals = sorted(remote_payment_vals, key=journal_func)
