@@ -7,6 +7,7 @@
     'category': 'Generic Modules/Hotel Management',
     'depends': [
         'pms',
+        'connector_pms_wubook',
     ],
     'external_dependencies':
         {'python' : ['odoorpc']},

@@ -29,6 +29,10 @@
                         <field name="default_channel_agency_id" colspan="2" />
                         <field name="default_plan_avail_id" colspan="2" />
                         <field name="backend_id" colspan="2"/>
+                        <field name="default_ota_channel" colspan="2"/>
+                        <field name="booking_agency" colspan="2"/>
+                        <field name="expedia_agency" colspan="2"/>
+                        <field name="hotelbeds_agency" colspan="2"/>
                     </group>
                     <group colspan="4">
                         <field name="folio_prefix" />

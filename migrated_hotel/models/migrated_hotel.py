@@ -5,6 +5,7 @@ import logging
 from dateutil.relativedelta import relativedelta
 import datetime
 from itertools import groupby
+from itertools import islice
 import urllib.error
 from odoo.tools.mail import email_escape_char
 import odoorpc.odoo
@@ -72,13 +73,17 @@ class MigratedHotel(models.Model):
     count_tarjet_invoices = fields.Integer(string="Invoices Tarjet ('Migration D-Date')", readonly=True, copy=False)
     complete_invoices = fields.Boolean("Invoices Complete", compute="_compute_complete_invocies", store=True, copy=False)
 
-    backend_id = fields.Many2one('channel.backend', copy=False)
+    backend_id = fields.Many2one('channel.wubook.backend', copy=False)
 
     dummy_closure_reason_id = fields.Many2one(string='Default Clousure Reasen', comodel_name='room.closure.reason')
     dummy_product_id = fields.Many2one(string='Default Product', comodel_name='product.product')
     default_channel_agency_id = fields.Many2one(string='Default agencys Channel', comodel_name='pms.sale.channel')
     default_plan_avail_id = fields.Many2one('pms.availability.plan')
     folio_prefix = fields.Char("Add prefix on folios")
+    default_ota_channel = fields.Many2one(string='Default OTAs Channel', comodel_name='pms.sale.channel')
+    booking_agency = fields.Many2one(string='Booking.com partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
+    expedia_agency = fields.Many2one(string='Expedia partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
+    hotelbeds_agency = fields.Many2one(string='HotelBeds partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
 
     migrated_pricelist_ids = fields.One2many(
         string="Pricelists Mapping",
@@ -508,6 +513,56 @@ class MigratedHotel(models.Model):
 
         # prepare partners of interest
         _logger.info("Preparing 'res.partners' of interest...")
+
+        partners_migrated_remote_ids = []
+        partners_migrated = PartnersMigrated.search([("migrated_hotel_id", "=", self.id)])
+        if partners_migrated:
+            partners_migrated_remote_ids = partners_migrated.mapped("remote_id")
+        # First, import remote partners without contacts (parent_id is not set)
+
+        _logger.info("Migrating 'res.partners' without parent_id...")
+        remote_partners_ids = noderpc.env['res.partner'].search([
+            ('id', 'not in', partners_migrated_remote_ids),
+            ('parent_id', '=', False),
+            ('user_ids', '=', False),
+            ('write_date', self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            '|', ('active', '=', True), ('active', '=', False),
+            '|', ('vat', '!=', False), ('document_number', '!=', False),
+        ])
+        for sublist in self.chunks(remote_partners_ids, 500):
+            self.with_delay().partner_batch(sublist, country_map_ids, country_state_map_ids, category_map_ids)
+
+        # Second, import remote partners with contacts (already created in the previous step)
+        # TODO
+        # _logger.info("Migrating 'res.partners' with parent_id...")
+        # remote_partners = noderpc.env['res.partner'].search_read([
+        #     ('id', 'not in', partners_migrated_remote_ids),
+        #     ('parent_id', '!=', False),
+        #     ('user_ids', '=', False),
+        #     ('write_date', self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+        #     '|', ('active', '=', True), ('active', '=', False),
+        # ], partner_remote_fields)
+        # total_records = len(remote_partners)
+        # count = 0
+        # for remote_res_partner in remote_partners:
+        #     _logger.info('(%s/%s) User #%s started migration of res.partner with remote ID: [%s]',
+        #                 total_records, count, self._uid, remote_res_partner["id"])
+        #     self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
+        #     count += 1
+        #     total_count += 1
+
+        noderpc.logout()
+
+    @api.model
+    def partner_batch(self, sublist, country_map_ids, country_state_map_ids, category_map_ids):
+        """
+            Prepare partner Batch
+        """
+        try:
+            noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
+            noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
+        except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
+            raise ValidationError(err)
         partner_remote_fields = [
             'id',
             'document_number',
@@ -536,54 +591,17 @@ class MigratedHotel(models.Model):
             'gender',
             'birthdate_date',
         ]
-
-        partners_migrated_remote_ids = []
-        partners_migrated = PartnersMigrated.search([("migrated_hotel_id", "=", self.id)])
-        if partners_migrated:
-            partners_migrated_remote_ids = partners_migrated.mapped("remote_id")
-        # First, import remote partners without contacts (parent_id is not set)
-        _logger.info("Migrating 'res.partners' without parent_id...")
         remote_partners = noderpc.env['res.partner'].search_read([
-            ('id', 'not in', partners_migrated_remote_ids),
-            ('parent_id', '=', False),
-            ('user_ids', '=', False),
-            ('write_date', self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            '|', ('active', '=', True), ('active', '=', False),
-            '|', ('vat', '!=', False), ('document_number', '!=', False),
+            ("id", "in", sublist),
         ], partner_remote_fields)
-        total_records = len(remote_partners)
-        count = 0
-        total_count = 0
         for remote_res_partner in remote_partners:
-
-            _logger.info('(%s/%s) User #%s started migration of res.partner with remote ID: [%s]',
-                         total_records, count, self._uid, remote_res_partner["id"])
             self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
-            count += 1
-            total_count += 1
 
-        # Second, import remote partners with contacts (already created in the previous step)
-        # TODO
-        _logger.info("Migrating 'res.partners' with parent_id...")
-        remote_partners = noderpc.env['res.partner'].search_read([
-            ('id', 'not in', partners_migrated_remote_ids),
-            ('parent_id', '!=', False),
-            ('user_ids', '=', False),
-            ('create_date', self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            '|', ('active', '=', True), ('active', '=', False),
-        ], partner_remote_fields)
-        total_records = len(remote_partners)
-        count = 0
-        for remote_res_partner in remote_partners:
-            _logger.info('(%s/%s) User #%s started migration of res.partner with remote ID: [%s]',
-                         total_records, count, self._uid, remote_res_partner["id"])
-            self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
-            count += 1
-            total_count += 1
-        self.last_import_partners = fields.Datetime.now()
-        self.count_migrated_partners = self.env["migrated.partner"].search_count([("migrated_hotel_id", "=", self.id)])
+        # self.last_import_partners = fields.Datetime.now()
+        # self.count_migrated_partners = self.env["migrated.partner"].search_count([("migrated_hotel_id", "=", self.id)])
         noderpc.logout()
 
+    @api.model
     def migration_partner(self, rpc_res_partner, country_map_ids, country_state_map_ids, category_map_ids):
         context_no_mail = {
             'tracking_disable': True,
@@ -591,7 +609,7 @@ class MigratedHotel(models.Model):
             'mail_create_nolog': True,
         }
         PartnersMigrated = self.env["migrated.partner"]
-        is_company = rpc_res_partner['is_company']
+        is_company = rpc_res_partner["is_company"]
         is_ota = rpc_res_partner["is_tour_operator"]
         # search document number
         document_data = False
@@ -760,7 +778,7 @@ class MigratedHotel(models.Model):
                     vals["agency_id"] = self.expedia_agency.id
                 if remote_ota_id == "HotelBeds":
                     vals["agency_id"] = self.hotelbeds_agency.id
-            vals["reservation_origin_code"] = binding['ota_reservation_id']
+                vals["reservation_origin_code"] = binding['ota_reservation_id']
             binding_vals = {
                 'backend_id': self.backend_id.id,
                 'external_id': binding['external_id'],
@@ -831,185 +849,205 @@ class MigratedHotel(models.Model):
             # prepare folios of interest
             _logger.info("Preparing 'hotel.folio' of interest...")
 
-            remote_hotel_folios = noderpc.env['hotel.folio'].search_read([
+            remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
                 ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
                 '|',
                 ("room_lines", "!=", False),
                 ("service_ids", "!=", False),
-            ],
-            [
-                "id",
-                "name",
-                "partner_id",
-                "email",
-                "phone",
-                "mobile",
-                "pricelist_id",
-                "tour_operator_id",
-                "service_ids",
-                "segmentation_ids",
-                "reservation_type",
-                "channel_type",
-                "internal_comment",
-                "state",
-                "cancelled_reason",
-                "date_order",
-                "confirmation_date",
-                "create_date",
-                "user_id",
-                "create_uid",
-                "room_lines",
-                "partner_invoice_id",
-            ]) or []
-            _logger.info("%s Folios to migrate", len(remote_hotel_folios))
-
-            _logger.info("Preparing 'hotel.reservation' of interest...")
-
-            remote_hotel_reservations = noderpc.env['hotel.reservation'].search_read([
-                ("folio_id", "in", [fol['id'] for fol in remote_hotel_folios]),
-            ],
-            [
-                'id',
-                'folio_id',
-                'room_id',
-                'room_type_id',
-                'discount',
-                'checkin',
-                'checkout',
-                'arrival_hour',
-                'departure_hour',
-                'board_service_room_id',
-                'to_assign',
-                'state',
-                'cancelled_reason',
-                'out_service_description',
-                'adults',
-                'children',
-                'splitted',
-                'parent_reservation',
-                'overbooking',
-                'channel_type',
-                'call_center',
-                'external_id',
-                'ota_id',
-                'reservation_line_ids',
-                'checkin_partner_ids',
-                'service_ids',
-                'create_uid',
-                'last_updated_res',
-                'ota_id',
-            ],) or []
-            # Reservation Bindings
-            remote_bindings = noderpc.env['channel.hotel.reservation'].search_read([
-                ("odoo_id", "in", [res['id'] for res in remote_hotel_reservations]),
-            ],
-            [
-                'id',
-                'odoo_id',
-                'ota_id',
-                'ota_reservation_id',
-                'channel_status',
-                'external_id',
-            ])
-            _logger.info("%s Reservations to migrate", len(remote_hotel_reservations))
-
-            _logger.info("Preparing 'hotel.reservetion.line' of interest...")
-
-            remote_hotel_reservation_lines = noderpc.env['hotel.reservation.line'].search_read([
-                ("reservation_id", "in", [r['id'] for r in remote_hotel_reservations]),
-            ],
-            [
-                'id',
-                'reservation_id',
-                'room_id',
-                'date',
-                'discount',
-                'cancel_discount',
-                'price'
-            ]) or []
-
-            _logger.info("%s Reservation lines to migrate", len(remote_hotel_reservation_lines))
-            _logger.info("Preparing 'hotel.service' of interest...")
-
-            remote_hotel_services = noderpc.env['hotel.service'].search_read([
-                '|',
-                ("folio_id", "in", [folio['id'] for folio in remote_hotel_folios]),
-                ("ser_room_line", "in", [reservation['id'] for reservation in remote_hotel_reservations]),
-            ],
-            [
-                'id',
-                'folio_id',
-                'ser_room_line',
-                'product_id',
-                'name',
-                'is_board_service',
-                'discount',
-                'channel_type',
-                'service_line_ids',
             ])
 
-            _logger.info("%s Services to migrate", len(remote_hotel_services))
-            _logger.info("Preparing 'hotel.service.line' of interest...")
-
-            remote_hotel_service_lines = noderpc.env['hotel.service.line'].search_read([
-                ("service_id", "in", [service['id'] for service in remote_hotel_services]),
-            ], ["service_id", "date", "create_date", "day_qty", "price_unit"])
-
-            _logger.info("%s Service lines to migrate", len(remote_hotel_service_lines))
-            _logger.info("Preparing 'hotel.checkin.partner' of interest...")
-
-            remote_checkin_partners = noderpc.env['hotel.checkin.partner'].search_read(
-                [('reservation_id', 'in', [r['id'] for r in remote_hotel_reservations])],
-                ['reservation_id', 'partner_id', 'enter_date', 'exit_date', 'state']
-            )
-            _logger.info("%s Checkin partners to migrate", len(remote_checkin_partners))
-            # TODO: Revisar Folios ya migrados
-            # folios_migrated_remote_ids = []
-            # folios_migrated = self.env["pms.folio"].search([("pms_property_id", "=", self.pms_property_id.id)])
-            # if folios_migrated:
-            #     folios_migrated_remote_ids = folios_migrated.mapped("remote_id")
-            # remote_hotel_folio_ids = list(set(remote_hotel_folios) - set(folios_migrated_remote_ids))
-            remote_folio_ids = self.env["pms.folio"].search([("pms_property_id", "=", self.pms_property_id.id)]).mapped("remote_id")
-            count = 0
-            errors_count = 0
-            total = len(remote_hotel_folios)
-            _logger.info("Migrating 'hotel.folio'... Number of Folios: %s", total)
-            for remote_hotel_folio in remote_hotel_folios:
-                if remote_hotel_folio['id'] in remote_folio_ids:
-                    _logger.info("Folio %s already migrated", remote_hotel_folio['id'])
-                    continue
-                _logger.info('Started migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
-                reservations_folio = [res for res in remote_hotel_reservations if res['folio_id'][0] == remote_hotel_folio['id']]
-                reservation_lines_folio = [res for res in remote_hotel_reservation_lines if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
-                services_folio = [res for res in remote_hotel_services if res['folio_id'][0] == remote_hotel_folio['id']]
-                service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
-                checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
-                self.with_delay().migration_folio(
-                    remote_hotel_folio,
-                    res_users_map_ids,
-                    category_map_ids,
-                    reservations_folio,
-                    reservation_lines_folio,
-                    services_folio,
-                    service_lines_folio,
-                    checkins_partners_folio,
-                    remote_bindings,
-                )
-                count += 1
-                _logger.info('Finished migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
-                _logger.info('Migrated %s of %s hotel.folio', count, total)
-                _logger.info('Errors: %s', errors_count)
-                _logger.info('==============================================================')
-
-            self.count_migrated_folios = self.env["pms.folio"].search_count([("remote_id", "!=", False), ("pms_property_id", "=", self.pms_property_id.id)])
-            self.count_migrated_reservations = self.env["pms.reservation"].search_count([("remote_id", "!=", False), ("pms_property_id", "=", self.pms_property_id.id)])
-            self.count_migrated_checkins = self.env["pms.checkin.partner"].search_count([("remote_id", "!=", False), ("pms_property_id", "=", self.pms_property_id.id)])
-
+            # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
+            for sublist in self.chunks(remote_hotel_folio_ids, 500):
+                self.with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
             noderpc.logout()
 
+    @api.model
+    def folio_batch(self, sublist, category_map_ids, res_users_map_ids):
+        """
+        Prepare Folio batch
+        """
+        try:
+            noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
+            noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
+        except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
+            raise ValidationError(err)
+
+        remote_hotel_folios = noderpc.env['hotel.folio'].search_read([
+            ("id", "in", sublist),
+        ],
+        [
+            "id",
+            "name",
+            "partner_id",
+            "email",
+            "phone",
+            "mobile",
+            "pricelist_id",
+            "tour_operator_id",
+            "service_ids",
+            "segmentation_ids",
+            "reservation_type",
+            "channel_type",
+            "internal_comment",
+            "state",
+            "cancelled_reason",
+            "date_order",
+            "confirmation_date",
+            "create_date",
+            "user_id",
+            "create_uid",
+            "room_lines",
+            "partner_invoice_id",
+        ]) or []
+        _logger.info("%s Folios to migrate", len(remote_hotel_folios))
+
+        _logger.info("Preparing 'hotel.reservation' of interest...")
+
+        remote_hotel_reservations = noderpc.env['hotel.reservation'].search_read([
+            ("folio_id", "in", [fol['id'] for fol in remote_hotel_folios]),
+        ],
+        [
+            'id',
+            'folio_id',
+            'room_id',
+            'room_type_id',
+            'discount',
+            'checkin',
+            'checkout',
+            'arrival_hour',
+            'departure_hour',
+            'board_service_room_id',
+            'to_assign',
+            'state',
+            'cancelled_reason',
+            'out_service_description',
+            'adults',
+            'children',
+            'splitted',
+            'parent_reservation',
+            'overbooking',
+            'channel_type',
+            'call_center',
+            'external_id',
+            'ota_id',
+            'reservation_line_ids',
+            'checkin_partner_ids',
+            'service_ids',
+            'create_uid',
+            'last_updated_res',
+            'ota_id',
+        ],) or []
+        # Reservation Bindings
+        remote_bindings = noderpc.env['channel.hotel.reservation'].search_read([
+            ("odoo_id", "in", [res['id'] for res in remote_hotel_reservations]),
+        ],
+        [
+            'id',
+            'odoo_id',
+            'ota_id',
+            'ota_reservation_id',
+            'channel_status',
+            'external_id',
+        ])
+        _logger.info("%s Reservations to migrate", len(remote_hotel_reservations))
+
+        _logger.info("Preparing 'hotel.reservetion.line' of interest...")
+
+        remote_hotel_reservation_lines = noderpc.env['hotel.reservation.line'].search_read([
+            ("reservation_id", "in", [r['id'] for r in remote_hotel_reservations]),
+        ],
+        [
+            'id',
+            'reservation_id',
+            'room_id',
+            'date',
+            'discount',
+            'cancel_discount',
+            'price'
+        ]) or []
+
+        _logger.info("%s Reservation lines to migrate", len(remote_hotel_reservation_lines))
+        _logger.info("Preparing 'hotel.service' of interest...")
+
+        remote_hotel_services = noderpc.env['hotel.service'].search_read([
+            '|',
+            ("folio_id", "in", [folio['id'] for folio in remote_hotel_folios]),
+            ("ser_room_line", "in", [reservation['id'] for reservation in remote_hotel_reservations]),
+        ],
+        [
+            'id',
+            'folio_id',
+            'ser_room_line',
+            'product_id',
+            'name',
+            'is_board_service',
+            'discount',
+            'channel_type',
+            'service_line_ids',
+        ])
+
+        _logger.info("%s Services to migrate", len(remote_hotel_services))
+        _logger.info("Preparing 'hotel.service.line' of interest...")
+
+        remote_hotel_service_lines = noderpc.env['hotel.service.line'].search_read([
+            ("service_id", "in", [service['id'] for service in remote_hotel_services]),
+        ], ["service_id", "date", "create_date", "day_qty", "price_unit"])
+
+        _logger.info("%s Service lines to migrate", len(remote_hotel_service_lines))
+        _logger.info("Preparing 'hotel.checkin.partner' of interest...")
+
+        remote_checkin_partners = noderpc.env['hotel.checkin.partner'].search_read(
+            [('reservation_id', 'in', [r['id'] for r in remote_hotel_reservations])],
+            ['reservation_id', 'partner_id', 'enter_date', 'exit_date', 'state']
+        )
+        _logger.info("%s Checkin partners to migrate", len(remote_checkin_partners))
+        # TODO: Revisar Folios ya migrados
+        # folios_migrated_remote_ids = []
+        # folios_migrated = self.env["pms.folio"].search([("pms_property_id", "=", self.pms_property_id.id)])
+        # if folios_migrated:
+        #     folios_migrated_remote_ids = folios_migrated.mapped("remote_id")
+        # remote_hotel_folio_ids = list(set(remote_hotel_folios) - set(folios_migrated_remote_ids))
+        remote_folio_ids = self.env["pms.folio"].search([("pms_property_id", "=", self.pms_property_id.id)]).mapped("remote_id")
+        count = 0
+        errors_count = 0
+        total = len(remote_hotel_folios)
+        _logger.info("Migrating 'hotel.folio'... Number of Folios: %s", total)
+        for remote_hotel_folio in remote_hotel_folios:
+            if remote_hotel_folio['id'] in remote_folio_ids:
+                _logger.info("Folio %s already migrated", remote_hotel_folio['id'])
+                continue
+            _logger.info('Started migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
+            reservations_folio = [res for res in remote_hotel_reservations if res['folio_id'][0] == remote_hotel_folio['id']]
+            reservation_lines_folio = [res for res in remote_hotel_reservation_lines if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
+            services_folio = [res for res in remote_hotel_services if res['folio_id'][0] == remote_hotel_folio['id']]
+            service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
+            checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
+            self.with_delay().migration_folio(
+                remote_hotel_folio,
+                res_users_map_ids,
+                category_map_ids,
+                reservations_folio,
+                reservation_lines_folio,
+                services_folio,
+                service_lines_folio,
+                checkins_partners_folio,
+                remote_bindings,
+            )
+            count += 1
+            _logger.info('Finished migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
+            _logger.info('Migrated %s of %s hotel.folio', count, total)
+            _logger.info('Errors: %s', errors_count)
+            _logger.info('==============================================================')
+
+        self.count_migrated_folios = self.env["pms.folio"].search_count([("remote_id", "!=", False), ("pms_property_id", "=", self.pms_property_id.id)])
+        self.count_migrated_reservations = self.env["pms.reservation"].search_count([("remote_id", "!=", False), ("pms_property_id", "=", self.pms_property_id.id)])
+        self.count_migrated_checkins = self.env["pms.checkin.partner"].search_count([("remote_id", "!=", False), ("pms_property_id", "=", self.pms_property_id.id)])
+        noderpc.logout()
+
+    @api.model
     def migration_folio(self, remote_hotel_folio, res_users_map_ids, category_map_ids, reservations, reservation_lines, services, service_lines, remote_checkin_partners, remote_bindings):
         vals = self._prepare_folio_remote_data(
             remote_hotel_folio,
@@ -1110,12 +1148,12 @@ class MigratedHotel(models.Model):
         elif reservation['state'] == 'booking':
             state = 'onboard'
 
-        services_vals = False
+        services_vals = []
         if reservation['service_ids'] and state != "cancel":
             remote_records = [service for service in services if service['id'] in reservation['service_ids']]
             for remote_service in remote_records:
-                lines = [line for line in service_lines if line['service_id'][0] in remote_service['service_line_ids']]
-                services_vals = [(0, 0, self._prepare_migrate_services(remote_service, lines))]
+                lines = [line for line in service_lines if line['id'] in remote_service['service_line_ids']]
+                services_vals.append((0, 0, self._prepare_migrate_services(remote_service, lines)))
 
         # prepare pms.folio.reservation_ids
         vals = {
@@ -1139,7 +1177,7 @@ class MigratedHotel(models.Model):
             'adults': min(reservation['adults'], self.env['pms.room'].browse(preferred_room_id).capacity),
             'children': reservation['children'],
             'overbooking': reservation['overbooking'],
-            'service_ids': services_vals,
+            'service_ids': services_vals if services_vals else False,
             'reservation_line_ids': reservation_line_cmds,
             'create_uid': res_create_uid,
         }
@@ -1354,21 +1392,22 @@ class MigratedHotel(models.Model):
                         _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
                                      count, total, payment['id'])
 
-                    # Add payments internal transfer with same date and journal like destination journal
-                    destination_payment_vals = list(filter(lambda x: x["payment_type"] == "transfer" and x["payment_date"] == date and x["destination_journal_id"][0] == remote_journal[0], journal_payments_tarjet))
-                    for pay in destination_payment_vals:
-                        _logger.info('Destination Journal Payments')
-                        balance += self.create_payment_migration(pay, res_users_map_ids, remote_journal, date_str, journal, statement)
-                        count += 1
-                        _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
-                                     count, total, payment['id'])
+                    # # Add payments internal transfer with same date and journal like destination journal
+                    # destination_payment_vals = list(filter(lambda x: x["payment_type"] == "transfer" and x["payment_date"] == date and x["destination_journal_id"][0] == remote_journal[0], journal_payments_tarjet))
+                    # for pay in destination_payment_vals:
+                    #     _logger.info('Destination Journal Payments')
+                    #     balance += self.create_payment_migration(pay, res_users_map_ids, remote_journal, date_str, journal, statement)
+                    #     count += 1
+                    #     _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
+                    #                  count, total, payment['id'])
                     statement.write({
                         "balance_end_real": balance,
                         "move_line_ids": line_vals,
                         "date_done": fields.Date.from_string(date_str).strftime(DEFAULT_SERVER_DATE_FORMAT),
                     })
-                    statement.button_post()
-                    # statement.button_validate()
+                    dates = [fields.Datetime.from_string(item["date"]) for item in journal_payments_tarjet]
+                    next_statement, previus_statement = self._get_statements(statement, dates, journal_id)
+                    self.recursive_statements_post(statement, next_statement, previus_statement)
 
         except (ValueError, ValidationError, Exception) as err:
             migrated_log = self.env['migrated.log'].create({
@@ -1379,6 +1418,29 @@ class MigratedHotel(models.Model):
             })
             _logger.error('ERROR account.payment with LOG #%s: (%s)',
                           migrated_log.id, err)
+
+    def _get_statements(self, statement, dates, journal_id):
+        dates = list(set(dates))
+        current_position = dates.index(statement.date)
+        next_statement = self.env["account.bank.statement"].search([
+            ("date", "=", dates[current_position + 1]),
+            ("jounal_id", "=", journal_id)
+        ])
+        previus_statement = self.env["account.bank.statement"].search([
+            ("date", "=", dates[current_position - 1]),
+            ("jounal_id", "=", journal_id)
+        ])
+        return next_statement, previus_statement
+
+    def recursive_statements_post(self, current_statement, next_statement, previus_statement, dates):
+        current_statement.button_post()
+        # statement.button_validate()
+        if next_statement and next_statement.state == "draft":
+            next_one_statement = self._get_statements(current_statement, dates)[0]
+            self.recursive_statements_post(next_statement, next_one_statement, False)
+        if previus_statement and previus_statement.state == "draft":
+            previus_one_statement = self._get_statements(current_statement, dates)[1]
+            self.recursive_statements_post(previus_statement, False, previus_one_statement)
 
     def create_payment_migration(self, payment, res_users_map_ids, remote_journal, date_str, journal, statement):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
@@ -2324,3 +2386,7 @@ class MigratedHotel(models.Model):
                 })]
                 _logger.info('RoomType Class imported: %s', channel[1])
 
+    def chunks(self, l, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
