@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="product_template_view_crib" model="ir.ui.view">
+        <field name="name">view.product.template.form.crib</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='is_extra_bed']" position="after">
+                <field name="is_crib" />
+            </xpath>
+        </field>
+    </record>
+</odoo>
