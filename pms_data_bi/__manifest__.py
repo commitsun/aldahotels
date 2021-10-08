@@ -15,7 +15,6 @@
         "views/budget.xml",
         "views/inherit_pms_property.xml",
         "views/inherit_res_users.xml",
-        "views/inherit_product_template.xml",
         "security/data_bi.xml",
         "security/ir.model.access.csv",
     ],
