@@ -276,7 +276,7 @@ img {
                                                 style="padding: 0px 0 0 0;"
                                             >
                                                 <center><p
-                                                        style="font-size: 2em; line_height=0px; color: #45C2B1;"
+                                                        style="font-size: 2em; line_height=0px; color: #45C2B1; padding-top:15px;"
                                                     ><strong
                                                         >IMPORTANTE</strong></p></center><br
                                                 />
@@ -315,17 +315,22 @@ img {
                                                         <tr>
                                                             <td align="center">
                                                                 <p>
-                                                                    <div
-                                                                        style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;font-size: 12px;"
-                                                                    >Hacer check-in
-                                                                    </div>
-                                                                    <center><img
-                                                                            src="https://www.aldahotels.es/firma/email/llegada/check-in.png"
-                                                                            alt="Hacer check-in"
-                                                                            width="80px"
-                                                                            height="80px"
-                                                                        /></center>
-                                                                    <!--                                                        </a>-->
+                                                                    <a
+                                                                        href="/my/folios/${object.id}/precheckin?access_token=${object.access_token}"
+                                                                        target="_blank"
+                                                                        style="text-decoration: none; color: #FFFFFF; font-size: 2em; padding: 10px 20px 10px 20px;"
+                                                                    >
+                                                                        <div
+                                                                            style="padding: 0.5em; background-color: #45C2B1; border-color: #45C2B1; border-width: 2px;border-style:solid; border-bottom-style: solid;border-left-style: solid;border-right-style: solid;border-top-style: solid;-webkit-border-radius: 10; -moz-border-radius: 10; border-radius: 10px;font-size: 12px;"
+                                                                        >Hacer check-in
+                                                                        </div>
+                                                                        <center><img
+                                                                                src="https://www.aldahotels.es/firma/email/llegada/check-in.png"
+                                                                                alt="Hacer check-in"
+                                                                                width="80px"
+                                                                                height="80px"
+                                                                                href="/my/folios/${object.id}/precheckin?access_token=${object.access_token}"
+                                                                            /></center></a>
                                                                 </p>
                                                                 <tr>
                                                                     <td
@@ -824,21 +829,14 @@ img {
                                                                                     class="subheading"
                                                                                 >
                                                                                     <strong
-                                                                                    >${room_type.product_id.name}</strong>
-                                                                                </div>
-                                                                                % else:
-                                                                                <div
-                                                                                    style="font-family: sans-serif; font-size: 12px; color: #555555; padding: 10px 0 0 0; text-transform: uppercase"
-                                                                                    class="subheading"
-                                                                                >
-                                                                                    <strong
-                                                                                    >Habitación ${loop.index}</strong>
+                                                                                    ><b
+                                                                                        >${room_type.product_id.name}</b></strong>
                                                                                 </div>
                                                                                 % endif
                                                                                 <div
                                                                                     align="justify"
                                                                                     class="paragraph"
-                                                                                    style="padding: 8px 0 0 0;"
+                                                                                    style="padding: 8px 0 0 0;font-size: 16px"
                                                                                 >
                                                                                     Esta habitación cuenta con TV, Wi-Fi gratuita, calefacción y baño privado.
                                                                                 </div>
@@ -923,38 +921,41 @@ img {
                                                                                                     align="justify"
                                                                                                     class="paragraph"
                                                                                                     style="padding: 10px 0 0 0;"
-                                                                                                >${object.pms_property_id.text_image1 |safe}</td>
+                                                                                                ><strong
+                                                                                                    >${object.pms_property_id.text_image1 |safe}</strong></td>
                                                                                             </tr>
                                                                                             <tr
                                                                                             >
                                                                                                 <td
                                                                                                     style="padding: 20px 0 20px 0;  background-color:#F9F9F9"
-                                                                                                >
-                                                                                                    <table
-                                                                                                        border="0"
-                                                                                                        cellspacing="0"
-                                                                                                        cellpadding="0"
+                                                                                                ><center
                                                                                                     >
-                                                                                                        <tr
+                                                                                                    <table
+                                                                                                            border="0"
+                                                                                                            cellspacing="0"
+                                                                                                            cellpadding="0"
                                                                                                         >
-                                                                                                            <td
-                                                                                                                align="center"
+                                                                                                        <tr
                                                                                                             >
+                                                                                                            <td
+                                                                                                                    align="center"
+                                                                                                                >
                                                                                                                 % if object.pms_property_id.web_city_information_url
                                                                                                                 <div
-                                                                                                                    style="border: 2px solid #45C2B1; border-radius: 3px; -webkit-border-radius: 3px; -moz-border-radius: 3px;"
-                                                                                                                >
+                                                                                                                        style="border: 2px solid #45C2B1; border-radius: 3px; -webkit-border-radius: 3px; -moz-border-radius: 3px;"
+                                                                                                                    >
                                                                                                                     <a
-                                                                                                                        href="${object.pms_property_id.web_city_information_url}"
-                                                                                                                        target="_blank"
-                                                                                                                        style="font-size: 12px; font-family: sans-serif; text-transform: uppercase; color: #45C2B1; border-color: #45C2B1; border: 2px solid #45C2B1; background-color: #ffffff; text-decoration: none; border-top: 12px solid #ffffff; border-bottom: 12px solid #ffffff; border-left: 12px solid #ffffff; border-right: 12px solid #ffffff; padding: 0 0 0 0; display: inline-block;"
-                                                                                                                    >Más
+                                                                                                                            href="${object.pms_property_id.web_city_information_url}"
+                                                                                                                            target="_blank"
+                                                                                                                            style="font-size: 12px; font-family: sans-serif; text-transform: uppercase; color: #45C2B1; border-color: #45C2B1; border: 2px solid #45C2B1; background-color: #ffffff; text-decoration: none; border-top: 12px solid #ffffff; border-bottom: 12px solid #ffffff; border-left: 12px solid #ffffff; border-right: 12px solid #ffffff; padding: 0 0 0 0; display: inline-block;"
+                                                                                                                        >Más
                                                                                                                         información</a>
                                                                                                                 </div>
                                                                                                                 % endif
                                                                                                             </td>
                                                                                                         </tr>
                                                                                                     </table>
+                                                                                                    </center>
                                                                                                 </td>
                                                                                             </tr>
                                                                                         </table>
@@ -1222,7 +1223,7 @@ img {
                                                                                 <tr>
                                                                                     <td
                                                                                         align="center"
-                                                                                        style="padding: 20px 0 20px 0; "
+                                                                                        style="padding: 20px 0 20px 0;"
                                                                                     >
                                                                                         <table
                                                                                             border="0"
@@ -1233,10 +1234,8 @@ img {
                                                                                             >
                                                                                                 <td
                                                                                                     align="center"
+                                                                                                    style="display: flex; align-items: center;"
                                                                                                 >
-                                                                                                    <!--[if gte mso 12>
-                                                                                  <div style="border: 2px solid #5e96ea;">
-                                                                                    <![endif]-->
                                                                                                     <a
                                                                                                         href="https://www.facebook.com/aldahotels"
                                                                                                         target="_blank"
@@ -1247,9 +1246,6 @@ img {
                                                                                                         >Dale
                                                                                                             a Me gusta</div>
                                                                                                     </a>
-                                                                                                    <!--[if gte mso 12>
-                                                                                  </div>
-                                                                                  <![endif]-->
                                                                                                 </td>
                                                                                             </tr>
                                                                                         </table>
@@ -1356,9 +1352,6 @@ img {
                                                                                                 <td
                                                                                                     align="center"
                                                                                                 >
-                                                                                                    <!--[if gte mso 12>
-                                                                                  <div style="border: 2px solid #5e96ea;">
-                                                                                    <![endif]-->
                                                                                                     <a
                                                                                                         href="https://www.instagram.com/aldahotels/"
                                                                                                         target="_blank"
@@ -1478,9 +1471,6 @@ img {
                                                                                                 <td
                                                                                                     align="center"
                                                                                                 >
-                                                                                                    <!--[if gte mso 12>
-                                                                                  <div style="border: 2px solid #5e96ea;">
-                                                                                    <![endif]-->
                                                                                                     <a
                                                                                                         href="https://www.twitter.com/aldahotels"
                                                                                                         target="_blank"
@@ -1491,9 +1481,6 @@ img {
                                                                                                         >Síguenos
                                                                                                         </div>
                                                                                                     </a>
-                                                                                                    <!--[if gte mso 12>
-                                                                                  </div>
-                                                                                  <![endif]-->
                                                                                                 </td>
                                                                                             </tr>
                                                                                         </table>
@@ -1621,11 +1608,6 @@ img {
                                                 </td>
                                             </tr>
                                         </table>
-                                        <!--[if (gte mso 9)|(IE)]>
-                                                </td>
-                                              </tr>
-                                            </table>
-                                            <![endif]-->
                                     </td>
                                 </tr>
                             </table>
