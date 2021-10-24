@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 #    OpenERP, Open Source Management Solution
@@ -19,10 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from odoo import models, fields
+from odoo import fields, models
 
 
 class KellysNames(models.Model):
-    _name = 'kellysnames'
+    _name = "kellysnames"
 
-    name = fields.Char('Limpiador/a')
+    name = fields.Char("Limpiador/a")

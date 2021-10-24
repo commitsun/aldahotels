@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 #    Odoo, Open Source Management Solution
@@ -20,32 +19,30 @@
 ##############################################################################
 
 {
-    'name': 'Hotel Kellys Daily Report',
-    'version': '2.1',
-    'author': "Jose Luis Algara Toledo <osotranquilo@gmail.com>",
-    'website': 'https://www.aldahotels.com',
-    'category': 'hotel report kellys',
-    'summary': "Export daily report in PDF format",
-    'description': "Kellys Daily Report",
-    'depends': [
-        'pms',
+    "name": "Hotel Kellys Daily Report",
+    "version": "2.1",
+    "author": "Jose Luis Algara Toledo <osotranquilo@gmail.com>",
+    "website": "https://github.com/OCA/aldahotels",
+    "category": "hotel report kellys",
+    "summary": "Export daily report in PDF format",
+    "description": "Kellys Daily Report",
+    "depends": [
+        "pms",
     ],
-    'data': [
-        'data/report_kellys_paperformat.xml',
-        'views/kellysnames.xml',
-        'wizard/kellys_daily_rooms.xml',
-        'wizard/kellys_daily_pdf.xml',
-        'data/menus.xml',
-        'report/report_kellys.xml',
-        'security/ir.model.access.csv',
+    "data": [
+        "data/report_kellys_paperformat.xml",
+        "views/kellysnames.xml",
+        "wizard/kellys_daily_rooms.xml",
+        "wizard/kellys_daily_pdf.xml",
+        "data/menus.xml",
+        "report/report_kellys.xml",
+        "security/ir.model.access.csv",
     ],
-    'qweb': [],
-    'test': [
-    ],
-    'css': ['static/src/css/kellys_daily_report.css'],
-
-    'installable': True,
-    'auto_install': False,
-    'application': False,
-    'license': 'AGPL-3',
+    "qweb": [],
+    "test": [],
+    "css": ["static/src/css/kellys_daily_report.css"],
+    "installable": True,
+    "auto_install": False,
+    "application": False,
+    "license": "AGPL-3",
 }

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 #    Odoo, Open Source Management Solution
@@ -22,15 +21,22 @@ from odoo import fields, models
 
 
 class KellysRooms(models.TransientModel):
-    _name = 'kellysrooms'
+    _name = "kellysrooms"
 
-    habitacion = fields.Char('Habitacion')
-    habitacionid = fields.Integer('Habitacion ID')
-    tipo = fields.Selection([('1', 'Salida'), ('2', 'Cliente'), ('3', 'Revisar'),
-                            ('4', 'Staff'), ('5', 'Averia')],
-                            string='Limpiar como')
-    notas = fields.Char('Notas limpieza')
-    checkin = fields.Char('Entrada')
-    checkout = fields.Char('Salida')
-    kelly = fields.Many2one('kellysnames', string='Asignado a:')
-    clean_date = fields.Date('Clean Date')
+    habitacion = fields.Char("Habitacion")
+    habitacionid = fields.Integer("Habitacion ID")
+    tipo = fields.Selection(
+        [
+            ("1", "Salida"),
+            ("2", "Cliente"),
+            ("3", "Revisar"),
+            ("4", "Staff"),
+            ("5", "Averia"),
+        ],
+        string="Limpiar como",
+    )
+    notas = fields.Char("Notas limpieza")
+    checkin = fields.Char("Entrada")
+    checkout = fields.Char("Salida")
+    kelly = fields.Many2one("kellysnames", string="Asignado a:")
+    clean_date = fields.Date("Clean Date")

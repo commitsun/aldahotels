@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 #    Odoo, Open Source Management Solution
@@ -18,15 +17,17 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from io import BytesIO
-from datetime import datetime, date
-from odoo import api, fields, models, _
-import xlsxwriter
 import base64
+from datetime import date, datetime
+from io import BytesIO
+
+import xlsxwriter
+
+from odoo import _, api, fields, models
 
 
 class KellysWizard(models.TransientModel):
-    _name = 'kellysreport'
+    _name = "kellysreport"
 
     @api.model
     def _get_default_date(self):
@@ -36,17 +37,20 @@ class KellysWizard(models.TransientModel):
         return self.calculalimpiar(datetime.now())
 
     date_start = fields.Date("Fecha del listado", default=_get_default_date)
-    habitaciones = fields.Many2many('kellysrooms', string="Limpieza:",
-                                    default=_get_default_habitaciones)
-    order = fields.Selection([
-        ('kelly ASC', 'Calendario'),
-        ('kelly ASC, tipo ASC', 'Limpiar como... y orden en el Calendario'),
-        ('kelly ASC, tipo ASC, checkin ASC',
-         'Limpiar como... y Hora de entrada'),
-        ], 'Orden de impresión',
-        default='kelly ASC, tipo ASC, checkin ASC',
+    habitaciones = fields.Many2many(
+        "kellysrooms", string="Limpieza:", default=_get_default_habitaciones
+    )
+    order = fields.Selection(
+        [
+            ("kelly ASC", "Calendario"),
+            ("kelly ASC, tipo ASC", "Limpiar como... y orden en el Calendario"),
+            ("kelly ASC, tipo ASC, checkin ASC", "Limpiar como... y Hora de entrada"),
+        ],
+        "Orden de impresión",
+        default="kelly ASC, tipo ASC, checkin ASC",
         required=True,
-        help='Establece el orden en el que se imprimira el listado')
+        help="Establece el orden en el que se imprimira el listado",
+    )
 
     xls_filename = fields.Char()
     xls_binary = fields.Binary("Export data")
@@ -56,23 +60,29 @@ class KellysWizard(models.TransientModel):
         return
 
     def calculalimpiar(self, fechalimpieza=datetime.today()):
-        grids = self.env['pms.room'].search([
-            ("pms_property_id", "=", self.env.user.get_active_property_ids()[0])
-        ], order='sequence ASC')
-        grids2 = self.env['kellysrooms']
+        grids = self.env["pms.room"].search(
+            [("pms_property_id", "=", self.env.user.get_active_property_ids()[0])],
+            order="sequence ASC",
+        )
+        grids2 = self.env["kellysrooms"]
         listid = []
         for x in grids:
-            reservations = self.env['pms.reservation'].search(
-                ['&', '&', ('checkin', '<=', fechalimpieza),
-                 ('checkout', '>=', fechalimpieza),
-                 ('state', '!=', 'cancel'),
-                 ('preferred_room_id', '=', x.id)
-                 ], order='checkin ASC')
+            reservations = self.env["pms.reservation"].search(
+                [
+                    "&",
+                    "&",
+                    ("checkin", "<=", fechalimpieza),
+                    ("checkout", ">=", fechalimpieza),
+                    ("state", "!=", "cancel"),
+                    ("preferred_room_id", "=", x.id),
+                ],
+                order="checkin ASC",
+            )
 
             tipos = False
             if len(reservations) != 0:
                 if len(reservations) == 2:
-                    tipos = '1'
+                    tipos = "1"
                     # Salida y etrada
                     checkinhour = reservations[1].checkin
                     checkouthour = reservations[1].checkout
@@ -80,100 +90,104 @@ class KellysWizard(models.TransientModel):
                     if reservations[0].checkin == fechalimpieza:
                         checkinhour = reservations[0].checkin
                         checkouthour = reservations[0].checkout
-                        tipos = '3'
+                        tipos = "3"
                         # Revisar
                     elif reservations[0].checkout == fechalimpieza:
-                        checkinhour = 'no prevista'
-                        checkouthour = ''
-                        tipos = '1'
+                        checkinhour = "no prevista"
+                        checkouthour = ""
+                        tipos = "1"
                         # Salida
                     else:
                         checkinhour = reservations[0].checkin
                         checkouthour = reservations[0].checkout
-                        tipos = '2'
+                        tipos = "2"
                         # Cliente
-                        if reservations[0].reservation_type == 'staff':
+                        if reservations[0].reservation_type == "staff":
                             checkinhour = reservations[0].checkin
                             checkouthour = reservations[0].checkout
-                            tipos = '4'
+                            tipos = "4"
                             # Staff
-                if reservations[0].reservation_type == 'out':
+                if reservations[0].reservation_type == "out":
                     checkinhour = reservations[0].checkin
                     checkouthour = reservations[0].checkout
-                    tipos = '5'
+                    tipos = "5"
                     # Averiada
             if tipos is not False:
-                listid.append(grids2.create(
-                    {'habitacion': reservations[0].preferred_room_id.name,
-                     'habitacionid': reservations[0].preferred_room_id.id,
-                     'tipo': tipos,
-                     'notas': '',
-                     'checkin': checkinhour,
-                     # 'checkin': rooms[0].checkin[:10],
-                     # 'checkout': rooms[0].checkout[:10],
-                     'checkout': checkouthour,
-                     # 'kelly': 5,
-                     'clean_date': fechalimpieza
-                     }).id)
-        return self.env['kellysrooms'].search([('id', 'in', listid)])
+                listid.append(
+                    grids2.create(
+                        {
+                            "habitacion": reservations[0].preferred_room_id.name,
+                            "habitacionid": reservations[0].preferred_room_id.id,
+                            "tipo": tipos,
+                            "notas": "",
+                            "checkin": checkinhour,
+                            # 'checkin': rooms[0].checkin[:10],
+                            # 'checkout': rooms[0].checkout[:10],
+                            "checkout": checkouthour,
+                            # 'kelly': 5,
+                            "clean_date": fechalimpieza,
+                        }
+                    ).id
+                )
+        return self.env["kellysrooms"].search([("id", "in", listid)])
 
     def print_rooms_report(self):
-        rooms = self.env['kellysrooms'].search([('id', 'in',
-                                                 self.habitaciones.ids)],
-                                               order=self.order)
+        rooms = self.env["kellysrooms"].search(
+            [("id", "in", self.habitaciones.ids)], order=self.order
+        )
 
-        return self.env.ref(
-            'kellys_daily_report.report_kellysrooms'
-        ).report_action(rooms)
+        return self.env.ref("kellys_daily_report.report_kellysrooms").report_action(
+            rooms
+        )
 
     def _excel_export(self):
-        tipo_limpieza = ['Salida', 'Cliente', 'Revisar', 'Staff', 'Averia']
+        tipo_limpieza = ["Salida", "Cliente", "Revisar", "Staff", "Averia"]
         file_data = BytesIO()
-        workbook = xlsxwriter.Workbook(file_data, {
-            'strings_to_numbers': True,
-            'default_date_format': 'dd/mm/yyyy'
-        })
-        pms_property = self.env["pms.property"].browse(self.env.user.get_active_property_ids()[0])
-        workbook.set_properties({
-            'title': 'Exported data from ' + pms_property.name,
-            'subject': 'Export Kellys Report from Odoo of ' + pms_property.name,
-            'author': 'Odoo',
-            'manager': u'User',
-            'company': pms_property.name,
-            'category': 'Hoja de Calculo',
-            'keywords': 'kellys, odoo, data, ' + pms_property.name,
-            'comments': 'Created with Python in Odoo and XlsxWriter'})
+        workbook = xlsxwriter.Workbook(
+            file_data, {"strings_to_numbers": True, "default_date_format": "dd/mm/yyyy"}
+        )
+        pms_property = self.env["pms.property"].browse(
+            self.env.user.get_active_property_ids()[0]
+        )
+        workbook.set_properties(
+            {
+                "title": "Exported data from " + pms_property.name,
+                "subject": "Export Kellys Report from Odoo of " + pms_property.name,
+                "author": "Odoo",
+                "manager": u"User",
+                "company": pms_property.name,
+                "category": "Hoja de Calculo",
+                "keywords": "kellys, odoo, data, " + pms_property.name,
+                "comments": "Created with Python in Odoo and XlsxWriter",
+            }
+        )
         workbook.use_zip64()
 
-        xls_cell_format_date = workbook.add_format({
-            'num_format': 'dd/mm/yyyy'
-        })
+        xls_cell_format_date = workbook.add_format({"num_format": "dd/mm/yyyy"})
 
-        xls_cell_format_header = workbook.add_format({
-            'bg_color': '#CCCCCC',
-            'bold': True,
-            'align': 'center'
-        })
+        xls_cell_format_header = workbook.add_format(
+            {"bg_color": "#CCCCCC", "bold": True, "align": "center"}
+        )
 
-        worksheet = workbook.add_worksheet(_('Kellys Report'))
+        worksheet = workbook.add_worksheet(_("Kellys Report"))
 
-        worksheet.write('A1', _('Habitacion'), xls_cell_format_header)
-        worksheet.write('B1', _('Tipo L.'), xls_cell_format_header)
-        worksheet.write('C1', _('Notas'), xls_cell_format_header)
-        worksheet.write('D1', _('Entrada'), xls_cell_format_header)
-        worksheet.write('E1', _('Salida'), xls_cell_format_header)
-        worksheet.write('F1', _('Asignado'), xls_cell_format_header)
+        worksheet.write("A1", _("Habitacion"), xls_cell_format_header)
+        worksheet.write("B1", _("Tipo L."), xls_cell_format_header)
+        worksheet.write("C1", _("Notas"), xls_cell_format_header)
+        worksheet.write("D1", _("Entrada"), xls_cell_format_header)
+        worksheet.write("E1", _("Salida"), xls_cell_format_header)
+        worksheet.write("F1", _("Asignado"), xls_cell_format_header)
 
-        worksheet.set_column('A:A', 30)
-        worksheet.set_column('B:B', 10)
-        worksheet.set_column('C:C', 40)
-        worksheet.set_column('D:D', 15)
-        worksheet.set_column('E:E', 15)
-        worksheet.set_column('F:F', 30)
+        worksheet.set_column("A:A", 30)
+        worksheet.set_column("B:B", 10)
+        worksheet.set_column("C:C", 40)
+        worksheet.set_column("D:D", 15)
+        worksheet.set_column("E:E", 15)
+        worksheet.set_column("F:F", 30)
 
-        rooms = self.env['kellysrooms'].search([('id', 'in',
-                                                 self.habitaciones.ids)],
-                                               order=self.order)
+        rooms = self.env["kellysrooms"].search(
+            [("id", "in", self.habitaciones.ids)], order=self.order
+        )
 
         offset = 1
         for k_room, v_room in enumerate(rooms):
@@ -181,20 +195,16 @@ class KellysWizard(models.TransientModel):
             worksheet.write(k_room + offset, 0, v_room.habitacion)
             worksheet.write(k_room + offset, 1, tipo_limpieza[int(v_room.tipo) - 1])
             worksheet.write(k_room + offset, 2, v_room.notas)
-            worksheet.write(k_room + offset, 3, v_room.checkin,
-                            xls_cell_format_date)
-            worksheet.write(k_room + offset, 4, v_room.checkout,
-                            xls_cell_format_date)
+            worksheet.write(k_room + offset, 3, v_room.checkin, xls_cell_format_date)
+            worksheet.write(k_room + offset, 4, v_room.checkout, xls_cell_format_date)
             worksheet.write(k_room + offset, 5, v_room.kelly.name)
 
         workbook.close()
         file_data.seek(0)
 
         return {
-            'xls_filename': 'Kellys_%s_%s.xlsx' % (
-                pms_property.name,
-                self.date_start),
-            'xls_binary': base64.encodestring(file_data.read()),
+            "xls_filename": "Kellys_%s_%s.xlsx" % (pms_property.name, self.date_start),
+            "xls_binary": base64.encodestring(file_data.read()),
         }
 
     def excel_rooms_report(self):
@@ -207,4 +217,3 @@ class KellysWizard(models.TransientModel):
             "view_id": self.env.ref("kellys_daily_report.kellys_report_view").id,
             "view_mode": "form",
         }
-
