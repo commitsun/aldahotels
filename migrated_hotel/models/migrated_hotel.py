@@ -677,10 +677,13 @@ class MigratedHotel(models.Model):
             ('migrated_hotel_id', '=', self.id),
         ]).partner_id or False
         if not res_partner:
+            if rpc_hotel_folio['reservation_type'] == 'out':
+                partner_name = self.dummy_closure_reason_id.name
             # REVIEW: if partner not found, search name??
-            partner_name = rpc_hotel_folio['partner_id'][1]
-            partner_email = rpc_hotel_folio['email']
-            partner_mobile = rpc_hotel_folio['mobile'] if rpc_hotel_folio['mobile'] else rpc_hotel_folio['phone']
+            else:
+                partner_name = rpc_hotel_folio['partner_id'][1]
+                partner_email = rpc_hotel_folio['email']
+                partner_mobile = rpc_hotel_folio['mobile'] if rpc_hotel_folio['mobile'] else rpc_hotel_folio['phone']
         else:
             partner_name = res_partner.name
             partner_email = res_partner.email
