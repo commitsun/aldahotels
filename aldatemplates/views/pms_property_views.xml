@@ -2,8 +2,8 @@
 <odoo>
 
     <!-- Hotel Settings -->
-    <record id="view_property_form_pms_l10n_es" model="ir.ui.view">
-        <field name="name">Property Form l10n_es</field>
+    <record id="view_property_form_pms_aldahotel" model="ir.ui.view">
+        <field name="name">Property Form alda hotels</field>
         <field name="model">pms.property</field>
         <field name="inherit_id" ref="pms.pms_property_views_form" />
         <field name="arch" type="xml">
