@@ -25,6 +25,15 @@ from datetime import date, datetime, timedelta
 from odoo import api, models
 
 _logger = logging.getLogger(__name__)
+estado_array = [
+    "draft",
+    "confirm",
+    "onboard",
+    "done",
+    "cancel",
+    "arrival_delayed",
+    "departure_delayed",
+]
 
 
 class DataBi(models.Model):
@@ -33,7 +42,79 @@ class DataBi(models.Model):
     _name = "data_bi"
 
     @api.model
-    def export_data_bi(self, archivo=0, default_property=False, fechafoto=False):
+    def export_reservations_data(self, hotelsdata=[0], fechafoto=False):
+        limit_ago = self.calc_date_limit(fechafoto)
+        hotels = self.calc_hoteles(hotelsdata)
+        _logger.info("Exporting Reservations data Hotels IDs %s", hotels.ids)
+        response = []
+        for hotel in hotels:
+            response.append(self.export_one(hotel, limit_ago, 6))
+            response.append(self.export_one(hotel, limit_ago, 7))
+            response.append(self.export_one(hotel, limit_ago, 9))
+            response.append(self.export_one(hotel, limit_ago, 10))
+        return json.dumps(response, ensure_ascii=False)
+
+    @api.model
+    def export_general_data(self, default_property=False):
+        _logger.info("Exporting General data DataBI")
+        response = []
+        dic_hotel = []
+        hotel = False
+        propertys = self.env["pms.property"].search([])
+        for property in propertys:
+            dic_hotel.append({"ID_Hotel": property.id, "Descripción": property.name})
+            if property.id == default_property:
+                hotel = property
+        response.append({"Hotel": dic_hotel})
+        if not hotel:
+            hotel = propertys[0]
+
+        metodos = [[self.data_bi_tarifa, "Tarifa"],
+                   [self.data_bi_canal, "Canal"],
+                   [self.data_bi_pais, "Pais"],
+                   [self.data_bi_regimen, "Regimen"],
+                   [self.data_bi_moti_bloq, "Motivo Bloqueo"],
+                   [self.data_bi_segment, "Segmentos"],
+                   [self.data_bi_client, "Clientes"],
+                   [self.data_bi_habitacione, "Tipo Habitación"],
+                   [self.data_bi_estados, "Estado Reservas"],
+                   [self.data_bi_rooms, "Nombre Habitaciones"],
+                   ]
+        for meto in metodos:
+            response.append({meto[1]: self.clean_hotel_ids(meto[0](hotel))})
+        return json.dumps(response, ensure_ascii=False)
+
+
+    @api.model
+    def calc_hoteles(self, hotelsdata):
+        hotels = self.env["pms.property"].search([])
+        if hotelsdata != [0]:
+            hotels = self.env["pms.property"].search(
+                [("id", "in", hotelsdata)]
+            )
+        return hotels
+
+    @api.model
+    def calc_date_limit(self, fechafoto):
+        if not fechafoto:
+            fechafoto = date.today().strftime("%Y-%m-%d")
+        if type(fechafoto) is dict:
+            fechafoto = date.today()
+        else:
+            fechafoto = datetime.strptime(fechafoto, "%Y-%m-%d").date()
+        dias = self.env.user.data_bi_days
+        limit_ago = (fechafoto - timedelta(days=dias)).strftime("%Y-%m-%d")
+        _logger.info("Export Data %s days ago. From %s", dias, limit_ago)
+        return limit_ago
+
+    @api.model
+    def clean_hotel_ids(self, datadict):
+        for da in datadict:
+            da.pop("ID_Hotel", None)
+        return datadict
+
+    @api.model
+    def export_data_bi(self, archivo=0, default_property=[0], fechafoto=False):
         u"""Prepare a Json Objet to export data for MyDataBI.
 
         Generate a dicctionary to by send in JSON
@@ -56,132 +137,105 @@ class DataBi(models.Model):
             archivo == 15 'Room names'
         fechafoto = start date to take data
         """
-        if not fechafoto:
-            fechafoto = date.today().strftime("%Y-%m-%d")
+        limit_ago = self.calc_date_limit(fechafoto)
+        hotels = self.calc_hoteles(default_property)
+
         _logger.warning(
             "--- ### Init Export Data_Bi Module parameters:  %s, %s, %s ### ---",
             archivo,
-            default_property,
+            hotels.ids,
             fechafoto,
         )
 
-        if type(fechafoto) is dict:
-            fechafoto = date.today()
-        else:
-            fechafoto = datetime.strptime(fechafoto, "%Y-%m-%d").date()
-
-        propertys = self.env["pms.property"].search([])
-        if type(default_property) is int:
-            default_property = self.env["pms.property"].search(
-                [("id", "=", default_property)]
-            )
-            if len(default_property) == 1:
-                propertys = default_property
-
-        dias = self.env.user.data_bi_days
-        limit_ago = (fechafoto - timedelta(days=dias)).strftime("%Y-%m-%d")
-
-        _logger.info("Export Data %s days ago. From %s", dias, limit_ago)
-        estado_array = [
-            "draft",
-            "confirm",
-            "onboard",
-            "done",
-            "cancel",
-            "arrival_delayed",
-            "departure_delayed",
-        ]
-
         if archivo == 0:
-            dic_export = self.export_all(propertys, limit_ago, estado_array)
+            dic_export = self.export_all(hotels, limit_ago)
         else:
-            dic_export = self.export_one(propertys, limit_ago, estado_array, archivo)
+            dic_export = self.export_one(hotels, limit_ago, archivo)
 
-        dictionary_to_json = json.dumps(dic_export)
         _logger.warning("--- ### End Export Data_Bi Module to Json ### ---")
-        return dictionary_to_json
+        return json.dumps(dic_export, ensure_ascii=False)
 
     @api.model
-    def export_all(self, propertys, limit_ago, estado_array):
+    def export_all(self, hotels, limit_ago):
         line_res = self.env["pms.reservation.line"].search(
             [("date", ">=", limit_ago)], order="id"
         )
         dic_reservas = self.data_bi_reservas(
-            propertys,
+            hotels,
             line_res,
             estado_array,
         )
         dic_export = [
-            {"Tarifa": self.data_bi_tarifa(propertys)},
-            {"Canal": self.data_bi_canal(propertys)},
+            {"Tarifa": self.data_bi_tarifa(hotels)},
+            {"Canal": self.data_bi_canal(hotels)},
             {"Hotel": self.data_bi_hotel()},
-            {"Pais": self.data_bi_pais(propertys)},
-            {"Regimen": self.data_bi_regimen(propertys)},
+            {"Pais": self.data_bi_pais(hotels)},
+            {"Regimen": self.data_bi_regimen(hotels)},
             {"Reservas": dic_reservas},
-            {"Capacidad": self.data_bi_capacidad(propertys)},
-            {"Tipo Habitación": self.data_bi_habitacione(propertys)},
-            {"Budget": self.data_bi_budget(propertys)},
-            {"Bloqueos": self.data_bi_bloqueos(propertys, line_res)},
-            {"data_bi_moti_bloq": self.data_bi_moti_bloq(propertys)},
-            {"Segmentos": self.data_bi_segment(propertys)},
-            {"Clientes": self.data_bi_client(propertys)},
-            {"Estado Reservas": self.data_bi_estados(propertys, estado_array)},
-            {"Nombre Habitaciones": self.data_bi_rooms(propertys)},
+            {"Capacidad": self.data_bi_capacidad(hotels)},
+            {"Tipo Habitación": self.data_bi_habitacione(hotels)},
+            {"Budget": self.data_bi_budget(hotels)},
+            {"Bloqueos": self.data_bi_bloqueos(hotels, line_res)},
+            {"Motivo Bloqueo": self.data_bi_moti_bloq(hotels)},
+            {"Segmentos": self.data_bi_segment(hotels)},
+            {"Clientes": self.data_bi_client(hotels)},
+            {"Estado Reservas": self.data_bi_estados(hotels)},
+            {"Nombre Habitaciones": self.data_bi_rooms(hotels, True)},
         ]
         return dic_export
 
     @api.model
-    def export_one(self, propertys, limit_ago, estado_array, archivo):
+    def export_one(self, hotels, limit_ago, archivo):
         if (archivo == 0) or (archivo == 10) or (archivo == 6):
             line_res = self.env["pms.reservation.line"].search(
                 [("date", ">=", limit_ago)], order="id"
             )
             dic_reservas = self.data_bi_reservas(
-                propertys,
+                hotels,
                 line_res,
                 estado_array,
             )
         dic_export = []
         if archivo == 1:
-            dic_export.append({"Tarifa": self.data_bi_tarifa(propertys)})
+            dic_export.append({"Tarifa": self.data_bi_tarifa(hotels)})
         elif archivo == 2:
-            dic_export.append({"Canal": self.data_bi_canal(propertys)})
+            dic_export.append({"Canal": self.data_bi_canal(hotels)})
         elif archivo == 3:
             dic_export.append({"Hotel": self.data_bi_hotel()})
         elif archivo == 4:
-            dic_export.append({"Pais": self.data_bi_pais(propertys)})
+            dic_export.append({"Pais": self.data_bi_pais(hotels)})
         elif archivo == 5:
-            dic_export.append({"Regimen": self.data_bi_regimen(propertys)})
+            dic_export.append({"Regimen": self.data_bi_regimen(hotels)})
         elif archivo == 6:
             dic_export.append({"Reservas": dic_reservas})
         elif archivo == 7:
-            dic_export.append({"Capacidad": self.data_bi_capacidad(propertys)})
+            dic_export.append({"Capacidad": self.data_bi_capacidad(hotels)})
         elif archivo == 8:
-            dic_export.append({"Tipo Habitación": self.data_bi_habitacione(propertys)})
+            dic_export.append({"Tipo Habitación": self.data_bi_habitacione(hotels)})
         elif archivo == 9:
-            dic_export.append({"Budget": self.data_bi_budget(propertys)})
+            dic_export.append({"Budget": self.data_bi_budget(hotels)})
         elif archivo == 10:
-            dic_export.append({"Bloqueos": self.data_bi_bloqueos(propertys, line_res)})
+            dic_export.append({"Bloqueos": self.data_bi_bloqueos(hotels, line_res)})
         elif archivo == 11:
-            dic_export.append({"data_bi_moti_bloq": self.data_bi_moti_bloq(propertys)})
+            dic_export.append({"Motivo Bloqueo": self.data_bi_moti_bloq(hotels)})
         elif archivo == 12:
-            dic_export.append({"Segmentos": self.data_bi_segment(propertys)})
+            dic_export.append({"Segmentos": self.data_bi_segment(hotels)})
         elif archivo == 13:
-            dic_export.append({"Clientes": self.data_bi_client(propertys)})
+            dic_export.append({"Clientes": self.data_bi_client(hotels)})
         elif archivo == 14:
             dic_export.append(
-                {"Estado Reservas": self.data_bi_estados(propertys, estado_array)}
+                {"Estado Reservas": self.data_bi_estados(hotels)}
             )
         elif archivo == 15:
-            dic_export.append({"Nombre Habitaciones": self.data_bi_rooms(propertys)})
+            dic_export.append({"Nombre Habitaciones": self.data_bi_rooms(hotels, True)})
         return dic_export
 
     @api.model
-    def data_bi_tarifa(self, propertys):
+    def data_bi_tarifa(self, hotels):
         # Diccionario con las tarifas [1]
         dic_tarifa = []
 
-        for prop in propertys:
+        for prop in hotels:
             tarifas = self.env["product.pricelist"].search_read(
                 [
                     "|",
@@ -193,35 +247,35 @@ class DataBi(models.Model):
                 ],
                 ["name"],
             )
-            _logger.info(
-                "DataBi: Calculating %s fees in %s", str(len(tarifas)), prop.name
-            )
+            # _logger.info(
+            #     "DataBi: Calculating %s fees in %s", str(len(tarifas)), prop.name
+            # )
             for tarifa in tarifas:
                 dic_tarifa.append(
                     {
                         "ID_Hotel": prop.id,
                         "ID_Tarifa": tarifa["id"],
-                        "Descripcion": tarifa["name"],
+                        "Descripción": tarifa["name"],
                     }
                 )
         return dic_tarifa
 
     @api.model
-    def data_bi_canal(self, propertys):
+    def data_bi_canal(self, hotels):
         # Diccionario con los Canales [2]
         dic_canal = []
         channels = self.env["pms.sale.channel"].search([])
-        _logger.info("DataBi: Calculating %s Channels", str(len(channels)))
-        for prop in propertys:
+        # _logger.info("DataBi: Calculating %s Channels", str(len(channels)))
+        for prop in hotels:
             dic_canal.append(
-                {"ID_Hotel": prop.id, "ID_Canal": "0", "Descripcion": u"Ninguno"}
+                {"ID_Hotel": prop.id, "ID_Canal": "0", "Descripción": u"Ninguno"}
             )
             for channel in channels:
                 dic_canal.append(
                     {
                         "ID_Hotel": prop.id,
                         "ID_Canal": channel["id"],
-                        "Descripcion": channel["name"],
+                        "Descripción": channel["name"],
                     }
                 )
         return dic_canal
@@ -230,347 +284,347 @@ class DataBi(models.Model):
     def data_bi_hotel(self):
         # Diccionario con el/los nombre de los hoteles  [3]
         hoteles = self.env["pms.property"].search([])
-        _logger.info("DataBi: Calculating %s hotel names", str(len(hoteles)))
+        # _logger.info("DataBi: Calculating %s hotel names", str(len(hoteles)))
 
         dic_hotel = []
         for hotel in hoteles:
-            dic_hotel.append({"ID_Hotel": hotel.id, "Descripcion": hotel.name})
+            dic_hotel.append({"ID_Hotel": hotel.id, "Descripción": hotel.name})
         return dic_hotel
 
     @api.model
-    def data_bi_pais(self, propertys):
+    def data_bi_pais(self, hotels):
         dic_pais = []
-        dic_ine = [{"ID_Pais": "NONE", "Descripcion": "No Asignado"},
-             {"ID_Pais": "AFG", "Descripcion": "Afganistán"},
-             {"ID_Pais": "ALB", "Descripcion": "Albania"},
-             {"ID_Pais": "DEU", "Descripcion": "Alemania"},
-             {"ID_Pais": "AND", "Descripcion": "Andorra"},
-             {"ID_Pais": "AGO", "Descripcion": "Angola"},
-             {"ID_Pais": "AIA", "Descripcion": "Anguila"},
-             {"ID_Pais": "ATG", "Descripcion": "Antigua y Barbuda"},
-             {"ID_Pais": "ANT", "Descripcion": "Antillas Neerlandesas"},
-             {"ID_Pais": "ATA", "Descripcion": "Antártida"},
-             {"ID_Pais": "SAU", "Descripcion": "Arabia Saudita"},
-             {"ID_Pais": "DZA", "Descripcion": "Argelia"},
-             {"ID_Pais": "ARG", "Descripcion": "Argentina"},
-             {"ID_Pais": "ARM", "Descripcion": "Armenia"},
-             {"ID_Pais": "ABW", "Descripcion": "Aruba"},
-             {"ID_Pais": "AUS", "Descripcion": "Australia"},
-             {"ID_Pais": "AUT", "Descripcion": "Austria"},
-             {"ID_Pais": "AZE", "Descripcion": "Azerbaiyán"},
-             {"ID_Pais": "BHS", "Descripcion": "Bahamas"},
-             {"ID_Pais": "BHR", "Descripcion": "Bahrein"},
-             {"ID_Pais": "BGD", "Descripcion": "Bangladesh"},
-             {"ID_Pais": "BRB", "Descripcion": "Barbados"},
-             {"ID_Pais": "BLZ", "Descripcion": "Belice"},
-             {"ID_Pais": "BEN", "Descripcion": "Benin"},
-             {"ID_Pais": "BMU", "Descripcion": "Bermudas"},
-             {"ID_Pais": "BTN", "Descripcion": "Bhután"},
-             {"ID_Pais": "BLR", "Descripcion": "Bielorrusia"},
-             {"ID_Pais": "BOL", "Descripcion": "Bolivia"},
-             {"ID_Pais": "BIH", "Descripcion": "Bosnia-Herzegovina"},
-             {"ID_Pais": "BWA", "Descripcion": "Botswana"},
-             {"ID_Pais": "BRA", "Descripcion": "Brasil"},
-             {"ID_Pais": "BRN", "Descripcion": "Brunéi"},
-             {"ID_Pais": "BGR", "Descripcion": "Bulgaria"},
-             {"ID_Pais": "BFA", "Descripcion": "Burkina Fasso"},
-             {"ID_Pais": "BDI", "Descripcion": "Burundi"},
-             {"ID_Pais": "BEL", "Descripcion": "Bélgica"},
-             {"ID_Pais": "CPV", "Descripcion": "Cabo Verde"},
-             {"ID_Pais": "KHM", "Descripcion": "Camboya"},
-             {"ID_Pais": "CMR", "Descripcion": "Camerún"},
-             {"ID_Pais": "CAN", "Descripcion": "Canadá"},
-             {"ID_Pais": "TCD", "Descripcion": "Chad"},
-             {"ID_Pais": "CHL", "Descripcion": "Chile"},
-             {"ID_Pais": "CHN", "Descripcion": "China"},
-             {"ID_Pais": "CYP", "Descripcion": "Chipre"},
-             {"ID_Pais": "COL", "Descripcion": "Colombia"},
-             {"ID_Pais": "COM", "Descripcion": "Comoras"},
-             {"ID_Pais": "COG", "Descripcion": "Congo, República del"},
-             {"ID_Pais": "COD", "Descripcion": "Congo, República Democrática del"},
-             {"ID_Pais": "PRK", "Descripcion": "Corea, Rep. Popular Democrática"},
-             {"ID_Pais": "KOR", "Descripcion": "Corea, República de"},
-             {"ID_Pais": "CIV", "Descripcion": "Costa de Marfil"},
-             {"ID_Pais": "CRI", "Descripcion": "Costa Rica"},
-             {"ID_Pais": "HRV", "Descripcion": "Croacia"},
-             {"ID_Pais": "CUB", "Descripcion": "Cuba"},
-             {"ID_Pais": "DNK", "Descripcion": "Dinamarca"},
-             {"ID_Pais": "DMA", "Descripcion": "Dominica"},
-             {"ID_Pais": "ECU", "Descripcion": "Ecuador"},
-             {"ID_Pais": "EGY", "Descripcion": "Egipto"},
-             {"ID_Pais": "SLV", "Descripcion": "El Salvador"},
-             {"ID_Pais": "ARE", "Descripcion": "Emiratos Arabes Unidos"},
-             {"ID_Pais": "ERI", "Descripcion": "Eritrea"},
-             {"ID_Pais": "SVK", "Descripcion": "Eslovaquia"},
-             {"ID_Pais": "SVN", "Descripcion": "Eslovenia"},
-             {"ID_Pais": "USA", "Descripcion": "Estados Unidos de América"},
-             {"ID_Pais": "EST", "Descripcion": "Estonia"},
-             {"ID_Pais": "ETH", "Descripcion": "Etiopía"},
-             {"ID_Pais": "PHL", "Descripcion": "Filipinas"},
-             {"ID_Pais": "FIN", "Descripcion": "Finlandia"},
-             {"ID_Pais": "FRA", "Descripcion": "Francia"},
-             {"ID_Pais": "GAB", "Descripcion": "Gabón"},
-             {"ID_Pais": "GMB", "Descripcion": "Gambia"},
-             {"ID_Pais": "GEO", "Descripcion": "Georgia"},
-             {"ID_Pais": "GHA", "Descripcion": "Ghana"},
-             {"ID_Pais": "GIB", "Descripcion": "Gibraltar"},
-             {"ID_Pais": "GRD", "Descripcion": "Granada"},
-             {"ID_Pais": "GRC", "Descripcion": "Grecia"},
-             {"ID_Pais": "GRL", "Descripcion": "Groenlandia"},
-             {"ID_Pais": "GLP", "Descripcion": "Guadalupe"},
-             {"ID_Pais": "GUM", "Descripcion": "Guam"},
-             {"ID_Pais": "GTM", "Descripcion": "Guatemala"},
-             {"ID_Pais": "GUF", "Descripcion": "Guayana Francesa"},
-             {"ID_Pais": "GIN", "Descripcion": "Guinea"},
-             {"ID_Pais": "GNQ", "Descripcion": "Guinea Ecuatorial"},
-             {"ID_Pais": "GNB", "Descripcion": "Guinea-Bissau"},
-             {"ID_Pais": "GUY", "Descripcion": "Guyana"},
-             {"ID_Pais": "HTI", "Descripcion": "Haití"},
-             {"ID_Pais": "HND", "Descripcion": "Honduras"},
-             {"ID_Pais": "HKG", "Descripcion": "Hong-Kong"},
-             {"ID_Pais": "HUN", "Descripcion": "Hungría"},
-             {"ID_Pais": "IND", "Descripcion": "India"},
-             {"ID_Pais": "IDN", "Descripcion": "Indonesia"},
-             {"ID_Pais": "IRQ", "Descripcion": "Irak"},
-             {"ID_Pais": "IRL", "Descripcion": "Irlanda"},
-             {"ID_Pais": "IRN", "Descripcion": "Irán"},
-             {"ID_Pais": "BVT", "Descripcion": "Isla Bouvert"},
-             {"ID_Pais": "GGY", "Descripcion": "Isla de Guernesey"},
-             {"ID_Pais": "JEY", "Descripcion": "Isla de Jersey"},
-             {"ID_Pais": "IMN", "Descripcion": "Isla de Man"},
-             {"ID_Pais": "CXR", "Descripcion": "Isla de Navidad"},
-             {"ID_Pais": "ISL", "Descripcion": "Islandia"},
-             {"ID_Pais": "CYM", "Descripcion": "Islas Caimán"},
-             {"ID_Pais": "CCK", "Descripcion": "Islas Cocos"},
-             {"ID_Pais": "COK", "Descripcion": "Islas Cook"},
-             {"ID_Pais": "FLK", "Descripcion": "Islas Falkland (Malvinas)"},
-             {"ID_Pais": "FRO", "Descripcion": "Islas Feroé"},
-             {"ID_Pais": "FJI", "Descripcion": "Islas Fidji"},
-             {"ID_Pais": "SGS", "Descripcion": "Islas Georgias del Sur y Sandwich"},
-             {"ID_Pais": "HMD", "Descripcion": "Islas Heard e Mcdonald"},
-             {"ID_Pais": "MNP", "Descripcion": "Islas Marianas del Norte"},
-             {"ID_Pais": "MHL", "Descripcion": "Islas Marshall"},
-             {"ID_Pais": "UMI", "Descripcion": "Islas Menores de EEUU"},
-             {"ID_Pais": "NFK", "Descripcion": "Islas Norfolk"},
-             {"ID_Pais": "PCN", "Descripcion": "Islas Pitcairn"},
-             {"ID_Pais": "SLB", "Descripcion": "Islas Salomón"},
-             {"ID_Pais": "TCA", "Descripcion": "Islas Turcas y Caicos"},
-             {"ID_Pais": "VGB", "Descripcion": "Islas Vírgenes Británicas"},
-             {"ID_Pais": "VIR", "Descripcion": "Islas Vírgenes de los EEUU"},
-             {"ID_Pais": "WLF", "Descripcion": "Islas Wallis y Futura"},
-             {"ID_Pais": "ALA", "Descripcion": "Islas Åland"},
-             {"ID_Pais": "ISR", "Descripcion": "Israel"},
-             {"ID_Pais": "ITA", "Descripcion": "Italia"},
-             {"ID_Pais": "JAM", "Descripcion": "Jamaica"},
-             {"ID_Pais": "JPN", "Descripcion": "Japón"},
-             {"ID_Pais": "JOR", "Descripcion": "Jordania"},
-             {"ID_Pais": "KAZ", "Descripcion": "Kazajstán"},
-             {"ID_Pais": "KEN", "Descripcion": "Kenia"},
-             {"ID_Pais": "KGZ", "Descripcion": "Kirguistán"},
-             {"ID_Pais": "KIR", "Descripcion": "Kiribati"},
-             {"ID_Pais": "KWT", "Descripcion": "Kuwait"},
-             {"ID_Pais": "LAO", "Descripcion": "Laos"},
-             {"ID_Pais": "LSO", "Descripcion": "Lesotho"},
-             {"ID_Pais": "LVA", "Descripcion": "Letonia"},
-             {"ID_Pais": "LBY", "Descripcion": "Libia"},
-             {"ID_Pais": "LBR", "Descripcion": "Libéria"},
-             {"ID_Pais": "LIE", "Descripcion": "Liechtenstein"},
-             {"ID_Pais": "LTU", "Descripcion": "Lituania"},
-             {"ID_Pais": "LUX", "Descripcion": "Luxemburgo"},
-             {"ID_Pais": "LBN", "Descripcion": "Líbano"},
-             {"ID_Pais": "MAC", "Descripcion": "Macao"},
-             {"ID_Pais": "MKD", "Descripcion": "Macedonia, ARY"},
-             {"ID_Pais": "MDG", "Descripcion": "Madagascar"},
-             {"ID_Pais": "MYS", "Descripcion": "Malasia"},
-             {"ID_Pais": "MWI", "Descripcion": "Malawi"},
-             {"ID_Pais": "MDV", "Descripcion": "Maldivas"},
-             {"ID_Pais": "MLT", "Descripcion": "Malta"},
-             {"ID_Pais": "MLI", "Descripcion": "Malí"},
-             {"ID_Pais": "MAR", "Descripcion": "Marruecos"},
-             {"ID_Pais": "MTQ", "Descripcion": "Martinica"},
-             {"ID_Pais": "MUS", "Descripcion": "Mauricio"},
-             {"ID_Pais": "MRT", "Descripcion": "Mauritania"},
-             {"ID_Pais": "MYT", "Descripcion": "Mayotte"},
-             {"ID_Pais": "FSM", "Descripcion": "Micronesia"},
-             {"ID_Pais": "MDA", "Descripcion": "Moldavia"},
-             {"ID_Pais": "MNG", "Descripcion": "Mongolia"},
-             {"ID_Pais": "MNE", "Descripcion": "Montenegro"},
-             {"ID_Pais": "MSR", "Descripcion": "Montserrat"},
-             {"ID_Pais": "MOZ", "Descripcion": "Mozambique"},
-             {"ID_Pais": "MMR", "Descripcion": "Myanmar"},
-             {"ID_Pais": "MEX", "Descripcion": "México"},
-             {"ID_Pais": "MCO", "Descripcion": "Mónaco"},
-             {"ID_Pais": "NAM", "Descripcion": "Namibia"},
-             {"ID_Pais": "NRU", "Descripcion": "Naurú"},
-             {"ID_Pais": "NPL", "Descripcion": "Nepal"},
-             {"ID_Pais": "NIC", "Descripcion": "Nicaragua"},
-             {"ID_Pais": "NGA", "Descripcion": "Nigeria"},
-             {"ID_Pais": "NIU", "Descripcion": "Niue"},
-             {"ID_Pais": "NOR", "Descripcion": "Noruega"},
-             {"ID_Pais": "NCL", "Descripcion": "Nueva Caledonia"},
-             {"ID_Pais": "NZL", "Descripcion": "Nueva Zelanda"},
-             {"ID_Pais": "NER", "Descripcion": "Níger"},
-             {"ID_Pais": "OMN", "Descripcion": "Omán"},
-             {"ID_Pais": "PAK", "Descripcion": "Pakistán"},
-             {"ID_Pais": "PLW", "Descripcion": "Palau"},
-             {"ID_Pais": "PSE", "Descripcion": "Palestina, Territorio ocupado"},
-             {"ID_Pais": "PAN", "Descripcion": "Panamá"},
-             {"ID_Pais": "PNG", "Descripcion": "Papua Nueva Guinea"},
-             {"ID_Pais": "PRY", "Descripcion": "Paraguay"},
-             {"ID_Pais": "NLD", "Descripcion": "Países Bajos"},
-             {"ID_Pais": "PER", "Descripcion": "Perú"},
-             {"ID_Pais": "PYF", "Descripcion": "Polinesia Francesa"},
-             {"ID_Pais": "POL", "Descripcion": "Polonia"},
-             {"ID_Pais": "PRT", "Descripcion": "Portugal"},
-             {"ID_Pais": "PRI", "Descripcion": "Puerto Rico"},
-             {"ID_Pais": "QAT", "Descripcion": "Qatar"},
-             {"ID_Pais": "GBR", "Descripcion": "Reino Unido"},
-             {"ID_Pais": "CAF", "Descripcion": "República Centroafricana"},
-             {"ID_Pais": "CZE", "Descripcion": "República Checa"},
-             {"ID_Pais": "DOM", "Descripcion": "República Dominicana"},
-             {"ID_Pais": "REU", "Descripcion": "Reunión"},
-             {"ID_Pais": "ROU", "Descripcion": "Rumania"},
-             {"ID_Pais": "RUS", "Descripcion": "Rusia"},
-             {"ID_Pais": "RWA", "Descripcion": "Rwanda"},
-             {"ID_Pais": "ESH", "Descripcion": "Sahara Occidental"},
-             {"ID_Pais": "KNA", "Descripcion": "Saint Kitts y Nevis"},
-             {"ID_Pais": "WSM", "Descripcion": "Samoa"},
-             {"ID_Pais": "ASM", "Descripcion": "Samoa Americana"},
-             {"ID_Pais": "BLM", "Descripcion": "San Bartolomé"},
-             {"ID_Pais": "SMR", "Descripcion": "San Marino"},
-             {"ID_Pais": "MAF", "Descripcion": "San Martín"},
-             {"ID_Pais": "SPM", "Descripcion": "San Pedro y Miquelón"},
-             {"ID_Pais": "VCT", "Descripcion": "San Vicente y las Granadinas"},
-             {"ID_Pais": "SHN", "Descripcion": "Santa Elena"},
-             {"ID_Pais": "LCA", "Descripcion": "Santa Lucía"},
-             {"ID_Pais": "STP", "Descripcion": "Santo Tomé y Príncipe"},
-             {"ID_Pais": "SEN", "Descripcion": "Senegal"},
-             {"ID_Pais": "SRB", "Descripcion": "Serbia"},
-             {"ID_Pais": "SYC", "Descripcion": "Seychelles"},
-             {"ID_Pais": "SLE", "Descripcion": "Sierra Leona"},
-             {"ID_Pais": "SGP", "Descripcion": "Singapur"},
-             {"ID_Pais": "SYR", "Descripcion": "Siria"},
-             {"ID_Pais": "SOM", "Descripcion": "Somalia"},
-             {"ID_Pais": "LKA", "Descripcion": "Sri Lanka"},
-             {"ID_Pais": "SWZ", "Descripcion": "Suazilandia"},
-             {"ID_Pais": "ZAF", "Descripcion": "Sudáfrica"},
-             {"ID_Pais": "SDN", "Descripcion": "Sudán"},
-             {"ID_Pais": "SWE", "Descripcion": "Suecia"},
-             {"ID_Pais": "CHE", "Descripcion": "Suiza"},
-             {"ID_Pais": "SUR", "Descripcion": "Suriname"},
-             {"ID_Pais": "SJM", "Descripcion": "Svalbard e Islas de Jan Mayen"},
-             {"ID_Pais": "THA", "Descripcion": "Tailandia"},
-             {"ID_Pais": "TWN", "Descripcion": "Taiwán"},
-             {"ID_Pais": "TZA", "Descripcion": "Tanzania"},
-             {"ID_Pais": "TJK", "Descripcion": "Tayikistan"},
-             {"ID_Pais": "IOT", "Descripcion": "Terr. Británico del Oc. Indico"},
-             {"ID_Pais": "ATF", "Descripcion": "Tierras Australes Francesas"},
-             {"ID_Pais": "TLS", "Descripcion": "Timor Oriental"},
-             {"ID_Pais": "TGO", "Descripcion": "Togo"},
-             {"ID_Pais": "TKL", "Descripcion": "Tokelau"},
-             {"ID_Pais": "TON", "Descripcion": "Tonga"},
-             {"ID_Pais": "TTO", "Descripcion": "Trinidad y Tobago"},
-             {"ID_Pais": "TKM", "Descripcion": "Turkmenistán"},
-             {"ID_Pais": "TUR", "Descripcion": "Turquía"},
-             {"ID_Pais": "TUV", "Descripcion": "Tuvalu"},
-             {"ID_Pais": "TUN", "Descripcion": "Túnez"},
-             {"ID_Pais": "UKR", "Descripcion": "Ucrania"},
-             {"ID_Pais": "UGA", "Descripcion": "Uganda"},
-             {"ID_Pais": "URY", "Descripcion": "Uruguay"},
-             {"ID_Pais": "UZB", "Descripcion": "Uzbekistán"},
-             {"ID_Pais": "VUT", "Descripcion": "Vanuatu"},
-             {"ID_Pais": "VAT", "Descripcion": "Vaticano, Santa Sede"},
-             {"ID_Pais": "VEN", "Descripcion": "Venezuela"},
-             {"ID_Pais": "VNM", "Descripcion": "Vietnam"},
-             {"ID_Pais": "YEM", "Descripcion": "Yemen"},
-             {"ID_Pais": "DJI", "Descripcion": "Yibuti"},
-             {"ID_Pais": "ZMB", "Descripcion": "Zambia"},
-             {"ID_Pais": "ZWE", "Descripcion": "Zimbabwe"},
-             {"ID_Pais": "KOS", "Descripcion": "Kosovo"},
-             {"ID_Pais": "ES111", "Descripcion": "A Coruña"},
-             {"ID_Pais": "ES112", "Descripcion": "Lugo"},
-             {"ID_Pais": "ES113", "Descripcion": "Ourense"},
-             {"ID_Pais": "ES114", "Descripcion": "Pontevedra"},
-             {"ID_Pais": "ES120", "Descripcion": "Asturias"},
-             {"ID_Pais": "ES130", "Descripcion": "Cantabria"},
-             {"ID_Pais": "ES211", "Descripcion": "Araba/Álava"},
-             {"ID_Pais": "ES212", "Descripcion": "Gipuzkoa"},
-             {"ID_Pais": "ES213", "Descripcion": "Bizkaia"},
-             {"ID_Pais": "ES220", "Descripcion": "Navarra"},
-             {"ID_Pais": "ES230", "Descripcion": "La Rioja"},
-             {"ID_Pais": "ES241", "Descripcion": "Huesca"},
-             {"ID_Pais": "ES242", "Descripcion": "Teruel"},
-             {"ID_Pais": "ES243", "Descripcion": "Zaragoza"},
-             {"ID_Pais": "ES300", "Descripcion": "Madrid"},
-             {"ID_Pais": "ES411", "Descripcion": "Ávila"},
-             {"ID_Pais": "ES412", "Descripcion": "Burgos"},
-             {"ID_Pais": "ES413", "Descripcion": "León"},
-             {"ID_Pais": "ES414", "Descripcion": "Palencia"},
-             {"ID_Pais": "ES415", "Descripcion": "Salamanca"},
-             {"ID_Pais": "ES416", "Descripcion": "Segovia"},
-             {"ID_Pais": "ES417", "Descripcion": "Soria"},
-             {"ID_Pais": "ES418", "Descripcion": "Valladolid"},
-             {"ID_Pais": "ES419", "Descripcion": "Zamora"},
-             {"ID_Pais": "ES421", "Descripcion": "Albacete"},
-             {"ID_Pais": "ES422", "Descripcion": "Ciudad Real"},
-             {"ID_Pais": "ES423", "Descripcion": "Cuenca"},
-             {"ID_Pais": "ES424", "Descripcion": "Guadalajara"},
-             {"ID_Pais": "ES425", "Descripcion": "Toledo"},
-             {"ID_Pais": "ES431", "Descripcion": "Badajoz"},
-             {"ID_Pais": "ES432", "Descripcion": "Cáceres"},
-             {"ID_Pais": "ES511", "Descripcion": "Barcelona"},
-             {"ID_Pais": "ES512", "Descripcion": "Girona"},
-             {"ID_Pais": "ES513", "Descripcion": "Lleida"},
-             {"ID_Pais": "ES514", "Descripcion": "Tarragona"},
-             {"ID_Pais": "ES521", "Descripcion": "Alicante / Alacant"},
-             {"ID_Pais": "ES522", "Descripcion": "Castellón / Castelló"},
-             {"ID_Pais": "ES523", "Descripcion": "Valencia / Valéncia"},
-             {"ID_Pais": "ES530", "Descripcion": "Illes Balears"},
-             {"ID_Pais": "ES531", "Descripcion": "Eivissa y Formentera"},
-             {"ID_Pais": "ES532", "Descripcion": "Mallorca"},
-             {"ID_Pais": "ES533", "Descripcion": "Menorca"},
-             {"ID_Pais": "ES611", "Descripcion": "Almería"},
-             {"ID_Pais": "ES612", "Descripcion": "Cádiz"},
-             {"ID_Pais": "ES613", "Descripcion": "Córdoba"},
-             {"ID_Pais": "ES614", "Descripcion": "Granada"},
-             {"ID_Pais": "ES615", "Descripcion": "Huelva"},
-             {"ID_Pais": "ES616", "Descripcion": "Jaén"},
-             {"ID_Pais": "ES617", "Descripcion": "Málaga"},
-             {"ID_Pais": "ES618", "Descripcion": "Sevilla"},
-             {"ID_Pais": "ES620", "Descripcion": "Murcia"},
-             {"ID_Pais": "ES630", "Descripcion": "Ceuta"},
-             {"ID_Pais": "ES640", "Descripcion": "Melilla"},
-             {"ID_Pais": "ES701", "Descripcion": "Las Palmas"},
-             {"ID_Pais": "ES702", "Descripcion": "Santa Cruz de Tenerife"},
-             {"ID_Pais": "ES703", "Descripcion": "El Hierro"},
-             {"ID_Pais": "ES704", "Descripcion": "Fuerteventura"},
-             {"ID_Pais": "ES705", "Descripcion": "Gran Canaria"},
-             {"ID_Pais": "ES706", "Descripcion": "La Gomera"},
-             {"ID_Pais": "ES707", "Descripcion": "La Palma"},
-             {"ID_Pais": "ES708", "Descripcion": "Lanzarote"},
-             {"ID_Pais": "ES709", "Descripcion": "Tenerife"}
+        dic_ine = [{"ID_Pais": "NONE", "Descripción": "No Asignado"},
+             {"ID_Pais": "AFG", "Descripción": "Afganistán"},
+             {"ID_Pais": "ALB", "Descripción": "Albania"},
+             {"ID_Pais": "DEU", "Descripción": "Alemania"},
+             {"ID_Pais": "AND", "Descripción": "Andorra"},
+             {"ID_Pais": "AGO", "Descripción": "Angola"},
+             {"ID_Pais": "AIA", "Descripción": "Anguila"},
+             {"ID_Pais": "ATG", "Descripción": "Antigua y Barbuda"},
+             {"ID_Pais": "ANT", "Descripción": "Antillas Neerlandesas"},
+             {"ID_Pais": "ATA", "Descripción": "Antártida"},
+             {"ID_Pais": "SAU", "Descripción": "Arabia Saudita"},
+             {"ID_Pais": "DZA", "Descripción": "Argelia"},
+             {"ID_Pais": "ARG", "Descripción": "Argentina"},
+             {"ID_Pais": "ARM", "Descripción": "Armenia"},
+             {"ID_Pais": "ABW", "Descripción": "Aruba"},
+             {"ID_Pais": "AUS", "Descripción": "Australia"},
+             {"ID_Pais": "AUT", "Descripción": "Austria"},
+             {"ID_Pais": "AZE", "Descripción": "Azerbaiyán"},
+             {"ID_Pais": "BHS", "Descripción": "Bahamas"},
+             {"ID_Pais": "BHR", "Descripción": "Bahrein"},
+             {"ID_Pais": "BGD", "Descripción": "Bangladesh"},
+             {"ID_Pais": "BRB", "Descripción": "Barbados"},
+             {"ID_Pais": "BLZ", "Descripción": "Belice"},
+             {"ID_Pais": "BEN", "Descripción": "Benin"},
+             {"ID_Pais": "BMU", "Descripción": "Bermudas"},
+             {"ID_Pais": "BTN", "Descripción": "Bhután"},
+             {"ID_Pais": "BLR", "Descripción": "Bielorrusia"},
+             {"ID_Pais": "BOL", "Descripción": "Bolivia"},
+             {"ID_Pais": "BIH", "Descripción": "Bosnia-Herzegovina"},
+             {"ID_Pais": "BWA", "Descripción": "Botswana"},
+             {"ID_Pais": "BRA", "Descripción": "Brasil"},
+             {"ID_Pais": "BRN", "Descripción": "Brunéi"},
+             {"ID_Pais": "BGR", "Descripción": "Bulgaria"},
+             {"ID_Pais": "BFA", "Descripción": "Burkina Fasso"},
+             {"ID_Pais": "BDI", "Descripción": "Burundi"},
+             {"ID_Pais": "BEL", "Descripción": "Bélgica"},
+             {"ID_Pais": "CPV", "Descripción": "Cabo Verde"},
+             {"ID_Pais": "KHM", "Descripción": "Camboya"},
+             {"ID_Pais": "CMR", "Descripción": "Camerún"},
+             {"ID_Pais": "CAN", "Descripción": "Canadá"},
+             {"ID_Pais": "TCD", "Descripción": "Chad"},
+             {"ID_Pais": "CHL", "Descripción": "Chile"},
+             {"ID_Pais": "CHN", "Descripción": "China"},
+             {"ID_Pais": "CYP", "Descripción": "Chipre"},
+             {"ID_Pais": "COL", "Descripción": "Colombia"},
+             {"ID_Pais": "COM", "Descripción": "Comoras"},
+             {"ID_Pais": "COG", "Descripción": "Congo, República del"},
+             {"ID_Pais": "COD", "Descripción": "Congo, República Democrática del"},
+             {"ID_Pais": "PRK", "Descripción": "Corea, Rep. Popular Democrática"},
+             {"ID_Pais": "KOR", "Descripción": "Corea, República de"},
+             {"ID_Pais": "CIV", "Descripción": "Costa de Marfil"},
+             {"ID_Pais": "CRI", "Descripción": "Costa Rica"},
+             {"ID_Pais": "HRV", "Descripción": "Croacia"},
+             {"ID_Pais": "CUB", "Descripción": "Cuba"},
+             {"ID_Pais": "DNK", "Descripción": "Dinamarca"},
+             {"ID_Pais": "DMA", "Descripción": "Dominica"},
+             {"ID_Pais": "ECU", "Descripción": "Ecuador"},
+             {"ID_Pais": "EGY", "Descripción": "Egipto"},
+             {"ID_Pais": "SLV", "Descripción": "El Salvador"},
+             {"ID_Pais": "ARE", "Descripción": "Emiratos Arabes Unidos"},
+             {"ID_Pais": "ERI", "Descripción": "Eritrea"},
+             {"ID_Pais": "SVK", "Descripción": "Eslovaquia"},
+             {"ID_Pais": "SVN", "Descripción": "Eslovenia"},
+             {"ID_Pais": "USA", "Descripción": "Estados Unidos de América"},
+             {"ID_Pais": "EST", "Descripción": "Estonia"},
+             {"ID_Pais": "ETH", "Descripción": "Etiopía"},
+             {"ID_Pais": "PHL", "Descripción": "Filipinas"},
+             {"ID_Pais": "FIN", "Descripción": "Finlandia"},
+             {"ID_Pais": "FRA", "Descripción": "Francia"},
+             {"ID_Pais": "GAB", "Descripción": "Gabón"},
+             {"ID_Pais": "GMB", "Descripción": "Gambia"},
+             {"ID_Pais": "GEO", "Descripción": "Georgia"},
+             {"ID_Pais": "GHA", "Descripción": "Ghana"},
+             {"ID_Pais": "GIB", "Descripción": "Gibraltar"},
+             {"ID_Pais": "GRD", "Descripción": "Granada"},
+             {"ID_Pais": "GRC", "Descripción": "Grecia"},
+             {"ID_Pais": "GRL", "Descripción": "Groenlandia"},
+             {"ID_Pais": "GLP", "Descripción": "Guadalupe"},
+             {"ID_Pais": "GUM", "Descripción": "Guam"},
+             {"ID_Pais": "GTM", "Descripción": "Guatemala"},
+             {"ID_Pais": "GUF", "Descripción": "Guayana Francesa"},
+             {"ID_Pais": "GIN", "Descripción": "Guinea"},
+             {"ID_Pais": "GNQ", "Descripción": "Guinea Ecuatorial"},
+             {"ID_Pais": "GNB", "Descripción": "Guinea-Bissau"},
+             {"ID_Pais": "GUY", "Descripción": "Guyana"},
+             {"ID_Pais": "HTI", "Descripción": "Haití"},
+             {"ID_Pais": "HND", "Descripción": "Honduras"},
+             {"ID_Pais": "HKG", "Descripción": "Hong-Kong"},
+             {"ID_Pais": "HUN", "Descripción": "Hungría"},
+             {"ID_Pais": "IND", "Descripción": "India"},
+             {"ID_Pais": "IDN", "Descripción": "Indonesia"},
+             {"ID_Pais": "IRQ", "Descripción": "Irak"},
+             {"ID_Pais": "IRL", "Descripción": "Irlanda"},
+             {"ID_Pais": "IRN", "Descripción": "Irán"},
+             {"ID_Pais": "BVT", "Descripción": "Isla Bouvert"},
+             {"ID_Pais": "GGY", "Descripción": "Isla de Guernesey"},
+             {"ID_Pais": "JEY", "Descripción": "Isla de Jersey"},
+             {"ID_Pais": "IMN", "Descripción": "Isla de Man"},
+             {"ID_Pais": "CXR", "Descripción": "Isla de Navidad"},
+             {"ID_Pais": "ISL", "Descripción": "Islandia"},
+             {"ID_Pais": "CYM", "Descripción": "Islas Caimán"},
+             {"ID_Pais": "CCK", "Descripción": "Islas Cocos"},
+             {"ID_Pais": "COK", "Descripción": "Islas Cook"},
+             {"ID_Pais": "FLK", "Descripción": "Islas Falkland (Malvinas)"},
+             {"ID_Pais": "FRO", "Descripción": "Islas Feroé"},
+             {"ID_Pais": "FJI", "Descripción": "Islas Fidji"},
+             {"ID_Pais": "SGS", "Descripción": "Islas Georgias del Sur y Sandwich"},
+             {"ID_Pais": "HMD", "Descripción": "Islas Heard e Mcdonald"},
+             {"ID_Pais": "MNP", "Descripción": "Islas Marianas del Norte"},
+             {"ID_Pais": "MHL", "Descripción": "Islas Marshall"},
+             {"ID_Pais": "UMI", "Descripción": "Islas Menores de EEUU"},
+             {"ID_Pais": "NFK", "Descripción": "Islas Norfolk"},
+             {"ID_Pais": "PCN", "Descripción": "Islas Pitcairn"},
+             {"ID_Pais": "SLB", "Descripción": "Islas Salomón"},
+             {"ID_Pais": "TCA", "Descripción": "Islas Turcas y Caicos"},
+             {"ID_Pais": "VGB", "Descripción": "Islas Vírgenes Británicas"},
+             {"ID_Pais": "VIR", "Descripción": "Islas Vírgenes de los EEUU"},
+             {"ID_Pais": "WLF", "Descripción": "Islas Wallis y Futura"},
+             {"ID_Pais": "ALA", "Descripción": "Islas Åland"},
+             {"ID_Pais": "ISR", "Descripción": "Israel"},
+             {"ID_Pais": "ITA", "Descripción": "Italia"},
+             {"ID_Pais": "JAM", "Descripción": "Jamaica"},
+             {"ID_Pais": "JPN", "Descripción": "Japón"},
+             {"ID_Pais": "JOR", "Descripción": "Jordania"},
+             {"ID_Pais": "KAZ", "Descripción": "Kazajstán"},
+             {"ID_Pais": "KEN", "Descripción": "Kenia"},
+             {"ID_Pais": "KGZ", "Descripción": "Kirguistán"},
+             {"ID_Pais": "KIR", "Descripción": "Kiribati"},
+             {"ID_Pais": "KWT", "Descripción": "Kuwait"},
+             {"ID_Pais": "LAO", "Descripción": "Laos"},
+             {"ID_Pais": "LSO", "Descripción": "Lesotho"},
+             {"ID_Pais": "LVA", "Descripción": "Letonia"},
+             {"ID_Pais": "LBY", "Descripción": "Libia"},
+             {"ID_Pais": "LBR", "Descripción": "Libéria"},
+             {"ID_Pais": "LIE", "Descripción": "Liechtenstein"},
+             {"ID_Pais": "LTU", "Descripción": "Lituania"},
+             {"ID_Pais": "LUX", "Descripción": "Luxemburgo"},
+             {"ID_Pais": "LBN", "Descripción": "Líbano"},
+             {"ID_Pais": "MAC", "Descripción": "Macao"},
+             {"ID_Pais": "MKD", "Descripción": "Macedonia, ARY"},
+             {"ID_Pais": "MDG", "Descripción": "Madagascar"},
+             {"ID_Pais": "MYS", "Descripción": "Malasia"},
+             {"ID_Pais": "MWI", "Descripción": "Malawi"},
+             {"ID_Pais": "MDV", "Descripción": "Maldivas"},
+             {"ID_Pais": "MLT", "Descripción": "Malta"},
+             {"ID_Pais": "MLI", "Descripción": "Malí"},
+             {"ID_Pais": "MAR", "Descripción": "Marruecos"},
+             {"ID_Pais": "MTQ", "Descripción": "Martinica"},
+             {"ID_Pais": "MUS", "Descripción": "Mauricio"},
+             {"ID_Pais": "MRT", "Descripción": "Mauritania"},
+             {"ID_Pais": "MYT", "Descripción": "Mayotte"},
+             {"ID_Pais": "FSM", "Descripción": "Micronesia"},
+             {"ID_Pais": "MDA", "Descripción": "Moldavia"},
+             {"ID_Pais": "MNG", "Descripción": "Mongolia"},
+             {"ID_Pais": "MNE", "Descripción": "Montenegro"},
+             {"ID_Pais": "MSR", "Descripción": "Montserrat"},
+             {"ID_Pais": "MOZ", "Descripción": "Mozambique"},
+             {"ID_Pais": "MMR", "Descripción": "Myanmar"},
+             {"ID_Pais": "MEX", "Descripción": "México"},
+             {"ID_Pais": "MCO", "Descripción": "Mónaco"},
+             {"ID_Pais": "NAM", "Descripción": "Namibia"},
+             {"ID_Pais": "NRU", "Descripción": "Naurú"},
+             {"ID_Pais": "NPL", "Descripción": "Nepal"},
+             {"ID_Pais": "NIC", "Descripción": "Nicaragua"},
+             {"ID_Pais": "NGA", "Descripción": "Nigeria"},
+             {"ID_Pais": "NIU", "Descripción": "Niue"},
+             {"ID_Pais": "NOR", "Descripción": "Noruega"},
+             {"ID_Pais": "NCL", "Descripción": "Nueva Caledonia"},
+             {"ID_Pais": "NZL", "Descripción": "Nueva Zelanda"},
+             {"ID_Pais": "NER", "Descripción": "Níger"},
+             {"ID_Pais": "OMN", "Descripción": "Omán"},
+             {"ID_Pais": "PAK", "Descripción": "Pakistán"},
+             {"ID_Pais": "PLW", "Descripción": "Palau"},
+             {"ID_Pais": "PSE", "Descripción": "Palestina, Territorio ocupado"},
+             {"ID_Pais": "PAN", "Descripción": "Panamá"},
+             {"ID_Pais": "PNG", "Descripción": "Papua Nueva Guinea"},
+             {"ID_Pais": "PRY", "Descripción": "Paraguay"},
+             {"ID_Pais": "NLD", "Descripción": "Países Bajos"},
+             {"ID_Pais": "PER", "Descripción": "Perú"},
+             {"ID_Pais": "PYF", "Descripción": "Polinesia Francesa"},
+             {"ID_Pais": "POL", "Descripción": "Polonia"},
+             {"ID_Pais": "PRT", "Descripción": "Portugal"},
+             {"ID_Pais": "PRI", "Descripción": "Puerto Rico"},
+             {"ID_Pais": "QAT", "Descripción": "Qatar"},
+             {"ID_Pais": "GBR", "Descripción": "Reino Unido"},
+             {"ID_Pais": "CAF", "Descripción": "República Centroafricana"},
+             {"ID_Pais": "CZE", "Descripción": "República Checa"},
+             {"ID_Pais": "DOM", "Descripción": "República Dominicana"},
+             {"ID_Pais": "REU", "Descripción": "Reunión"},
+             {"ID_Pais": "ROU", "Descripción": "Rumania"},
+             {"ID_Pais": "RUS", "Descripción": "Rusia"},
+             {"ID_Pais": "RWA", "Descripción": "Rwanda"},
+             {"ID_Pais": "ESH", "Descripción": "Sahara Occidental"},
+             {"ID_Pais": "KNA", "Descripción": "Saint Kitts y Nevis"},
+             {"ID_Pais": "WSM", "Descripción": "Samoa"},
+             {"ID_Pais": "ASM", "Descripción": "Samoa Americana"},
+             {"ID_Pais": "BLM", "Descripción": "San Bartolomé"},
+             {"ID_Pais": "SMR", "Descripción": "San Marino"},
+             {"ID_Pais": "MAF", "Descripción": "San Martín"},
+             {"ID_Pais": "SPM", "Descripción": "San Pedro y Miquelón"},
+             {"ID_Pais": "VCT", "Descripción": "San Vicente y las Granadinas"},
+             {"ID_Pais": "SHN", "Descripción": "Santa Elena"},
+             {"ID_Pais": "LCA", "Descripción": "Santa Lucía"},
+             {"ID_Pais": "STP", "Descripción": "Santo Tomé y Príncipe"},
+             {"ID_Pais": "SEN", "Descripción": "Senegal"},
+             {"ID_Pais": "SRB", "Descripción": "Serbia"},
+             {"ID_Pais": "SYC", "Descripción": "Seychelles"},
+             {"ID_Pais": "SLE", "Descripción": "Sierra Leona"},
+             {"ID_Pais": "SGP", "Descripción": "Singapur"},
+             {"ID_Pais": "SYR", "Descripción": "Siria"},
+             {"ID_Pais": "SOM", "Descripción": "Somalia"},
+             {"ID_Pais": "LKA", "Descripción": "Sri Lanka"},
+             {"ID_Pais": "SWZ", "Descripción": "Suazilandia"},
+             {"ID_Pais": "ZAF", "Descripción": "Sudáfrica"},
+             {"ID_Pais": "SDN", "Descripción": "Sudán"},
+             {"ID_Pais": "SWE", "Descripción": "Suecia"},
+             {"ID_Pais": "CHE", "Descripción": "Suiza"},
+             {"ID_Pais": "SUR", "Descripción": "Suriname"},
+             {"ID_Pais": "SJM", "Descripción": "Svalbard e Islas de Jan Mayen"},
+             {"ID_Pais": "THA", "Descripción": "Tailandia"},
+             {"ID_Pais": "TWN", "Descripción": "Taiwán"},
+             {"ID_Pais": "TZA", "Descripción": "Tanzania"},
+             {"ID_Pais": "TJK", "Descripción": "Tayikistan"},
+             {"ID_Pais": "IOT", "Descripción": "Terr. Británico del Oc. Indico"},
+             {"ID_Pais": "ATF", "Descripción": "Tierras Australes Francesas"},
+             {"ID_Pais": "TLS", "Descripción": "Timor Oriental"},
+             {"ID_Pais": "TGO", "Descripción": "Togo"},
+             {"ID_Pais": "TKL", "Descripción": "Tokelau"},
+             {"ID_Pais": "TON", "Descripción": "Tonga"},
+             {"ID_Pais": "TTO", "Descripción": "Trinidad y Tobago"},
+             {"ID_Pais": "TKM", "Descripción": "Turkmenistán"},
+             {"ID_Pais": "TUR", "Descripción": "Turquía"},
+             {"ID_Pais": "TUV", "Descripción": "Tuvalu"},
+             {"ID_Pais": "TUN", "Descripción": "Túnez"},
+             {"ID_Pais": "UKR", "Descripción": "Ucrania"},
+             {"ID_Pais": "UGA", "Descripción": "Uganda"},
+             {"ID_Pais": "URY", "Descripción": "Uruguay"},
+             {"ID_Pais": "UZB", "Descripción": "Uzbekistán"},
+             {"ID_Pais": "VUT", "Descripción": "Vanuatu"},
+             {"ID_Pais": "VAT", "Descripción": "Vaticano, Santa Sede"},
+             {"ID_Pais": "VEN", "Descripción": "Venezuela"},
+             {"ID_Pais": "VNM", "Descripción": "Vietnam"},
+             {"ID_Pais": "YEM", "Descripción": "Yemen"},
+             {"ID_Pais": "DJI", "Descripción": "Yibuti"},
+             {"ID_Pais": "ZMB", "Descripción": "Zambia"},
+             {"ID_Pais": "ZWE", "Descripción": "Zimbabwe"},
+             {"ID_Pais": "KOS", "Descripción": "Kosovo"},
+             {"ID_Pais": "ES111", "Descripción": "A Coruña"},
+             {"ID_Pais": "ES112", "Descripción": "Lugo"},
+             {"ID_Pais": "ES113", "Descripción": "Ourense"},
+             {"ID_Pais": "ES114", "Descripción": "Pontevedra"},
+             {"ID_Pais": "ES120", "Descripción": "Asturias"},
+             {"ID_Pais": "ES130", "Descripción": "Cantabria"},
+             {"ID_Pais": "ES211", "Descripción": "Araba/Álava"},
+             {"ID_Pais": "ES212", "Descripción": "Gipuzkoa"},
+             {"ID_Pais": "ES213", "Descripción": "Bizkaia"},
+             {"ID_Pais": "ES220", "Descripción": "Navarra"},
+             {"ID_Pais": "ES230", "Descripción": "La Rioja"},
+             {"ID_Pais": "ES241", "Descripción": "Huesca"},
+             {"ID_Pais": "ES242", "Descripción": "Teruel"},
+             {"ID_Pais": "ES243", "Descripción": "Zaragoza"},
+             {"ID_Pais": "ES300", "Descripción": "Madrid"},
+             {"ID_Pais": "ES411", "Descripción": "Ávila"},
+             {"ID_Pais": "ES412", "Descripción": "Burgos"},
+             {"ID_Pais": "ES413", "Descripción": "León"},
+             {"ID_Pais": "ES414", "Descripción": "Palencia"},
+             {"ID_Pais": "ES415", "Descripción": "Salamanca"},
+             {"ID_Pais": "ES416", "Descripción": "Segovia"},
+             {"ID_Pais": "ES417", "Descripción": "Soria"},
+             {"ID_Pais": "ES418", "Descripción": "Valladolid"},
+             {"ID_Pais": "ES419", "Descripción": "Zamora"},
+             {"ID_Pais": "ES421", "Descripción": "Albacete"},
+             {"ID_Pais": "ES422", "Descripción": "Ciudad Real"},
+             {"ID_Pais": "ES423", "Descripción": "Cuenca"},
+             {"ID_Pais": "ES424", "Descripción": "Guadalajara"},
+             {"ID_Pais": "ES425", "Descripción": "Toledo"},
+             {"ID_Pais": "ES431", "Descripción": "Badajoz"},
+             {"ID_Pais": "ES432", "Descripción": "Cáceres"},
+             {"ID_Pais": "ES511", "Descripción": "Barcelona"},
+             {"ID_Pais": "ES512", "Descripción": "Girona"},
+             {"ID_Pais": "ES513", "Descripción": "Lleida"},
+             {"ID_Pais": "ES514", "Descripción": "Tarragona"},
+             {"ID_Pais": "ES521", "Descripción": "Alicante / Alacant"},
+             {"ID_Pais": "ES522", "Descripción": "Castellón / Castelló"},
+             {"ID_Pais": "ES523", "Descripción": "Valencia / Valéncia"},
+             {"ID_Pais": "ES530", "Descripción": "Illes Balears"},
+             {"ID_Pais": "ES531", "Descripción": "Eivissa y Formentera"},
+             {"ID_Pais": "ES532", "Descripción": "Mallorca"},
+             {"ID_Pais": "ES533", "Descripción": "Menorca"},
+             {"ID_Pais": "ES611", "Descripción": "Almería"},
+             {"ID_Pais": "ES612", "Descripción": "Cádiz"},
+             {"ID_Pais": "ES613", "Descripción": "Córdoba"},
+             {"ID_Pais": "ES614", "Descripción": "Granada"},
+             {"ID_Pais": "ES615", "Descripción": "Huelva"},
+             {"ID_Pais": "ES616", "Descripción": "Jaén"},
+             {"ID_Pais": "ES617", "Descripción": "Málaga"},
+             {"ID_Pais": "ES618", "Descripción": "Sevilla"},
+             {"ID_Pais": "ES620", "Descripción": "Murcia"},
+             {"ID_Pais": "ES630", "Descripción": "Ceuta"},
+             {"ID_Pais": "ES640", "Descripción": "Melilla"},
+             {"ID_Pais": "ES701", "Descripción": "Las Palmas"},
+             {"ID_Pais": "ES702", "Descripción": "Santa Cruz de Tenerife"},
+             {"ID_Pais": "ES703", "Descripción": "El Hierro"},
+             {"ID_Pais": "ES704", "Descripción": "Fuerteventura"},
+             {"ID_Pais": "ES705", "Descripción": "Gran Canaria"},
+             {"ID_Pais": "ES706", "Descripción": "La Gomera"},
+             {"ID_Pais": "ES707", "Descripción": "La Palma"},
+             {"ID_Pais": "ES708", "Descripción": "Lanzarote"},
+             {"ID_Pais": "ES709", "Descripción": "Tenerife"}
              ]
         # Diccionario con los nombre de los Paises usando los del INE [4]
-        _logger.info("DataBi: Calculating %s countries", str(len(dic_ine)))
-        for prop in propertys:
+        # _logger.info("DataBi: Calculating %s countries", str(len(dic_ine)))
+        for prop in hotels:
             for pais in dic_ine:
                 dic_pais.append({"ID_Hotel": prop.id,
                                  "ID_Pais": pais["ID_Pais"],
-                                 "Descripcion": pais["Descripcion"],})
+                                 "Descripción": pais["Descripción"],})
         return dic_pais
 
     @api.model
-    def data_bi_regimen(self, propertys):
+    def data_bi_regimen(self, hotels):
         # Diccionario con los Board Services [5]
         dic_regimen = []
         board_services = self.env["pms.board.service"].search_read([])
-        _logger.info("DataBi: Calculating %s board services", str(len(board_services)))
-        for prop in propertys:
+        # _logger.info("DataBi: Calculating %s board services", str(len(board_services)))
+        for prop in hotels:
             dic_regimen.append(
                 {
                     "ID_Hotel": prop.id,
                     "ID_Regimen": 0,
-                    "Descripcion": u"Sin régimen",
+                    "Descripción": u"Sin régimen",
                 }
             )
             for board_service in board_services:
@@ -581,18 +635,18 @@ class DataBi(models.Model):
                         {
                             "ID_Hotel": prop.id,
                             "ID_Regimen": board_service["id"],
-                            "Descripcion": board_service["name"],
+                            "Descripción": board_service["name"],
                         }
                     )
         return dic_regimen
 
     @api.model
-    def data_bi_capacidad(self, propertys):
+    def data_bi_capacidad(self, hotels):
         # Diccionario con las capacidades  [7]
         rooms = self.env["pms.room.type"].search_read([])
-        _logger.info("DataBi: Calculating %s room capacity", str(len(rooms)))
+        # _logger.info("DataBi: Calculating %s room capacity", str(len(rooms)))
         dic_capacidad = []
-        for prop in propertys:
+        for prop in hotels:
             for room in rooms:
                 if (not room["pms_property_ids"]) or (
                     prop.id in room["pms_property_ids"]
@@ -610,12 +664,12 @@ class DataBi(models.Model):
         return dic_capacidad
 
     @api.model
-    def data_bi_habitacione(self, propertys):
+    def data_bi_habitacione(self, hotels):
         # Diccionario con Rooms types [8]
         rooms = self.env["pms.room.type"].search([])
-        _logger.info("DataBi: Calculating %s room types", str(len(rooms)))
+        # _logger.info("DataBi: Calculating %s room types", str(len(rooms)))
         dic_tipo_habitacion = []
-        for prop in propertys:
+        for prop in hotels:
             for room in rooms:
                 if (not room.pms_property_ids) or (
                     prop.id in room.pms_property_ids.ids
@@ -624,19 +678,19 @@ class DataBi(models.Model):
                         {
                             "ID_Hotel": prop.id,
                             "ID_Tipo_Habitacion": room["id"],
-                            "Descripcion": room["name"],
+                            "Descripción": room["name"],
                             "Estancias": room.get_capacity(),
                         }
                     )
         return dic_tipo_habitacion
 
     @api.model
-    def data_bi_budget(self, propertys):
+    def data_bi_budget(self, hotels):
         # Diccionario con las previsiones Budget [9]
         budgets = self.env["pms.budget"].search([])
-        _logger.info("DataBi: Calculating %s budget", str(len(budgets)))
+        # _logger.info("DataBi: Calculating %s budget", str(len(budgets)))
         dic_budget = []
-        for prop in propertys:
+        for prop in hotels:
             for budget in budgets:
                 if budget.pms_property_id.id == prop.id:
                     dic_budget.append(
@@ -670,24 +724,24 @@ class DataBi(models.Model):
         return dic_budget
 
     @api.model
-    def data_bi_moti_bloq(self, propertys):
+    def data_bi_moti_bloq(self, hotels):
         # Diccionario con Motivo de Bloqueos [11]
         lineas = self.env["room.closure.reason"].search([])
         dic_moti_bloq = []
-        _logger.info("DataBi: Calculating %s blocking reasons", str(len(lineas)))
-        for prop in propertys:
+        # _logger.info("DataBi: Calculating %s blocking reasons", str(len(lineas)))
+        for prop in hotels:
             dic_moti_bloq.append(
                 {
                     "ID_Hotel": prop.id,
                     "ID_Motivo_Bloqueo": "B0",
-                    "Descripcion": u"Ninguno",
+                    "Descripción": u"Ninguno",
                 }
             )
             dic_moti_bloq.append(
                 {
                     "ID_Hotel": prop.id,
                     "ID_Motivo_Bloqueo": "ST",
-                    "Descripcion": u"Staff",
+                    "Descripción": u"Staff",
                 }
             )
             for linea in lineas:
@@ -698,19 +752,19 @@ class DataBi(models.Model):
                         {
                             "ID_Hotel": prop.id,
                             "ID_Motivo_Bloqueo": "B" + str(linea.id),
-                            "Descripcion": linea.name,
+                            "Descripción": linea.name,
                         }
                     )
         return dic_moti_bloq
 
     @api.model
-    def data_bi_segment(self, propertys):
+    def data_bi_segment(self, hotels):
         # Diccionario con Segmentación [12]
         # TODO solo las que tienen un padre?... ver la gestion... etc....
         dic_segmentos = []
         lineas = self.env["res.partner.category"].search([])
-        _logger.info("DataBi: Calculating %s segmentations", str(len(lineas)))
-        for prop in propertys:
+        # _logger.info("DataBi: Calculating %s segmentations", str(len(lineas)))
+        for prop in hotels:
             for linea in lineas:
                 if linea.parent_id.name:
                     seg_desc = linea.parent_id.name + " / " + linea.name
@@ -718,35 +772,35 @@ class DataBi(models.Model):
                         {
                             "ID_Hotel": prop.id,
                             "ID_Segmento": linea.id,
-                            "Descripcion": seg_desc,
+                            "Descripción": seg_desc,
                         }
                     )
         return dic_segmentos
 
     @api.model
-    def data_bi_client(self, propertys):
+    def data_bi_client(self, hotels):
         # Diccionario con Clientes (OTAs y agencias) [13]
         dic_clientes = []
         lineas = self.env["res.partner"].search([("is_agency", "=", True)])
-        _logger.info("DataBi: Calculating %s Operators", str(len(lineas)))
-        for prop in propertys:
+        # _logger.info("DataBi: Calculating %s Operators", str(len(lineas)))
+        for prop in hotels:
             dic_clientes.append(
-                {"ID_Hotel": prop.id, "ID_Cliente": 0, "Descripcion": u"Ninguno"}
+                {"ID_Hotel": prop.id, "ID_Cliente": 0, "Descripción": u"Ninguno"}
             )
             for linea in lineas:
                 dic_clientes.append(
                     {
                         "ID_Hotel": prop.id,
                         "ID_Cliente": linea.id,
-                        "Descripcion": linea.name,
+                        "Descripción": linea.name,
                     }
                 )
         return dic_clientes
 
     @api.model
-    def data_bi_estados(self, propertys, estado_array):
+    def data_bi_estados(self, hotels):
         # Diccionario con los Estados Reserva [14]
-        _logger.info("DataBi: Calculating states of the reserves")
+        # _logger.info("DataBi: Calculating states of the reserves")
         dic_estados = []
         estado_array_txt = [
             "Borrador",
@@ -757,46 +811,51 @@ class DataBi(models.Model):
             "No Show",
             "No Checkout",
         ]
-        for prop in propertys:
+        for prop in hotels:
             for i in range(0, len(estado_array)):
                 dic_estados.append(
                     {
                         "ID_Hotel": prop.id,
                         "ID_EstadoReserva": str(i),
-                        "Descripcion": estado_array_txt[i],
+                        "Descripción": estado_array_txt[i],
                     }
                 )
         return dic_estados
 
     @api.model
-    def data_bi_rooms(self, propertys):
+    def data_bi_rooms(self, hotels, filtro=False):
         # Diccionario con las habitaciones [15]
         dic_rooms = []
         rooms = self.env["pms.room"].search([])
-        _logger.info("DataBi: Calculating %s name rooms.", str(len(rooms)))
-        for prop in propertys:
-            for room in rooms.filtered(lambda n: (n.pms_property_id.id == prop.id)):
+        # _logger.info("DataBi: Calculating %s name rooms.", str(len(rooms)))
+        for prop in hotels:
+            if filtro:
+                r = rooms.filtered(lambda n: (n.pms_property_id.id == prop.id))
+            else:
+                r = rooms
+            for room in r:
+            # for room in rooms.filtered(lambda n: (n.pms_property_id.id == prop.id)):
                 dic_rooms.append(
-                    {
-                        "ID_Hotel": prop.id,
-                        "ID_Room": room.id,
-                        "Descripcion": room.name,
-                    }
-                )
+                {
+                    "ID_Hotel": prop.id,
+                    "ID_Room": room.id,
+                    "Descripción": room.name,
+                }
+            )
         return dic_rooms
 
     @api.model
-    def data_bi_bloqueos(self, propertys, lines):
+    def data_bi_bloqueos(self, hotels, lines):
         # Diccionario con Bloqueos [10]
         dic_bloqueos = []
         lines = lines.filtered(
             lambda n: (n.reservation_id.reservation_type != "normal")
             and (n.reservation_id.state != "cancelled")
         )
-        _logger.info("DataBi: Calculating %s Bloqued", str(len(lines)))
+        # _logger.info("DataBi: Calculating %s Bloqued", str(len(lines)))
         for line in lines:
 
-            if line.pms_property_id.id in propertys.ids:
+            if line.pms_property_id.id in hotels.ids:
                 motivo = "0"
                 if line.reservation_id.reservation_type == "out":
                     motivo = (
@@ -822,21 +881,21 @@ class DataBi(models.Model):
         return dic_bloqueos
 
     @api.model
-    def data_bi_reservas(self, propertys, lines, estado_array):
+    def data_bi_reservas(self, hotels, lines, estado_array):
         # Diccionario con Reservas  [6]
         dic_reservas = []
 
-        for prop in propertys:
+        for prop in hotels:
             lineas = lines.filtered(
                 lambda n: (n.pms_property_id.id == prop.id)
                 and (n.reservation_id.reservation_type == "normal")
                 and (n.price > 0)
             )
-            _logger.info(
-                "DataBi: Calculating %s reservations in %s ",
-                str(len(lineas)),
-                prop.name,
-            )
+            # _logger.info(
+            #     "DataBi: Calculating %s reservations in %s ",
+            #     str(len(lineas)),
+            #     prop.name,
+            # )
 
             for linea in lineas:
                 if linea.reservation_id.segmentation_ids:
