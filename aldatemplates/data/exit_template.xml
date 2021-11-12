@@ -255,7 +255,7 @@ img {
                                                         class="paragraph"
                                                         style="padding: 10px 0 0 0;"
                                                         align="justify"
-                                                    >Hola ${object.partner_id.name or object.partner_id.firstname or ''}
+                                                    >Hola ${object.partner_name or object.partner_id.firstname or ''}
                                                         <br />
                                                         Todo el equipo del <strong
                                                         >${object.pms_property_id.name}</strong> queremos darte las gracias por habernos elegido para quedarte en la ciudad. Esperamos que hayas disfrutado de tu estancia y que te hayamos hecho sentir como en casa en nuestro alojamiento.<br

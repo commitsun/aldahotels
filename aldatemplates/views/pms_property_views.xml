@@ -2,13 +2,16 @@
 <odoo>
 
     <!-- Hotel Settings -->
-    <record id="view_property_form_pms_aldahotel" model="ir.ui.view">
-        <field name="name">Property Form alda hotels</field>
+    <record id="view_property_form_aldatemplates" model="ir.ui.view">
+        <field name="name">Property Form l10n_es</field>
         <field name="model">pms.property</field>
         <field name="inherit_id" ref="pms.pms_property_views_form" />
         <field name="arch" type="xml">
             <xpath expr="//field[@name='property_modified_template']" position="after">
                 <field name="property_exit_template" />
+            </xpath>
+            <xpath expr="//field[@name='is_modified_auto_mail']" position="after">
+                <field name="is_exit_auto_mail" string="Exit Mail" />
             </xpath>
             <xpath expr="//group[@name='mail_information']" position="before">
                 <group string="Settings">

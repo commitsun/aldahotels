@@ -262,11 +262,11 @@ img {
                                                     align="justify"
                                                     class="paragraph"
                                                     style="padding: 10px 0 0 0;"
-                                                >Hola ${object.partner_id.name or object.partner_id.firstname or ''}
+                                                >Hola ${object.partner_name or object.partner_id.firstname or ''}
                                                     <br />
                                                     Tu reserva en <strong
                                                     >${object.pms_property_id.name}</strong> queda confirmada. Te esperamos el día <strong
-                                                    >${object.reservation_ids[0].checkin}</strong>. Si podemos ayudarte en cualquier tipo de gestión, no dudes en hacérnoslo saber.<br
+                                                    >${object.first_checkin.day}-${object.first_checkin.month}-${object.first_checkin.year}</strong>. Si podemos ayudarte en cualquier tipo de gestión, no dudes en hacérnoslo saber.<br
                                                     /><br /><br />
                                                 </td>
                                             </tr>
@@ -475,7 +475,13 @@ img {
                                                                                             style="color: #555555"
                                                                                         >
                                                                                             <strong
-                                                                                            >${object.partner_id.name}</strong>
+                                                                                            >
+                                                                                                % if object.partner_id:
+                                                                                                ${object.partner_id.name}
+                                                                                                % else:
+                                                                                                ${object.partner_name}
+                                                                                                % endif
+                                                                                            </strong>
                                                                                         </td>
                                                                                     </tr>
                                                                                     <tr>
@@ -512,11 +518,11 @@ img {
                                                                                             </strong>
                                                                                             <strong
                                                                                                 style="margin-left:2em"
-                                                                                            >Entrada</strong>: ${reservation['checkin_datetime']}<br
+                                                                                            >Entrada</strong>: ${reservation['checkin_datetime'].day}/${reservation['checkin_datetime'].month}/${reservation['checkin_datetime'].year}<br
                                                                                             />
                                                                                             <strong
                                                                                                 style="margin-left:2em"
-                                                                                            >Salida</strong>: ${reservation['checkout_datetime']}<br
+                                                                                            >Salida</strong>: ${reservation['checkout_datetime'].day}/${reservation['checkout_datetime'].month}/${reservation['checkout_datetime'].year}<br
                                                                                             />
                                                                                             <strong
                                                                                                 style="margin-left:2em"
