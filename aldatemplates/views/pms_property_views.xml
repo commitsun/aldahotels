@@ -8,16 +8,16 @@
         <field name="inherit_id" ref="pms.pms_property_views_form" />
         <field name="arch" type="xml">
             <xpath expr="//field[@name='property_modified_template']" position="after">
-                <field name="property_exit_template" />
+                <field name="property_exit_template" string="Exit Email" />
             </xpath>
             <xpath expr="//field[@name='is_modified_auto_mail']" position="after">
-                <field name="is_exit_auto_mail" string="Exit Mail" />
+                <field name="is_exit_auto_mail" string="Exit Email" />
             </xpath>
-            <xpath expr="//group[@name='mail_information']" position="before">
-                <group string="Settings">
-                    <field name="web_city_information_url" />
-                    <field name="quiz_url" />
-                </group>
+            <xpath expr="//field[@name='privacy_policy']" position="before">
+                <field name="web_city_information_url" />
+                <field name="quiz_url" />
+            </xpath>
+            <xpath expr="//group[@name='mail_information']" position="after">
                 <group string="Images">
                     <field name="image1" />
                     <field
@@ -30,6 +30,9 @@
                         attrs="{'invisible':[('image2','=',False)]}"
                     />
                 </group>
+            </xpath>
+            <xpath expr="//field[@name='mail_information']" position="attributes">
+                <attribute name="invisible">True</attribute>
             </xpath>
         </field>
     </record>

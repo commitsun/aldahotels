@@ -1,4 +1,4 @@
-from odoo import fields, models, api
+from odoo import api, fields, models
 
 
 class PmsFolio(models.Model):
@@ -9,9 +9,7 @@ class PmsFolio(models.Model):
         folios = self.env["pms.folio"].search([])
         if folios and all(
             is_exit_auto_mail
-            for is_exit_auto_mail in folios.pms_property_id.mapped(
-                "is_exit_auto_mail"
-            )
+            for is_exit_auto_mail in folios.pms_property_id.mapped("is_exit_auto_mail")
         ):
             for folio in folios:
                 reservations = folio.reservation_ids.filtered(
