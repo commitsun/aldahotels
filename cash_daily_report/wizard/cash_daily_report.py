@@ -107,7 +107,11 @@ class CashDailyReportWizard(models.TransientModel):
         count_expense_journals = {}
         total_dates = {}
         for k_payment, v_payment in enumerate(account_payments):
-            where = v_payment.partner_id.name or ''
+            folio = v_payment.folio_ids[0] if v_payment.folio_ids else False
+            partner_name = v_payment.partner_id.name
+            if not partner_name and folio:
+                partner_name = folio.partner_name
+            where = partner_name or ''
             amount = v_payment.amount if v_payment.payment_type in ('inbound') \
                 else -v_payment.amount
             if v_payment.payment_type == 'transfer':
@@ -201,10 +205,15 @@ class CashDailyReportWizard(models.TransientModel):
             ('date', '<=', self.date_end),
         ])
         offset += len(account_payments)
-        total_payment_returns_amount = k_line = 0.0
+        total_statement_amount = k_line = 0.0
         statement_journals = {}
         count_statement_journals = {}
         for k_line, v_line in enumerate(statement_lines):
+            folio = v_line.folio_ids[0] if v_payment.folio_ids else False
+            partner_name = v_line.partner_id.name
+            if not partner_name and folio:
+                partner_name = folio.partner_name
+            where = partner_name or ''
             ingresos = 'Ingresos ' + v_line.journal_id.name
             gastos = 'Gastos ' + v_line.journal_id.name
             if v_line.journal_id.name not in statement_journals:
@@ -228,14 +237,14 @@ class CashDailyReportWizard(models.TransientModel):
 
             worksheet.write(k_line + offset, 0, v_line.create_uid.login)
             worksheet.write(k_line + offset, 1, v_line.payment_ref or '')
-            worksheet.write(k_line + offset, 2, v_line.partner_id.name or '')
+            worksheet.write(k_line + offset, 2, where)
             worksheet.write(k_line + offset, 3, v_line.date,
                             xls_cell_format_date)
             worksheet.write(k_line + offset, 4, v_line.journal_id.name)
             worksheet.write(k_line + offset, 5, v_line.amount,
                             xls_cell_format_money)
             # worksheet.write(k_line + offset, 6, "Devolucion")
-            total_payment_returns_amount += v_line.amount
+            total_statement_amount += v_line.amount
         offset += len(statement_lines)
         line = offset
         if k_line:
@@ -265,36 +274,36 @@ class CashDailyReportWizard(models.TransientModel):
         #     worksheet.write(line, 4, _('UDS'), xls_cell_format_header)
         #     worksheet.write(line, 5, total_account_payment,
         #                     xls_cell_format_header)
-        # for journal in payment_journals:
-        #     line += 1
-        #     worksheet.write(line, 3, _(journal))
-        #     worksheet.write(line, 4, count_payment_journals[journal],
-        #                     xls_cell_format_money)
-        #     worksheet.write(line, 5, payment_journals[journal],
-        #                     xls_cell_format_money)
-        #     if journal not in result_journals:
-        #         result_journals.update({journal: payment_journals[journal]})
-        #     else:
-        #         result_journals[journal] += payment_journals[journal]
+        for journal in payment_journals:
+            # line += 1
+            # worksheet.write(line, 3, _(journal))
+            # worksheet.write(line, 4, count_payment_journals[journal],
+            #                 xls_cell_format_money)
+            # worksheet.write(line, 5, payment_journals[journal],
+            #                 xls_cell_format_money)
+            if journal not in result_journals:
+                result_journals.update({journal: payment_journals[journal]})
+            else:
+                result_journals[journal] += payment_journals[journal]
 
-        # RETURNS
-        # if total_payment_returns_amount != 0:
+        # STATEMENT LINES
+        # if total_statement_amount != 0:
         #     line += 1
         #     worksheet.write(line, 3, _('DEVOLUCIONES'), xls_cell_format_header)
         #     worksheet.write(line, 4, _('UDS'), xls_cell_format_header)
-        #     worksheet.write(line, 5, total_payment_returns_amount,
+        #     worksheet.write(line, 5, total_statement_amount,
         #                     xls_cell_format_header)
-        # for journal in statement_journals:
-        #     line += 1
-        #     worksheet.write(line, 3, _(journal))
-        #     worksheet.write(line, 4, statement_journals[journal],
-        #                     xls_cell_format_money)
-        #     worksheet.write(line, 5, statement_journals[journal],
-        #                     xls_cell_format_money)
-        #     if journal not in result_journals:
-        #         result_journals.update({journal: statement_journals[journal]})
-        #     else:
-        #         result_journals[journal] += statement_journals[journal]
+        for journal in statement_journals:
+            # line += 1
+            # worksheet.write(line, 3, _(journal))
+            # worksheet.write(line, 4, statement_journals[journal],
+            #                 xls_cell_format_money)
+            # worksheet.write(line, 5, statement_journals[journal],
+            #                 xls_cell_format_money)
+            if journal not in result_journals:
+                result_journals.update({journal: statement_journals[journal]})
+            else:
+                result_journals[journal] += statement_journals[journal]
 
         # EXPENSES
         # if total_account_expenses != 0:
@@ -303,31 +312,31 @@ class CashDailyReportWizard(models.TransientModel):
         #     worksheet.write(line, 4, _('UDS'), xls_cell_format_header)
         #     worksheet.write(line, 5, -total_account_expenses,
         #                     xls_cell_format_header)
-        # for journal in expense_journals:
-        #     line += 1
-        #     worksheet.write(line, 3, _(journal))
-        #     worksheet.write(line, 4, count_expense_journals[journal],
-        #                     xls_cell_format_money)
-        #     worksheet.write(line, 5, -expense_journals[journal],
-        #                     xls_cell_format_money)
-        #     if journal not in result_journals:
-        #         result_journals.update({journal: expense_journals[journal]})
-        #     else:
-        #         result_journals[journal] += expense_journals[journal]
+        for journal in expense_journals:
+            # line += 1
+            # worksheet.write(line, 3, _(journal))
+            # worksheet.write(line, 4, count_expense_journals[journal],
+            #                 xls_cell_format_money)
+            # worksheet.write(line, 5, -expense_journals[journal],
+            #                 xls_cell_format_money)
+            if journal not in result_journals:
+                result_journals.update({journal: expense_journals[journal]})
+            else:
+                result_journals[journal] += expense_journals[journal]
 
         # # TOTALS
-        # line += 1
-        # worksheet.write(line, 3, _('TOTAL'), xls_cell_format_header)
-        # worksheet.write(
-        #     line,
-        #     5,
-        #     total_account_payment + total_payment_returns_amount - total_account_expenses,
-        #     xls_cell_format_header)
-        # for journal in result_journals:
-        #     line += 1
-        #     worksheet.write(line, 3, _(journal))
-        #     worksheet.write(line, 5, result_journals[journal],
-        #                     xls_cell_format_money)
+        line += 1
+        worksheet.write(line, 3, _('TOTAL'), xls_cell_format_header)
+        worksheet.write(
+            line,
+            5,
+            total_account_payment + total_statement_amount - total_account_expenses,
+            xls_cell_format_header)
+        for journal in result_journals:
+            line += 1
+            worksheet.write(line, 3, _(journal))
+            worksheet.write(line, 5, result_journals[journal],
+                            xls_cell_format_money)
 
         # line += 1
         # worksheet.write(line, 1, _('FECHA:'))
