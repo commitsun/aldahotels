@@ -3,7 +3,7 @@
     <data>
         <record id="alda_cancelation_email" model="mail.template">
             <field name="name">Alda Cancelation Email</field>
-            <field name="model_id" ref="pms.model_pms_folio" />
+            <field name="model_id" ref="pms.model_pms_reservation" />
             <field
                 name="subject"
             >Su reserva en ${object.pms_property_id.name} ha sido cancelada</field>
@@ -12,7 +12,7 @@
             >${object.pms_property_id.partner_id.email | safe}</field>
             <field
                 name="email_to"
-            >${(object.email and '"%s" &lt;%s&gt;' % (object.name, object.email) or object.partner_id.email_formatted or '') | safe}</field>
+            >${(object.folio_id.email and '"%s" &lt;%s&gt;' % (object.name, object.email) or object.partner_id.email_formatted or '') | safe}</field>
             <field name="body_html" type="html">
                 <style type="text/css">
 /*Global Styles*/
@@ -293,7 +293,7 @@ img {
                                                                     class="paragraph"
                                                                     style="padding: 10px 0 0 0;"
                                                                     align="justify"
-                                                                >Hola ${object.partner_id.name or object.partner_id.firstname or ''}
+                                                                >Hola ${object.folio_id.partner_name or object.partner_id.firstname or ''}
                                                                     <br />
                                                                     Tu reserva en <b
                                                                     >${object.pms_property_id.name}</b> se ha anulado correctamente. No es necesario que hagas nada más.
@@ -418,7 +418,7 @@ img {
                                                                                                     align="justify"
                                                                                                 >
                                                                                                     <strong
-                                                                                                    >${object.partner_id.name}</strong>
+                                                                                                    >${object.folio_id.partner_name}</strong>
                                                                                                 </td>
                                                                                             </tr>
                                                                                             <tr
@@ -428,13 +428,13 @@ img {
                                                                                                     style="padding: 10px 0 0 0;"
                                                                                                     align="justify"
                                                                                                 >
-                                                                                                    % if object.partner_id.contact_address:
-                                                                                                    ${object.partner_id.contact_address}<br
+                                                                                                    % if object.folio_id.partner_id.contact_address:
+                                                                                                    ${object.folio_id.partner_id.contact_address}<br
                                                                                                     />
                                                                                                     % endif
                                                                                                     <br
                                                                                                     />
-                                                                                                    % for reservation in object.reservation_ids:
+                                                                                                    % for reservation in object.folio_id.reservation_ids:
                                                                                                     % if reservation.state == 'cancel'
                                                                                                     <strong
                                                                                                     >
@@ -571,16 +571,16 @@ img {
                                                                                                     align="justify"
                                                                                                 >
                                                                                                     <strong
-                                                                                                    >Base imponible</strong>: ${object.amount_untaxed} €<br
+                                                                                                    >Base imponible</strong>: ${object.folio_id.amount_untaxed} €<br
                                                                                                     />
                                                                                                     <strong
-                                                                                                    >I.V.A (10%)</strong>: ${object.amount_tax} €<br
+                                                                                                    >I.V.A (10%)</strong>: ${object.folio_id.amount_tax} €<br
                                                                                                     />
                                                                                                     <strong
-                                                                                                    >Precio total</strong>: ${object.amount_total} €<br
+                                                                                                    >Precio total</strong>: ${object.folio_id.amount_total} €<br
                                                                                                     />
                                                                                                     <strong
-                                                                                                    >Coste de cancelación: ${object.pending_amount} €<br
+                                                                                                    >Coste de cancelación: ${object.folio_id.pending_amount} €<br
                                                                                                         /></strong>
                                                                                                     <br
                                                                                                     />
