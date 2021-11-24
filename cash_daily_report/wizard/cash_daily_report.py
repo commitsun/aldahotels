@@ -209,7 +209,9 @@ class CashDailyReportWizard(models.TransientModel):
         statement_journals = {}
         count_statement_journals = {}
         for k_line, v_line in enumerate(statement_lines):
-            folio = v_line.folio_ids[0] if v_payment.folio_ids else False
+            folio = False
+            if v_line.folio_ids:
+                folio = v_line.folio_ids[0]
             partner_name = v_line.partner_id.name
             if not partner_name and folio:
                 partner_name = folio.partner_name
