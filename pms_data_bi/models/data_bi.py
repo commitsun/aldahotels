@@ -760,7 +760,6 @@ class DataBi(models.Model):
     @api.model
     def data_bi_segment(self, hotels):
         # Diccionario con Segmentación [12]
-        # TODO solo las que tienen un padre?... ver la gestion... etc....
         dic_segmentos = []
         lineas = self.env["res.partner.category"].search([])
         # _logger.info("DataBi: Calculating %s segmentations", str(len(lineas)))
@@ -768,14 +767,16 @@ class DataBi(models.Model):
             for linea in lineas:
                 if linea.parent_id.name:
                     seg_desc = linea.parent_id.name + " / " + linea.name
-                    dic_segmentos.append(
-                        {
-                            "ID_Hotel": prop.id,
-                            "ID_Segmento": linea.id,
-                            "Descripción": seg_desc,
-                        }
-                    )
-        return dic_segmentos
+                else:
+                    seg_desc = linea.name
+                dic_segmentos.append(
+                    {
+                        "ID_Hotel": prop.id,
+                        "ID_Segmento": linea.id,
+                        "Descripción": seg_desc,
+                    }
+                )
+    return dic_segmentos
 
     @api.model
     def data_bi_client(self, hotels):
