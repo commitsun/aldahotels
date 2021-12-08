@@ -2050,13 +2050,6 @@ class MigratedHotel(models.Model):
             self.last_import_pricelists = import_datetime
             self.count_migrated_pricelists = len(self.migrated_pricelist_ids)
         except (ValueError, ValidationError, Exception) as err:
-            self.env['migrated.log'].create({
-                'name': err,
-                'date_time': fields.Datetime.now(),
-                'migrated_hotel_id': self.id,
-                'model': 'product.pricelist',
-                'remote_id': record.id,
-            })
             _logger.error('pricelist import error:%s', err)
 
     def import_room_type_classes(self):
