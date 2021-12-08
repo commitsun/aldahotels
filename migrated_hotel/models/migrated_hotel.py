@@ -11,6 +11,7 @@ from odoo.tools.mail import email_escape_char
 import odoorpc.odoo
 from odoo.exceptions import UserError, ValidationError
 from odoo import models, fields, api, _
+import traceback
 from odoo.tools import DEFAULT_SERVER_DATE_FORMAT
 
 _logger = logging.getLogger(__name__)
@@ -783,7 +784,6 @@ class MigratedHotel(models.Model):
                     vals["agency_id"] = self.expedia_agency.id
                 if remote_ota_id == "HotelBeds":
                     vals["agency_id"] = self.hotelbeds_agency.id
-                vals["ota_reservation_code"] = binding['ota_reservation_id']
             binding_vals = {
                 'backend_id': self.backend_id.id,
                 'external_id': binding['external_id'],
@@ -821,23 +821,34 @@ class MigratedHotel(models.Model):
             remote_records = noderpc.env['res.users'].browse(remote_ids)
             res_users_map_ids = {}
             for record in remote_records:
-                res_user = self.env['res.users'].search([
+                res_user = self.env['res.users'].sudo().search([
                     ('login', '=', record.login),
+                    '|',
+                    ('active', '=', True),
+                    ('active', '=', False),
                 ])
                 if not res_user:
-                    self.env['res.users'].create({
+                    new_partner = self.env['res.partner'].sudo().create({
                         'name': record.name,
                         'email': record.email,
-                        'login': record.login,
+                    })
+                    new_user = self.env['res.users'].sudo().create({
+                        'partner_id': new_partner.id,
+                        'email': record.email,
+                        'login': res_user.login,
                         'active': False,
                         'company_ids': [(4, self.pms_property_id.company_id.id)],
                         'company_id': self.pms_property_id.company_id.id,
                         'pms_property_ids': [(4, self.pms_property_id.id)],
                         'pms_property_id': self.pms_property_id.id,
                     })
-                else:
-                    res_user.write({
+                    new_user.active = False
+                if self.pms_property_id.company_id.id not in res_user.company_ids.ids:
+                    res_user.sudo().write({
                         'company_ids': [(4, self.pms_property_id.company_id.id)],
+                    })
+                if self.pms_property_id.id not in res_user.pms_property_ids.ids:
+                    res_user.sudo().write({
                         'pms_property_ids': [(4, self.pms_property_id.id)],
                     })
                 res_users_id = res_user.id if res_user else self._context.get('uid', self._uid)
@@ -964,6 +975,7 @@ class MigratedHotel(models.Model):
             'create_uid',
             'last_updated_res',
             'ota_id',
+            'ota_reservation_id',
         ],) or []
         # Reservation Bindings
         remote_bindings = noderpc.env['channel.hotel.reservation'].search_read([
@@ -1114,7 +1126,7 @@ class MigratedHotel(models.Model):
         remote_id = reservation['create_uid'] and reservation['create_uid'][0]
         res_create_uid = remote_id and res_users_map_ids.get(remote_id)
 
-         # Prepare pricelist
+        # Prepare pricelist
         remote_id = reservation['pricelist_id'][0]
         pricelist_id = self.env["migrated.pricelist"].search([("remote_id", "=", remote_id), ("migrated_hotel_id", "=", self.id)]).pms_pricelist_id.id
 
@@ -1212,6 +1224,7 @@ class MigratedHotel(models.Model):
             'create_uid': res_create_uid,
             'is_mail_send': True,
             'is_modified_reservation': False,
+            'ota_reservation_code': reservation['ota_reservation_id'],
 
         }
 
@@ -1369,7 +1382,7 @@ class MigratedHotel(models.Model):
             for remote_journal, journal_payments in groupby(remote_payment_by_journal_vals, journal_func):
                 if remote_journal[0] in migrated_journals:
                     continue
-                journal_id = self.env["migrated.journal"].search([
+                journal_id = self.env["migrated.journal"].sesarch([
                     ("migrated_hotel_id", "=", self.id),
                     ("remote_id", "=", remote_journal[0]),
                 ]).account_journal_id.id
@@ -1438,16 +1451,15 @@ class MigratedHotel(models.Model):
                             "move_line_ids": line_vals,
                             "date_done": fields.Date.from_string(date_str).strftime(DEFAULT_SERVER_DATE_FORMAT),
                         })
-                        dates = [fields.Datetime.from_string(item["date"]) for item in journal_payments_tarjet]
+                        dates = [fields.Datetime.from_string(item["payment_date"]) for item in journal_payments_tarjet]
                         next_statement, previus_statement = self._get_statements(statement, dates, journal_id)
-                        self.recursive_statements_post(statement, next_statement, previus_statement)
+                        self.recursive_statements_post(statement, next_statement, previus_statement, dates)
                 elif journal.type == "bank":
                     journal_payments_tarjet = list(filter(lambda x: x["journal_id"][0] in remote_journal_ids, remote_payment_vals))
                     journal_payments_tarjet = sorted(journal_payments_tarjet, key=date_func)
-                    for date_str, payments in groupby(journal_payments_tarjet, key=date_func):
-                        date = fields.Datetime.from_string(date_str)
+                    for payment in journal_payments_tarjet:
                         # Some payment are garbage, so we skip them (know by old dates)
-                        if date < (datetime.datetime.now() - datetime.timedelta(days=2000)):
+                        if fields.Datetime.from_string(payment["payment_date"]) < (datetime.datetime.now() - datetime.timedelta(days=2000)):
                             continue
                         if payment["partner_id"]:
                             partner_id = self.env["migrated.partner"].search([
@@ -1474,7 +1486,7 @@ class MigratedHotel(models.Model):
                             "journal_id": journal_id,
                             "partner_id": partner_id,
                             "amount": payment["amount"],
-                            "date": fields.Date.today(),
+                            "date": fields.Datetime.from_string(payment["payment_date"]),
                             "ref": payment_ref,
                             "payment_type": payment["payment_type"],
                             "partner_type": payment["partner_type"],
@@ -1490,8 +1502,13 @@ class MigratedHotel(models.Model):
                         }
                         pay = self.env["account.payment"].with_context(context_no_mail).create(vals)
                         pay.with_context(context_no_mail).action_post()
+                        count += 1
+                        _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
+                            count, total, payment['id'])
 
         except (ValueError, ValidationError, Exception) as err:
+            traceback.print_exc()
+            _logger.info("error: {}".format(err))
             migrated_log = self.env['migrated.log'].create({
                 'name': err,
                 'date_time': fields.Datetime.now(),
@@ -1504,14 +1521,18 @@ class MigratedHotel(models.Model):
     def _get_statements(self, statement, dates, journal_id):
         dates = list(set(dates))
         current_position = dates.index(statement.date)
-        next_statement = self.env["account.bank.statement"].search([
-            ("date", "=", dates[current_position + 1]),
-            ("jounal_id", "=", journal_id)
-        ])
-        previus_statement = self.env["account.bank.statement"].search([
-            ("date", "=", dates[current_position - 1]),
-            ("jounal_id", "=", journal_id)
-        ])
+        next_statement = False
+        if current_position < len(dates):
+            next_statement = self.env["account.bank.statement"].search([
+                ("date", "=", dates[current_position + 1]),
+                ("journal_id", "=", journal_id)
+            ])
+        previus_statement = False
+        if current_position > 1:
+            previus_statement = self.env["account.bank.statement"].search([
+                ("date", "=", dates[current_position - 1]),
+                ("journal_id", "=", journal_id)
+            ])
         return next_statement, previus_statement
 
     def recursive_statements_post(self, current_statement, next_statement, previus_statement, dates):
