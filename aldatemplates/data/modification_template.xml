@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <data>
-        <record id="alda_confirmation_email" model="mail.template">
-            <field name="name">Alda Confirmation Email</field>
+        <record id="alda_modification_email" model="mail.template">
+            <field name="name">Alda Modification Email</field>
             <field name="model_id" ref="pms.model_pms_folio" />
             <field
                 name="subject"
-            >Su reserva en ${object.pms_property_id.name} ha sido confirmada</field>
+            >Su reserva en ${object.pms_property_id.name} ha sido modificada</field>
             <field
                 name="email_from"
             >${object.pms_property_id.partner_id.email | safe}</field>
@@ -243,7 +243,7 @@ img {
                                                     align="center"
                                                     class="h2"
                                                     style="font-family: sans-serif; font-size: 18px; font-weight: bold; color: #444444; padding: 0 0 0 0; text-transform: uppercase; letter-spacing: 0.5px;"
-                                                > Confirmación de reserva
+                                                > MOdificación de reserva
                                                     en
                                                     ${object.pms_property_id.name}</td>
                                             </tr>
@@ -265,7 +265,7 @@ img {
                                                 >Hola ${object.partner_name or object.partner_id.firstname or ''}
                                                     <br />
                                                     Tu reserva en <strong
-                                                    >${object.pms_property_id.name}</strong> queda confirmada. Te esperamos el día <strong
+                                                    >${object.pms_property_id.name}</strong> ha sido modificada. Te esperamos el día <strong
                                                     >${object.first_checkin.day}-${object.first_checkin.month}-${object.first_checkin.year}</strong>. Si podemos ayudarte en cualquier tipo de gestión, no dudes en hacérnoslo saber.<br
                                                     /><br /><br />
                                                 </td>
@@ -669,12 +669,6 @@ img {
                                                                                                 <td
                                                                                                     align="center"
                                                                                                 >
-                                                                                                    <!--[if gte mso 12>
-                                                                                <div style="border: 2px solid #5e96ea;">
-                                                                                  <![endif]-->
-                                                                                                    <!--[if gte mso 12>
-                                                                                </div>
-                                                                                <![endif]-->
                                                                                                 </td>
                                                                                             </tr>
                                                                                         </table>
