@@ -78,10 +78,11 @@ class DataBi(models.Model):
                    [self.data_bi_client, "Clientes"],
                    [self.data_bi_habitacione, "Tipo Habitación"],
                    [self.data_bi_estados, "Estado Reservas"],
-                   [self.data_bi_rooms, "Nombre Habitaciones"],
                    ]
+                   # [self.data_bi_rooms, "Nombre Habitaciones"],
         for meto in metodos:
             response.append({meto[1]: self.clean_hotel_ids(meto[0](hotel))})
+        response.append({"Nombre Habitaciones": self.data_bi_rooms(hotel)})
         return json.dumps(response, ensure_ascii=False)
 
 
@@ -760,7 +761,6 @@ class DataBi(models.Model):
     @api.model
     def data_bi_segment(self, hotels):
         # Diccionario con Segmentación [12]
-        # TODO solo las que tienen un padre?... ver la gestion... etc....
         dic_segmentos = []
         lineas = self.env["res.partner.category"].search([])
         # _logger.info("DataBi: Calculating %s segmentations", str(len(lineas)))
@@ -768,13 +768,15 @@ class DataBi(models.Model):
             for linea in lineas:
                 if linea.parent_id.name:
                     seg_desc = linea.parent_id.name + " / " + linea.name
-                    dic_segmentos.append(
-                        {
-                            "ID_Hotel": prop.id,
-                            "ID_Segmento": linea.id,
-                            "Descripción": seg_desc,
-                        }
-                    )
+                else:
+                    seg_desc = linea.name
+                dic_segmentos.append(
+                    {
+                        "ID_Hotel": prop.id,
+                        "ID_Segmento": linea.id,
+                        "Descripción": seg_desc,
+                    }
+                )
         return dic_segmentos
 
     @api.model
@@ -837,7 +839,7 @@ class DataBi(models.Model):
             # for room in rooms.filtered(lambda n: (n.pms_property_id.id == prop.id)):
                 dic_rooms.append(
                 {
-                    "ID_Hotel": prop.id,
+                    "ID_Hotel": room.pms_property_id.id,
                     "ID_Room": room.id,
                     "Descripción": room.name,
                 }
