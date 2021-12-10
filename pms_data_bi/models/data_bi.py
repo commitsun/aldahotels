@@ -78,10 +78,11 @@ class DataBi(models.Model):
                    [self.data_bi_client, "Clientes"],
                    [self.data_bi_habitacione, "Tipo Habitación"],
                    [self.data_bi_estados, "Estado Reservas"],
-                   [self.data_bi_rooms, "Nombre Habitaciones"],
                    ]
+                   # [self.data_bi_rooms, "Nombre Habitaciones"],
         for meto in metodos:
             response.append({meto[1]: self.clean_hotel_ids(meto[0](hotel))})
+        response.append({"Nombre Habitaciones": self.data_bi_rooms(hotel)})
         return json.dumps(response, ensure_ascii=False)
 
 
@@ -776,7 +777,7 @@ class DataBi(models.Model):
                         "Descripción": seg_desc,
                     }
                 )
-    return dic_segmentos
+        return dic_segmentos
 
     @api.model
     def data_bi_client(self, hotels):
@@ -838,7 +839,7 @@ class DataBi(models.Model):
             # for room in rooms.filtered(lambda n: (n.pms_property_id.id == prop.id)):
                 dic_rooms.append(
                 {
-                    "ID_Hotel": prop.id,
+                    "ID_Hotel": room.pms_property_id.id,
                     "ID_Room": room.id,
                     "Descripción": room.name,
                 }
