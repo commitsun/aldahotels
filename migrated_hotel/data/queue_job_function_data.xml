@@ -71,4 +71,22 @@
         <!-- <field name="retry_pattern" eval="{1: 10, 5: 30, 10: 60, 15: 300}" /> -->
     </record>
 
+    <record
+        id="job_migrated_bank_payments"
+        model="queue.job.function"
+    >
+        <field
+            name="model_id"
+            ref="migrated_hotel.model_migrated_hotel"
+        />
+        <field name="method">create_bank_payment_migration</field>
+        <field name="channel_id" ref="migrated_hotel.channel_migrated_hotel" />
+        <!-- <field
+            name="related_action"
+            eval='{"func_name": "wubook_import_record_related_action", "kwargs": {"name": "Wubook Room Type"}}'
+        /> -->
+        <!-- <field name="retry_pattern" eval="{1: 10, 5: 30, 10: 60, 15: 300}" /> -->
+    </record>
+
+
 </odoo>

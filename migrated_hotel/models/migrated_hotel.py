@@ -85,6 +85,8 @@ class MigratedHotel(models.Model):
     booking_agency = fields.Many2one(string='Booking.com partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
     expedia_agency = fields.Many2one(string='Expedia partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
     hotelbeds_agency = fields.Many2one(string='HotelBeds partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
+    thinkin_agency = fields.Many2one(string='Thinkin partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
+    sh360_agency = fields.Many2one(string='SH360 partner', comodel_name='res.partner', domain=[("is_agency", "=", True)])
 
     migrated_pricelist_ids = fields.One2many(
         string="Pricelists Mapping",
@@ -387,10 +389,10 @@ class MigratedHotel(models.Model):
                                      document_data):
         # prepare country_id related field
         remote_id = rpc_res_partner['country_id'] and rpc_res_partner['country_id'][0]
-        country_id = remote_id and country_map_ids.get(remote_id) or None
+        country_id = remote_id and country_map_ids.get(str(remote_id)) or None
         # prepare state_id related field
         remote_id = rpc_res_partner['state_id'] and rpc_res_partner['state_id'][0]
-        state_id = remote_id and country_state_map_ids.get(remote_id) or None
+        state_id = remote_id and country_state_map_ids.get(str(remote_id)) or None
         # prepare category_ids related field
         remote_ids = rpc_res_partner['category_id'] and rpc_res_partner['category_id']
         category_ids = remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or None
@@ -710,9 +712,9 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = rpc_hotel_folio['user_id'] and rpc_hotel_folio['user_id'][0]
-        res_user_id = remote_id and res_users_map_ids.get(remote_id)
+        res_user_id = remote_id and res_users_map_ids.get(str(remote_id))
         remote_id = rpc_hotel_folio['create_uid'] and rpc_hotel_folio['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
 
         # prepare category_ids related field
         remote_ids = rpc_hotel_folio['segmentation_ids'] and rpc_hotel_folio['segmentation_ids']
@@ -797,9 +799,16 @@ class MigratedHotel(models.Model):
                 ("remote_id", "=", remote_id),
                 ("migrated_hotel_id", "=", self.id),
             ]).partner_id
+            res_create = self.env["res.users"].browse(res_create_uid)
             if remote_id:
                 vals["agency_id"] = agency.id
                 vals["channel_type_id"] = agency.sale_channel_id.id
+            elif "@thinkin.es" in res_create.login:
+                vals["agency_id"] = self.thinkin_agency.id
+                vals["channel_type_id"] = self.thinkin_agency.sale_channel_id.id
+            elif "@sh360.es" in res_create.login:
+                vals["agency_id"] = self.sh360_agency.id
+                vals["channel_type_id"] = self.sh360_agency.sale_channel_id.id
             else:
                 vals["agency_id"] = False
                 vals["channel_type_id"] = self.env["migrated.channel.type"].search([("remote_name", "=", rpc_hotel_folio['channel_type']), ("migrated_hotel_id", "=", self.id)]).channel_type_id.id
@@ -832,17 +841,16 @@ class MigratedHotel(models.Model):
                         'name': record.name,
                         'email': record.email,
                     })
-                    new_user = self.env['res.users'].sudo().create({
+                    res_user = self.env['res.users'].sudo().create({
                         'partner_id': new_partner.id,
                         'email': record.email,
-                        'login': res_user.login,
-                        'active': False,
+                        'login': record.login,
                         'company_ids': [(4, self.pms_property_id.company_id.id)],
                         'company_id': self.pms_property_id.company_id.id,
                         'pms_property_ids': [(4, self.pms_property_id.id)],
                         'pms_property_id': self.pms_property_id.id,
                     })
-                    new_user.active = False
+                    res_user.active = False
                 if self.pms_property_id.company_id.id not in res_user.company_ids.ids:
                     res_user.sudo().write({
                         'company_ids': [(4, self.pms_property_id.company_id.id)],
@@ -1062,6 +1070,7 @@ class MigratedHotel(models.Model):
             services_folio = [res for res in remote_hotel_services if res['folio_id'][0] == remote_hotel_folio['id']]
             service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
             checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
+            remote_bindings = [b for b in remote_bindings if b['odoo_id'] in [item["id"] for item in reservations_folio]]
             self.with_delay().migration_folio(
                 remote_hotel_folio,
                 res_users_map_ids,
@@ -1124,11 +1133,13 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = reservation['create_uid'] and reservation['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
 
         # Prepare pricelist
         remote_id = reservation['pricelist_id'][0]
         pricelist_id = self.env["migrated.pricelist"].search([("remote_id", "=", remote_id), ("migrated_hotel_id", "=", self.id)]).pms_pricelist_id.id
+        if not pricelist_id:
+            ValidationError("Pricelist not found for remote id: %s" % remote_id)
 
         # prepare checkins
         remote_ids = reservation['checkin_partner_ids'] and reservation['checkin_partner_ids']
@@ -1461,47 +1472,7 @@ class MigratedHotel(models.Model):
                         # Some payment are garbage, so we skip them (know by old dates)
                         if fields.Datetime.from_string(payment["payment_date"]) < (datetime.datetime.now() - datetime.timedelta(days=2000)):
                             continue
-                        if payment["partner_id"]:
-                            partner_id = self.env["migrated.partner"].search([
-                                ("remote_id", "=", payment['partner_id'][0]),
-                                ("migrated_hotel_id", "=", self.id)
-                            ]).partner_id.id or False
-                        else:
-                            partner_id = False
-                        payment_ref = payment["communication"]
-                        if not payment_ref:
-                            if payment["folio_id"]:
-                                payment_ref = payment["folio_id"][1]
-                            else:
-                                payment_ref = "Transaccion"
-                        remote_folio_id = payment["folio_id"] and payment["folio_id"][0]
-                        if remote_folio_id:
-                            folio_id = self.env["pms.folio"].search([
-                                ("remote_id", "=", remote_folio_id),
-                                ("pms_property_id", "=", self.pms_property_id.id),
-                            ], limit=1).id or False
-                        else:
-                            folio_id = False
-                        vals = {
-                            "journal_id": journal_id,
-                            "partner_id": partner_id,
-                            "amount": payment["amount"],
-                            "date": fields.Datetime.from_string(payment["payment_date"]),
-                            "ref": payment_ref,
-                            "payment_type": payment["payment_type"],
-                            "partner_type": payment["partner_type"],
-                            "state": "draft",
-                        }
-                        if folio_id:
-                            vals["folio_ids"] = [(6, 0, [folio_id])]
-                        context_no_mail = {
-                            'tracking_disable': True,
-                            'mail_notrack': True,
-                            'mail_create_nolog': True,
-                            'company_id': self.pms_property_id.company_id.id,
-                        }
-                        pay = self.env["account.payment"].with_context(context_no_mail).create(vals)
-                        pay.with_context(context_no_mail).action_post()
+                        self.with_delay().create_bank_payment_migration(payment, res_users_map_ids, journal_id)
                         count += 1
                         _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
                             count, total, payment['id'])
@@ -1517,6 +1488,52 @@ class MigratedHotel(models.Model):
             })
             _logger.error('ERROR account.payment with LOG #%s: (%s)',
                         migrated_log.id, err)
+
+    def create_bank_payment_migration(self, payment, res_users_map_ids, journal_id):
+        remote_id = payment['create_uid'] and payment['create_uid'][0]
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        if payment["partner_id"]:
+            partner_id = self.env["migrated.partner"].search([
+                ("remote_id", "=", payment['partner_id'][0]),
+                ("migrated_hotel_id", "=", self.id)
+            ]).partner_id.id or False
+        else:
+            partner_id = False
+        payment_ref = payment["communication"]
+        if not payment_ref:
+            if payment["folio_id"]:
+                payment_ref = payment["folio_id"][1]
+            else:
+                payment_ref = "Transaccion"
+        remote_folio_id = payment["folio_id"] and payment["folio_id"][0]
+        if remote_folio_id:
+            folio_id = self.env["pms.folio"].search([
+                ("remote_id", "=", remote_folio_id),
+                ("pms_property_id", "=", self.pms_property_id.id),
+            ], limit=1).id or False
+        else:
+            folio_id = False
+        vals = {
+            "journal_id": journal_id,
+            "partner_id": partner_id,
+            "amount": payment["amount"],
+            "date": fields.Datetime.from_string(payment["payment_date"]),
+            "ref": payment_ref,
+            "payment_type": payment["payment_type"],
+            "partner_type": payment["partner_type"],
+            "state": "draft",
+            "create_uid": res_create_uid,
+        }
+        if folio_id:
+            vals["folio_ids"] = [(6, 0, [folio_id])]
+        context_no_mail = {
+            'tracking_disable': True,
+            'mail_notrack': True,
+            'mail_create_nolog': True,
+            'company_id': self.pms_property_id.company_id.id,
+        }
+        pay = self.env["account.payment"].with_context(context_no_mail).create(vals)
+        pay.with_context(context_no_mail).action_post()
 
     def _get_statements(self, statement, dates, journal_id):
         dates = list(set(dates))
@@ -1547,7 +1564,7 @@ class MigratedHotel(models.Model):
 
     def create_payment_migration(self, payment, res_users_map_ids, remote_journal, date_str, journal, statement):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
         if payment["partner_id"]:
             partner_id = self.env["migrated.partner"].search([
                 ("remote_id", "=", payment['partner_id'][0]),
@@ -1672,7 +1689,7 @@ class MigratedHotel(models.Model):
     def _prepare_invoice_remote_data(self, account_invoice, res_users_map_ids, noderpc):
         # search res_users ids
         remote_id = account_invoice['user_id'] and account_invoice['user_id'][0]
-        res_user_id = remote_id and res_users_map_ids.get(remote_id) or self._context.get('uid', self._uid)
+        res_user_id = remote_id and res_users_map_ids.get(str(remote_id)) or self._context.get('uid', self._uid)
 
         # prepare partner_id related field
         default_res_partner = self.env['res.partner'].search([
@@ -1876,20 +1893,24 @@ class MigratedHotel(models.Model):
     def _update_special_field_names(self, model, model_log_code, res_users_map_ids, noderpc):
         # prepare record ids
         _logger.info("Updating '%s' special field names..", model)
-        record_ids = self.env[model].search([
+        records = self.env[model].search([
             ('remote_id', '>', 0)
         ])
-        for record in record_ids:
+        rpc_records = noderpc.env[model].search_read(
+            [('id', 'in', records.mapped("remote_id"))],
+            ['id', 'create_uid', 'create_date'],
+        )
+        for record in records:
             try:
                 rpc_record = noderpc.env[model].search_read(
                     [('id', '=', record.remote_id)],
                     ['create_uid', 'create_date'],
                 ) or False
-
+                rpc_record = [res for res in rpc_records if res['id'] == record.remote_id]
                 if rpc_record:
                     rpc_record = rpc_record[0]
                     create_uid = rpc_record['create_uid'] and rpc_record['create_uid'][0] or False
-                    create_uid = create_uid and res_users_map_ids.get(create_uid) or self._uid
+                    create_uid = create_uid and res_users_map_ids.get(str(create_uid)) or self._uid
                     create_date = rpc_record['create_date'] and rpc_record['create_date'] or record.create_date
 
                     self.env.cr.execute('''UPDATE ''' + self.env[model]._table + '''

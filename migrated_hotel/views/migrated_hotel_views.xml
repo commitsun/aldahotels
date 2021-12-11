@@ -33,6 +33,7 @@
                         <field name="booking_agency" colspan="2"/>
                         <field name="expedia_agency" colspan="2"/>
                         <field name="hotelbeds_agency" colspan="2"/>
+                        <field name="sh360_agency" colspan="2"/>
                     </group>
                     <group colspan="4">
                         <field name="folio_prefix" />
