@@ -1162,6 +1162,13 @@ class MigratedHotel(models.Model):
                 'state': state,
             }))
 
+        # Mapper Cancel state
+        state = reservation['state']
+        if reservation['state'] == 'cancelled':
+            state = 'cancel'
+        elif reservation['state'] == 'booking':
+            state = 'onboard'
+
         # prepare_reservation_lines
         remote_ids = reservation['reservation_line_ids'] and reservation['reservation_line_ids']
         hotel_reservation_lines = [line for line in reservation_lines if line['id'] in remote_ids]
@@ -1169,11 +1176,19 @@ class MigratedHotel(models.Model):
         reservation_line_cmds = []
         for reservation_line in hotel_reservation_lines:
             room_line_id = self.env["migrated.room"].search([("remote_id", "=", reservation_line['room_id'][0]), ("migrated_hotel_id", "=", self.id)]).pms_room_id.id
+            price = reservation_line['price']
+            cancel_discount = reservation_line['cancel_discount']
+            discount = reservation_line['discount']
+            if price == 0:
+                if reservation['state'] == "cancel":
+                    cancel_discount = 100
+                else:
+                    discount = 100
             reservation_line_cmds.append((0, False, {
                 'date': reservation_line['date'],
-                'price': reservation_line['price'],
-                'discount': reservation_line['discount'],
-                'cancel_discount': reservation_line['cancel_discount'],
+                'price': price,
+                'discount': discount,
+                'cancel_discount': cancel_discount,
                 'room_id': room_line_id,
             }))
 
@@ -1193,12 +1208,6 @@ class MigratedHotel(models.Model):
 
         # TODO 'call_center': reservation['call_center'],
 
-        # Mapper Cancel state
-        state = reservation['state']
-        if reservation['state'] == 'cancelled':
-            state = 'cancel'
-        elif reservation['state'] == 'booking':
-            state = 'onboard'
 
         services_vals = []
         if reservation['service_ids'] and state != "cancel":
