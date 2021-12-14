@@ -11,7 +11,6 @@ class InheritResCompany(models.Model):
         "Expedia Rate DataBI",
         default=18,
         required=True,
-        digits=2,
         help="It is the commission percentage negotiated with the \
         Expedia company, expressed with two digits. \
         Example: 18 = 18% commission.",
