@@ -1,7 +1,7 @@
 ##############################################################################
 #
 #    Odoo, Open Source Management Solution
-#    Copyright (C) 2018-2019 Jose Luis Algara Toledo <osotranquilo@gmail.com>
+#    Copyright (C) 2018-2021 Jose Luis Algara Toledo <osotranquilo@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #
 ##############################################################################
 import base64
-from datetime import date, datetime
+from datetime import date
 from io import BytesIO
 
 import xlsxwriter
@@ -28,13 +28,14 @@ from odoo import _, api, fields, models
 
 class KellysWizard(models.TransientModel):
     _name = "kellysreport"
+    _description = "Kellys report"
 
     @api.model
     def _get_default_date(self):
         return date.today()
 
     def _get_default_habitaciones(self):
-        return self.calculalimpiar(datetime.now())
+        return self.calculalimpiar(date.today())
 
     date_start = fields.Date("Fecha del listado", default=_get_default_date)
     habitaciones = fields.Many2many(
@@ -59,7 +60,7 @@ class KellysWizard(models.TransientModel):
         self.habitaciones = self.calculalimpiar(self.date_start)
         return
 
-    def calculalimpiar(self, fechalimpieza=datetime.today()):
+    def calculalimpiar(self, fechalimpieza=date.today()):
         grids = self.env["pms.room"].search(
             [("pms_property_id", "=", self.env.user.get_active_property_ids()[0])],
             order="sequence ASC",

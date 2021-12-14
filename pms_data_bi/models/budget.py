@@ -17,6 +17,7 @@ class Budget(models.Model):
     """Establish and save the budget for DataBI control by revenue"""
 
     _name = "pms.budget"
+    _description = "Revenue budget"
 
     # fecha Primer día del mes
     month = fields.Selection(

@@ -40,6 +40,7 @@ class DataBi(models.Model):
     """Management and export data for MopSolution MyDataBI."""
 
     _name = "data_bi"
+    _description = "Export DataBI"
 
     @api.model
     def export_reservations_data(self, hotelsdata=[0], fechafoto=False):
