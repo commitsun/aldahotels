@@ -40,6 +40,7 @@ class DataBi(models.Model):
     """Management and export data for MopSolution MyDataBI."""
 
     _name = "data_bi"
+    _description = "Export DataBI"
 
     @api.model
     def export_reservations_data(self, hotelsdata=[0], fechafoto=False):
@@ -79,12 +80,10 @@ class DataBi(models.Model):
                    [self.data_bi_habitacione, "Tipo Habitación"],
                    [self.data_bi_estados, "Estado Reservas"],
                    ]
-                   # [self.data_bi_rooms, "Nombre Habitaciones"],
         for meto in metodos:
             response.append({meto[1]: self.clean_hotel_ids(meto[0](hotel))})
         response.append({"Nombre Habitaciones": self.data_bi_rooms(hotel)})
         return json.dumps(response, ensure_ascii=False)
-
 
     @api.model
     def calc_hoteles(self, hotelsdata):
@@ -142,7 +141,7 @@ class DataBi(models.Model):
         hotels = self.calc_hoteles(default_property)
 
         _logger.warning(
-            "--- ### Init Export Data_Bi Module parameters:  %s, %s, %s ### ---",
+            "-- ### Init Export Data_Bi Module parameters:  %s, %s, %s ### --",
             archivo,
             hotels.ids,
             fechafoto,
@@ -212,13 +211,16 @@ class DataBi(models.Model):
         elif archivo == 7:
             dic_export.append({"Capacidad": self.data_bi_capacidad(hotels)})
         elif archivo == 8:
-            dic_export.append({"Tipo Habitación": self.data_bi_habitacione(hotels)})
+            dic_export.append({"Tipo Habitación": self.data_bi_habitacione(
+                hotels)})
         elif archivo == 9:
             dic_export.append({"Budget": self.data_bi_budget(hotels)})
         elif archivo == 10:
-            dic_export.append({"Bloqueos": self.data_bi_bloqueos(hotels, line_res)})
+            dic_export.append({"Bloqueos": self.data_bi_bloqueos(hotels,
+                                                                 line_res)})
         elif archivo == 11:
-            dic_export.append({"Motivo Bloqueo": self.data_bi_moti_bloq(hotels)})
+            dic_export.append({"Motivo Bloqueo": self.data_bi_moti_bloq(
+                hotels)})
         elif archivo == 12:
             dic_export.append({"Segmentos": self.data_bi_segment(hotels)})
         elif archivo == 13:
@@ -228,7 +230,8 @@ class DataBi(models.Model):
                 {"Estado Reservas": self.data_bi_estados(hotels)}
             )
         elif archivo == 15:
-            dic_export.append({"Nombre Habitaciones": self.data_bi_rooms(hotels, True)})
+            dic_export.append({"Nombre Habitaciones": self.data_bi_rooms(
+                hotels, True)})
         return dic_export
 
     @api.model
@@ -248,9 +251,9 @@ class DataBi(models.Model):
                 ],
                 ["name"],
             )
-            # _logger.info(
-            #     "DataBi: Calculating %s fees in %s", str(len(tarifas)), prop.name
-            # )
+        # _logger.info(
+        #     "DataBi: Calculating %s fees in %s", str(len(tarifas)), prop.name
+        # )
             for tarifa in tarifas:
                 dic_tarifa.append(
                     {
@@ -269,7 +272,8 @@ class DataBi(models.Model):
         # _logger.info("DataBi: Calculating %s Channels", str(len(channels)))
         for prop in hotels:
             dic_canal.append(
-                {"ID_Hotel": prop.id, "ID_Canal": "0", "Descripción": u"Ninguno"}
+                {"ID_Hotel": prop.id, "ID_Canal": "0",
+                 "Descripción": u"Ninguno"}
             )
             for channel in channels:
                 dic_canal.append(
@@ -342,8 +346,10 @@ class DataBi(models.Model):
              {"ID_Pais": "COL", "Descripción": "Colombia"},
              {"ID_Pais": "COM", "Descripción": "Comoras"},
              {"ID_Pais": "COG", "Descripción": "Congo, República del"},
-             {"ID_Pais": "COD", "Descripción": "Congo, República Democrática del"},
-             {"ID_Pais": "PRK", "Descripción": "Corea, Rep. Popular Democrática"},
+             {"ID_Pais": "COD",
+              "Descripción": "Congo, República Democrática del"},
+             {"ID_Pais": "PRK",
+              "Descripción": "Corea, Rep. Popular Democrática"},
              {"ID_Pais": "KOR", "Descripción": "Corea, República de"},
              {"ID_Pais": "CIV", "Descripción": "Costa de Marfil"},
              {"ID_Pais": "CRI", "Descripción": "Costa Rica"},
@@ -401,7 +407,8 @@ class DataBi(models.Model):
              {"ID_Pais": "FLK", "Descripción": "Islas Falkland (Malvinas)"},
              {"ID_Pais": "FRO", "Descripción": "Islas Feroé"},
              {"ID_Pais": "FJI", "Descripción": "Islas Fidji"},
-             {"ID_Pais": "SGS", "Descripción": "Islas Georgias del Sur y Sandwich"},
+             {"ID_Pais": "SGS",
+              "Descripción": "Islas Georgias del Sur y Sandwich"},
              {"ID_Pais": "HMD", "Descripción": "Islas Heard e Mcdonald"},
              {"ID_Pais": "MNP", "Descripción": "Islas Marianas del Norte"},
              {"ID_Pais": "MHL", "Descripción": "Islas Marshall"},
@@ -619,7 +626,8 @@ class DataBi(models.Model):
         # Diccionario con los Board Services [5]
         dic_regimen = []
         board_services = self.env["pms.board.service"].search_read([])
-        # _logger.info("DataBi: Calculating %s board services", str(len(board_services)))
+        # _logger.info("DataBi: Calculating %s board services",
+        #   str(len(board_services)))
         for prop in hotels:
             dic_regimen.append(
                 {
@@ -644,22 +652,21 @@ class DataBi(models.Model):
     @api.model
     def data_bi_capacidad(self, hotels):
         # Diccionario con las capacidades  [7]
-        rooms = self.env["pms.room.type"].search_read([])
+        rooms_type = self.env["pms.room.type"].search([])
         # _logger.info("DataBi: Calculating %s room capacity", str(len(rooms)))
         dic_capacidad = []
         for prop in hotels:
-            for room in rooms:
-                if (not room["pms_property_ids"]) or (
-                    prop.id in room["pms_property_ids"]
-                ):
+            for room_type in rooms_type:
+                room_count = self.data_bi_get_capacidad(prop.id, room_type.id)
+                if room_count > 0:
                     dic_capacidad.append(
                         {
                             "ID_Hotel": prop.id,
                             "Hasta_Fecha": (
                                 date.today() + timedelta(days=365 * 3)
                             ).strftime("%Y-%m-%d"),
-                            "ID_Tipo_Habitacion": room["id"],
-                            "Nro_Habitaciones": room["total_rooms_count"],
+                            "ID_Tipo_Habitacion": room_type.id,
+                            "Nro_Habitaciones": room_count,
                         }
                     )
         return dic_capacidad
@@ -729,7 +736,8 @@ class DataBi(models.Model):
         # Diccionario con Motivo de Bloqueos [11]
         lineas = self.env["room.closure.reason"].search([])
         dic_moti_bloq = []
-        # _logger.info("DataBi: Calculating %s blocking reasons", str(len(lineas)))
+        # _logger.info("DataBi: Calculating %s blocking reasons",
+        #   str(len(lineas)))
         for prop in hotels:
             dic_moti_bloq.append(
                 {
@@ -787,7 +795,8 @@ class DataBi(models.Model):
         # _logger.info("DataBi: Calculating %s Operators", str(len(lineas)))
         for prop in hotels:
             dic_clientes.append(
-                {"ID_Hotel": prop.id, "ID_Cliente": 0, "Descripción": u"Ninguno"}
+                {"ID_Hotel": prop.id, "ID_Cliente": 0,
+                 "Descripción": u"Ninguno"}
             )
             for linea in lineas:
                 dic_clientes.append(
@@ -836,7 +845,6 @@ class DataBi(models.Model):
             else:
                 r = rooms
             for room in r:
-            # for room in rooms.filtered(lambda n: (n.pms_property_id.id == prop.id)):
                 dic_rooms.append(
                 {
                     "ID_Hotel": room.pms_property_id.id,
@@ -863,7 +871,8 @@ class DataBi(models.Model):
                     motivo = (
                         "B0"
                         if not line.reservation_id.closure_reason_id.id
-                        else ("B" + str(line.reservation_id.closure_reason_id.id))
+                        else ("B" + str(
+                            line.reservation_id.closure_reason_id.id))
                     )
 
                 elif line.reservation_id.reservation_type == "staff":
@@ -945,7 +954,8 @@ class DataBi(models.Model):
                         "ID_Canal": canal,
                         "FechaExtraccion": date.today().strftime("%Y-%m-%d"),
                         "Entrada": linea.date.strftime("%Y-%m-%d"),
-                        "Salida": (linea.date + timedelta(days=1)).strftime("%Y-%m-%d"),
+                        "Salida": (linea.date + timedelta(days=1)).strftime(
+                            "%Y-%m-%d"),
                         "Noches": 1,
                         "ID_TipoHabitacion": linea.reservation_id.room_type_id.id,
                         "ID_HabitacionDuerme": linea.room_id.room_type_id.id,
@@ -1005,3 +1015,9 @@ class DataBi(models.Model):
                 if partner.partner_id.ine_code:
                     response = partner.partner_id.ine_code
         return response
+
+    @api.model
+    def data_bi_get_capacidad(self, property, rtype):
+        rooms = self.env["pms.room"].search([("pms_property_id", "=", property),
+                                             ("room_type_id", "=", rtype)])
+        return len(rooms)

@@ -22,6 +22,7 @@ from odoo import fields, models
 
 class KellysRooms(models.TransientModel):
     _name = "kellysrooms"
+    _description = "Kellys rooms"
 
     habitacion = fields.Char("Habitacion")
     habitacionid = fields.Integer("Habitacion ID")

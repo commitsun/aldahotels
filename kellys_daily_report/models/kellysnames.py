@@ -23,5 +23,6 @@ from odoo import fields, models
 
 class KellysNames(models.Model):
     _name = "kellysnames"
+    _description = "Kellys names"
 
     name = fields.Char("Limpiador/a")
