@@ -16,7 +16,7 @@ class PmsFolio(models.Model):
                     lambda r: r.checkout == fields.date.today()
                 )
                 for reservation in reservations:
-                    if reservation.state in "done" and not reservation.is_mail_send:
+                    if reservation.state in "done" and reservation.to_send_mail:
                         template = folio.pms_property_id.property_exit_template
                         subject = template._render_field(
                             "subject",
@@ -44,4 +44,4 @@ class PmsFolio(models.Model):
                         )
                         invitation_mail.send()
                         for reservation in folio.reservation_ids:
-                            reservation.is_mail_send = True
+                            reservation.to_send_mail = False
