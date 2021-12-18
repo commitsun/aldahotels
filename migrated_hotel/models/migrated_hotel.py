@@ -774,10 +774,14 @@ class MigratedHotel(models.Model):
 
         # Prepare channel and binding
         # Wubook
-        if reservations_folio and reservations_folio[0]['external_id']:
-            reservation = reservations_folio[0]
-            binding = [b for b in remote_bindings if b['external_id'] == reservation['external_id']][0]
-            remote_ota_id = reservation['ota_id'] and reservation['ota_id'][1] or None
+        wubook_reservation = False
+        for reservation in reservations_folio:
+            if reservation['external_id']:
+                wubook_reservation = reservation
+                break
+        if wubook_reservation:
+            binding = [b for b in remote_bindings if b['external_id'] == wubook_reservation['external_id']][0]
+            remote_ota_id = wubook_reservation['ota_id'] and wubook_reservation['ota_id'][1] or None
             if remote_ota_id:
                 vals["channel_type_id"] = self.default_ota_channel.id
                 if remote_ota_id == "Booking.com":
@@ -826,16 +830,24 @@ class MigratedHotel(models.Model):
         try:
             # prepare res.users ids
             _logger.info("Mapping local with remote 'res.users' ids...")
-            remote_ids = noderpc.env['res.users'].search([])
+            remote_ids = noderpc.env['res.users'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['res.users'].browse(remote_ids)
             res_users_map_ids = {}
             for record in remote_records:
+                if record.login in ['default', 'portaltemplate', 'public']:
+                    continue
                 res_user = self.env['res.users'].sudo().search([
                     ('login', '=', record.login),
                     '|',
                     ('active', '=', True),
                     ('active', '=', False),
                 ])
+                if record.id == 1:
+                    res_user = self.backend_id.parent_id.user_id
                 if not res_user:
                     new_partner = self.env['res.partner'].sudo().create({
                         'name': record.name,
@@ -1070,7 +1082,7 @@ class MigratedHotel(models.Model):
             services_folio = [res for res in remote_hotel_services if res['folio_id'][0] == remote_hotel_folio['id']]
             service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
             checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
-            remote_bindings = [b for b in remote_bindings if b['odoo_id'] in [item["id"] for item in reservations_folio]]
+            folio_remote_bindings = [b for b in remote_bindings if b['odoo_id'][0] in [item["id"] for item in reservations_folio]]
             self.with_delay().migration_folio(
                 remote_hotel_folio,
                 res_users_map_ids,
@@ -1080,7 +1092,7 @@ class MigratedHotel(models.Model):
                 services_folio,
                 service_lines_folio,
                 checkins_partners_folio,
-                remote_bindings,
+                folio_remote_bindings,
             )
             count += 1
             _logger.info('Finished migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
