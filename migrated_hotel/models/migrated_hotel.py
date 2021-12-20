@@ -2,6 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
+from operator import ne
 from dateutil.relativedelta import relativedelta
 import datetime
 from itertools import groupby
@@ -42,6 +43,13 @@ class MigratedHotel(models.Model):
         help="The migration property",
         comodel_name="pms.property",
         copy=False,
+    )
+    company_id = fields.Many2one(
+        string="Company",
+        related="pms_property_id.company_id",
+        comodel_name="res.company",
+        copy=False,
+        readonly=True,
     )
 
     count_total_partners = fields.Integer(string="Partners Total V11", readonly=True, copy=False)
@@ -1414,7 +1422,7 @@ class MigratedHotel(models.Model):
             for remote_journal, journal_payments in groupby(remote_payment_by_journal_vals, journal_func):
                 if remote_journal[0] in migrated_journals:
                     continue
-                journal_id = self.env["migrated.journal"].sesarch([
+                journal_id = self.env["migrated.journal"].search([
                     ("migrated_hotel_id", "=", self.id),
                     ("remote_id", "=", remote_journal[0]),
                 ]).account_journal_id.id
@@ -1483,7 +1491,7 @@ class MigratedHotel(models.Model):
                             "move_line_ids": line_vals,
                             "date_done": fields.Date.from_string(date_str).strftime(DEFAULT_SERVER_DATE_FORMAT),
                         })
-                        dates = [fields.Datetime.from_string(item["payment_date"]) for item in journal_payments_tarjet]
+                        dates = [fields.Date.from_string(item["payment_date"]) for item in journal_payments_tarjet]
                         next_statement, previus_statement = self._get_statements(statement, dates, journal_id)
                         self.recursive_statements_post(statement, next_statement, previus_statement, dates)
                 elif journal.type == "bank":
@@ -1560,17 +1568,21 @@ class MigratedHotel(models.Model):
         dates = list(set(dates))
         current_position = dates.index(statement.date)
         next_statement = False
-        if current_position < len(dates):
+        if current_position < (len(dates) - 1):
             next_statement = self.env["account.bank.statement"].search([
                 ("date", "=", dates[current_position + 1]),
                 ("journal_id", "=", journal_id)
             ])
+            if next_statement:
+                next_statement = next_statement[0]
         previus_statement = False
         if current_position > 1:
             previus_statement = self.env["account.bank.statement"].search([
                 ("date", "=", dates[current_position - 1]),
                 ("journal_id", "=", journal_id)
             ])
+            if previus_statement:
+                previus_statement = previus_statement[0]
         return next_statement, previus_statement
 
     def recursive_statements_post(self, current_statement, next_statement, previus_statement, dates):

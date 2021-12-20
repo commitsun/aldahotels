@@ -10,9 +10,10 @@
         'connector_pms_wubook',
     ],
     'external_dependencies':
-        {'python' : ['odoorpc']},
+        {'python' : ['odoorpc', 'xlrd']},
     'license': "AGPL-3",
     'data': [
+        'wizard/view_import_chart.xml',
         'views/migrated_hotel_views.xml',
         'views/migrated_log_views.xml',
         'views/inherited_res_partner_views.xml',

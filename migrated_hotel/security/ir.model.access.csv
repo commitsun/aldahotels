@@ -11,3 +11,4 @@ access_migrated_board_service_room_type,access_migrated_board_service_room_type,
 access_migrated_channel_type,access_migrated_channel_type,model_migrated_channel_type,base.group_erp_manager,1,1,1,1
 access_migrated_partner,access_migrated_partner,model_migrated_partner,base.group_erp_manager,1,1,1,1
 access_migrated_journal,access_migrated_journal,model_migrated_journal,base.group_erp_manager,1,1,1,1
+access_import_chart_account,access_import_chart_account,model_import_chart_account,base.group_erp_manager,1,1,1,0
