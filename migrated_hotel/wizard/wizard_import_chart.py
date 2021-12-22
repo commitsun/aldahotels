@@ -83,7 +83,7 @@ class ImportChartAccount(models.TransientModel):
             ):
                 account_found = account
                 break
-        if account_found and code_no[-2:] == account_found.code[-2:] and code_no[4:-2] == '0000':
+        if account_found and code_no[-2:] == account_found.code[-2:] and code_no[4:-2] == '00000':
             _logger.info("Found Account: From %s to %s", account_found.code, code_no)
             account_found.code = code_no
             account_found.name = values.get("name")
