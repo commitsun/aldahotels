@@ -2476,7 +2476,11 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         try:
             _logger.info("Importing Remote Jorunals...")
-            remote_ids = noderpc.env['account.journal'].search([])
+            remote_ids = noderpc.env['account.journal'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['account.journal'].browse(remote_ids)
             journal_migrated_ids = self.mapped("migrated_journal_ids.remote_id")
             for record in remote_records:
