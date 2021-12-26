@@ -154,12 +154,14 @@ class GlassofExporterWizard(models.TransientModel):
             for folio_inv in folios.move_ids:
                 invoices_read.append(folio_inv.id)
                 country_code = ''
-                vat_partner = ''
+                vat_partner = inv.partner_id.vat if inv.partner_id.vat else ''
                 country_partner = inv.partner_id.country_id
                 if country_partner:
                     country_code = country_partner.code
                     if inv.partner_id.vat:
                         vat_partner = inv.partner_id.vat[2:] if inv.partner_id.vat[2:] == country_code else inv.partner_id.vat
+                if not vat_partner and inv.partner_id.id_numbers:
+                    vat_partner = inv.partner_id.id_numbers[0].name
                 worksheet.write(nrow, 0, inv.name)
                 worksheet.write(nrow, 1, inv.partner_id.name)
                 worksheet.write(nrow, 2, inv.date, xls_cell_format_date)
@@ -282,7 +284,7 @@ class GlassofExporterWizard(models.TransientModel):
                 lastname = inv.partner_id.lastname or ''
 
             country_code = ''
-            vat_partner = ''
+            vat_partner = inv.partner_id.vat if inv.partner_id.vat else ''
             country_partner = inv.partner_id.country_id
             if country_partner:
                 country_code = country_partner.code
