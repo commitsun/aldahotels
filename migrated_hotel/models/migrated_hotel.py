@@ -1923,54 +1923,40 @@ class MigratedHotel(models.Model):
         else:
             noderpc.logout()
 
-    def _update_special_field_names(self, model, model_log_code, res_users_map_ids, noderpc):
+    def _update_special_field_names(self, local_model, remote_model, res_users_map_ids, noderpc):
         # prepare record ids
-        _logger.info("Updating '%s' special field names..", model)
-        records = self.env[model].search([
-            ('remote_id', '>', 0)
+        _logger.info("Updating '%s' special field names..", local_model)
+        records = self.env[local_model].search([
+            ('remote_id', '>', 0),
+            ('pms_property_id', '=', self.pms_property_id.id)
         ])
-        rpc_records = noderpc.env[model].search_read(
+        rpc_records = noderpc.env[remote_model].search_read(
             [('id', 'in', records.mapped("remote_id"))],
             ['id', 'create_uid', 'create_date'],
         )
         for record in records:
             try:
-                rpc_record = noderpc.env[model].search_read(
-                    [('id', '=', record.remote_id)],
-                    ['create_uid', 'create_date'],
-                ) or False
                 rpc_record = [res for res in rpc_records if res['id'] == record.remote_id]
                 if rpc_record:
                     rpc_record = rpc_record[0]
                     create_uid = rpc_record['create_uid'] and rpc_record['create_uid'][0] or False
-                    create_uid = create_uid and res_users_map_ids.get(str(create_uid)) or self._uid
+                    create_uid = create_uid and res_users_map_ids.get(create_uid) or self._uid
                     create_date = rpc_record['create_date'] and rpc_record['create_date'] or record.create_date
 
-                    self.env.cr.execute('''UPDATE ''' + self.env[model]._table + '''
-                                           SET create_uid = %s, create_date = %s WHERE id = %s''',
-                                        (create_uid, create_date, record.id))
+                    self.env.cr.execute('''UPDATE ''' + self.env[local_model]._table + '''
+                                           SET create_uid = %s, user_id = %s, create_date = %s WHERE id = %s''',
+                                        (create_uid, create_uid, create_date, record.id))
 
-                    _logger.info('User #%s has updated %s with ID [local, remote]: [%s, %s]',
-                                 self._uid, model, record.id, record.remote_id)
+
+                    _logger.info('User #%s has updated %s with ID [local, remote]: [%s, %s] - ',
+                                 self._uid, local_model, record.id, record.remote_id)
                 else:
-                    self.env['migrated.log'].create({
-                        'name': 'Remote record not found!',
-                        'date_time': fields.Datetime.now(),
-                        'migrated_hotel_id': self.id,
-                        'model': model_log_code,
-                        'remote_id': record.remote_id,
-                    })
+                    _logger.error('record dont found (%s), local [%s]: remote (%s)',
+                              local_model, record.id, record.remote_id)
 
             except (ValueError, ValidationError, Exception) as err:
-                migrated_log = self.env['migrated.log'].create({
-                    'name': err,
-                    'date_time': fields.Datetime.now(),
-                    'migrated_hotel_id': self.id,
-                    'model': model_log_code,
-                    'remote_id': record.remote_id,
-                })
                 _logger.error('Failed updating hotel.folio with ID [local]: [%s] with ERROR LOG #%s: (%s)',
-                              record.id, migrated_log.id, err)
+                              record.id,  err)
                 continue
 
     def action_update_special_field_names(self):
@@ -1984,19 +1970,55 @@ class MigratedHotel(models.Model):
         try:
             # prepare res.users ids
             _logger.info("Mapping local with remote 'res.users' ids...")
-            remote_ids = noderpc.env['res.users'].search([])
+            _logger.info("Mapping local with remote 'res.users' ids...")
+            remote_ids = noderpc.env['res.users'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['res.users'].browse(remote_ids)
             res_users_map_ids = {}
             for record in remote_records:
-                res_users_id = self.env['res.users'].search([
+                if record.login in ['default', 'portaltemplate', 'public']:
+                    continue
+                res_user = self.env['res.users'].sudo().search([
                     ('login', '=', record.login),
-                ]).id or self._context.get('uid', self._uid)
+                    '|',
+                    ('active', '=', True),
+                    ('active', '=', False),
+                ])
+                if record.id == 1:
+                    res_user = self.backend_id.parent_id.user_id
+                if not res_user:
+                    new_partner = self.env['res.partner'].sudo().create({
+                        'name': record.name,
+                        'email': record.email,
+                    })
+                    res_user = self.env['res.users'].sudo().create({
+                        'partner_id': new_partner.id,
+                        'email': record.email,
+                        'login': record.login,
+                        'company_ids': [(4, self.pms_property_id.company_id.id)],
+                        'company_id': self.pms_property_id.company_id.id,
+                        'pms_property_ids': [(4, self.pms_property_id.id)],
+                        'pms_property_id': self.pms_property_id.id,
+                    })
+                    res_user.active = False
+                if self.pms_property_id.company_id.id not in res_user.company_ids.ids:
+                    res_user.sudo().write({
+                        'company_ids': [(4, self.pms_property_id.company_id.id)],
+                    })
+                if self.pms_property_id.id not in res_user.pms_property_ids.ids:
+                    res_user.sudo().write({
+                        'pms_property_ids': [(4, self.pms_property_id.id)],
+                    })
+                res_users_id = res_user.id if res_user else self._context.get('uid', self._uid)
                 res_users_map_ids.update({record.id: res_users_id})
 
-            self._update_special_field_names('hotel.folio', 'folio', res_users_map_ids, noderpc)
-            self._update_special_field_names('hotel.reservation', 'reservation', res_users_map_ids, noderpc)
-            self._update_special_field_names('account.payment', 'payment', res_users_map_ids, noderpc)
-            self._update_special_field_names('account.invoice', 'invoice', res_users_map_ids, noderpc)
+            self._update_special_field_names('pms.folio', 'hotel.folio', res_users_map_ids, noderpc)
+            self._update_special_field_names('pms.reservation', 'hotel.reservation', res_users_map_ids, noderpc)
+            #self._update_special_field_names('account.payment', 'payment', res_users_map_ids, noderpc)
+            #self._update_special_field_names('account.invoice', 'invoice', res_users_map_ids, noderpc)
 
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)

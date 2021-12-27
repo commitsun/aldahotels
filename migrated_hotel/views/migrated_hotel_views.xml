@@ -133,13 +133,6 @@
                                             confirm="Import __all__ Payment Returns __after__ Account Payments. Do you want to proceed?"/>
                                 </group>
                                 <group>
-                                    <button name="action_update_special_field_names"
-                                            type="object"
-                                            class="oe_highlight"
-                                            string="Update special field names"
-                                            confirm="Update special field names __after__ migrating all data. Do you want to proceed?"/>
-                                </group>
-                                <group>
                                     <button name="action_clean_up"
                                             type="object"
                                             class="oe_highlight"
@@ -319,6 +312,13 @@
                             </field>
                         </page>
                         <page string="Logs" attrs="{'invisible':[('id','=',False)]}">
+                            <group>
+                                <button name="action_update_special_field_names"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Update special field names"
+                                        confirm="Update special field names __after__ migrating all data. Do you want to proceed?"/>
+                            </group>
                             <field name="log_ids"/>
                         </page>
                     </notebook>
