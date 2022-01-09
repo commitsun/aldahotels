@@ -2101,7 +2101,8 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         try:
             if not self.backend_id:
-                remote_backend = noderpc.env['channel.backend'].search([])
+                remote_backend_id = noderpc.env['channel.backend'].search([])
+                remote_backend = noderpc.env['channel.backend'].browse(remote_backend_id)
                 if remote_backend:
                     property_code = remote_backend.lcode
                     backend_14 = self.env['channel.wubook.backend'].search([
@@ -2114,13 +2115,15 @@ class MigratedHotel(models.Model):
                         ('company_id', '=', self.pms_property_id.company_id.id),
                     ])
                     user_wubook.pms_property_ids = [(4, self.pms_property_id.id)]
-                    remote_parity_pricelist = noderpc.env['channel.product.pricelist'].search([
-                        ('odoo_id', '=', remote_backend.wubook_parity_pricelist_id[0])
+                    remote_parity_pricelist_id = noderpc.env['channel.product.pricelist'].search([
+                        ('odoo_id', '=', remote_backend.wubook_parity_pricelist_id.id)
                     ])
+                    remote_parity_pricelist = noderpc.env['channel.product.pricelist'].browse(remote_parity_pricelist_id)
                     general_backend = self.env['channel.backend'].create({
+                        "name": remote_backend.username,
                         "pms_property_id": self.pms_property_id.id,
                         "user_id": user_wubook.id,
-                        "backend_type_id": self.env.ref('connector_pms.channel_backend_type_wubook').id,
+                        "backend_type_id": self.env["channel.backend.type"].search([])[0].id,
                         "export_disabled": True,
                     })
                     self.backend_id = self.env["channel.wubook.backend"].create({
