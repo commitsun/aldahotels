@@ -500,25 +500,24 @@ class MigratedHotel(models.Model):
         for record in remote_records:
             if record.parent_id:
                 res_partner_category = self.env['res.partner.category'].search([
-                    ('name', '=', record.name),
-                    ('parent_id.name', '=', record.parent_id.name),
+                    ('name', '=', record.name.lower()),
+                    ('parent_id.name', '=', record.parent_id.name.lower()),
                 ])
-
             else:
                 res_partner_category = self.env['res.partner.category'].search([
-                    ('name', '=', record.name),
+                    ('name', '=', record.name.lower()),
                 ])
-            if not res_partner_category:
-                if record.parent_id:
-                    parent_category_id = self.env['res.partner.category'].search([('name', '=', record.name)])
-                    if not parent_category_id:
-                        parent = self.env['res.partner.category'].create({'name': record.parent_id.name})
-                    res_partner_category = self.env['res.partner.category'].create({
-                        'name': record.name,
-                        'parent_id': parent.id,
-                    })
-                else:
-                    res_partner_category = self.env['res.partner.category'].create({'name': record.name})
+            # if not res_partner_category:
+            #     if record.parent_id:
+            #         parent_category_id = self.env['res.partner.category'].search([('name', '=', record.name)])
+            #         if not parent_category_id:
+            #             parent = self.env['res.partner.category'].create({'name': record.parent_id.name})
+            #         res_partner_category = self.env['res.partner.category'].create({
+            #             'name': record.name,
+            #             'parent_id': parent.id,
+            #         })
+            #     else:
+            #         res_partner_category = self.env['res.partner.category'].create({'name': record.name})
             res_partner_category_id = res_partner_category[0].id
             category_map_ids.update({record.id: res_partner_category_id})
 
@@ -541,7 +540,7 @@ class MigratedHotel(models.Model):
             '|', ('vat', '!=', False), ('document_number', '!=', False),
         ])
         for sublist in self.chunks(remote_partners_ids, 500):
-            self.with_delay().partner_batch(sublist, country_map_ids, country_state_map_ids, category_map_ids)
+            self.with_company(self.pms_property_id.company_id).with_delay().partner_batch(sublist, country_map_ids, country_state_map_ids, category_map_ids)
 
         # Second, import remote partners with contacts (already created in the previous step)
         # TODO
@@ -606,7 +605,7 @@ class MigratedHotel(models.Model):
             ("id", "in", sublist),
         ], partner_remote_fields)
         for remote_res_partner in remote_partners:
-            self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
+            self.with_company(self.pms_property_id.company_id).with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
 
         # self.last_import_partners = fields.Datetime.now()
         # self.count_migrated_partners = self.env["migrated.partner"].search_count([("migrated_hotel_id", "=", self.id)])
@@ -888,26 +887,26 @@ class MigratedHotel(models.Model):
             remote_records = noderpc.env['res.partner.category'].browse(remote_ids)
             category_map_ids = {}
             for record in remote_records:
-                if record.parent_ids:
+                if record.parent_id:
                     res_partner_category = self.env['res.partner.category'].search([
-                        ('name', '=', record.name),
-                        ('parent_id.name', '=', record.parent_id.name),
+                        ('name', '=', record.name.lower()),
+                        ('parent_id.name', '=', record.parent_id.name.lower()),
                     ])
                 else:
                     res_partner_category = self.env['res.partner.category'].search([
-                        ('name', '=', record.name)
+                        ('name', '=', record.name.lower())
                     ])
                 if res_partner_category:
                     category_map_ids.update({record.id: res_partner_category.id})
-                else:
-                    parent = False
-                    if record.parent_id:
-                        parent = self.env['res.partner.category'].create({'name': record.parent_id.name})
-                    res_partner_category = self.env['res.partner.category'].create({
-                        'name' : record.name,
-                        'parent_id': parent.id if parent else False,
-                    })
-                    category_map_ids.update({record.id: res_partner_category.id})
+                # else:
+                #     parent = False
+                #     if record.parent_id:
+                #         parent = self.env['res.partner.category'].create({'name': record.parent_id.name})
+                #     res_partner_category = self.env['res.partner.category'].create({
+                #         'name' : record.name,
+                #         'parent_id': parent.id if parent else False,
+                #     })
+                #     category_map_ids.update({record.id: res_partner_category.id})
 
             # prepare folios of interest
             _logger.info("Preparing 'hotel.folio' of interest...")
@@ -921,7 +920,7 @@ class MigratedHotel(models.Model):
 
             # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
             for sublist in self.chunks(remote_hotel_folio_ids, 500):
-                self.with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
+                self.with_company(self.pms_property_id.company_id).with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
@@ -1091,7 +1090,7 @@ class MigratedHotel(models.Model):
             service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
             checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
             folio_remote_bindings = [b for b in remote_bindings if b['odoo_id'][0] in [item["id"] for item in reservations_folio]]
-            self.with_delay().migration_folio(
+            self.with_company(self.pms_property_id.company_id).with_delay().migration_folio(
                 remote_hotel_folio,
                 res_users_map_ids,
                 category_map_ids,
@@ -1501,7 +1500,7 @@ class MigratedHotel(models.Model):
                         # Some payment are garbage, so we skip them (know by old dates)
                         if fields.Datetime.from_string(payment["payment_date"]) < (datetime.datetime.now() - datetime.timedelta(days=2000)):
                             continue
-                        self.with_delay().create_bank_payment_migration(payment, res_users_map_ids, journal_id)
+                        self.with_company(self.pms_property_id.company_id).with_delay().create_bank_payment_migration(payment, res_users_map_ids, journal_id)
                         count += 1
                         _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
                             count, total, payment['id'])
@@ -2094,6 +2093,50 @@ class MigratedHotel(models.Model):
         hotel = self.env[self._name].search([])
         hotel.action_update_special_field_names()
 
+    def create_backend(self):
+        try:
+            noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
+            noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
+        except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
+            raise ValidationError(err)
+        try:
+            if not self.backend_id:
+                remote_backend = noderpc.env['channel.backend'].search([])
+                if remote_backend:
+                    property_code = remote_backend.lcode
+                    backend_14 = self.env['channel.wubook.backend'].search([
+                        ('property_code', '=', property_code),
+                    ])
+                    if backend_14:
+                        raise UserError('Backend already exists: %s', backend_14.username)
+                    user_wubook = self.env["res.users"].search([
+                        ('login', 'ilike', 'wubook'),
+                        ('company_id', '=', self.pms_property_id.company_id.id),
+                    ])
+                    user_wubook.pms_property_ids = [(4, self.pms_property_id.id)]
+                    remote_parity_pricelist = noderpc.env['channel.product.pricelist'].search([
+                        ('odoo_id', '=', remote_backend.wubook_parity_pricelist_id[0])
+                    ])
+                    general_backend = self.env['channel.backend'].create({
+                        "pms_property_id": self.pms_property_id.id,
+                        "user_id": user_wubook.id,
+                        "backend_type_id": self.env.ref('connector_pms.channel_backend_type_wubook').id,
+                        "export_disabled": True,
+                    })
+                    self.backend_id = self.env["channel.wubook.backend"].create({
+                        "parent_id": general_backend.id,
+                        "username": remote_backend.username,
+                        "password": remote_backend.passwd,
+                        "property_code": remote_backend.lcode,
+                        "pkey": remote_backend.pkey,
+                        "pricelist_external_id": remote_parity_pricelist.external_id,
+                    })
+        except (ValueError, ValidationError, Exception) as err:
+            _logger.error('backend import error:%s', err)
+
+
+
+
     def import_pricelists(self):
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -2103,7 +2146,11 @@ class MigratedHotel(models.Model):
         try:
             _logger.info("Importing Remote Pricelists...")
             import_datetime = fields.Datetime.now()
-            remote_ids = noderpc.env['product.pricelist'].search([])
+            remote_ids = noderpc.env['product.pricelist'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['product.pricelist'].browse(remote_ids)
             pricelist_migrated_ids = self.mapped("migrated_pricelist_ids.remote_id")
             for record in remote_records:
@@ -2566,3 +2613,15 @@ class MigratedHotel(models.Model):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(l), n):
             yield l[i:i + n]
+
+    def pre_production(self):
+        return
+        # revisar company y pms_property_ids en tarifas
+        # revisar company y pms_property_ids en productos
+        # revisar company y pms_property_ids en tipos de habitación
+        # revisar company y pms_property_ids en board services
+        # revisar company y pms_property_ids en diarios
+        # actualizar ultimos registros desde fecha de target
+        # actualizar campos especiales (creado en, creado por...)
+        # crear bindings para tarifas, room_types, plan de dipo (0), board services??
+        # wubook: desactivar el check de export disabled

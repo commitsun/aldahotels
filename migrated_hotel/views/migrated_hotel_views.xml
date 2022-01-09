@@ -29,7 +29,6 @@
                         <field name="dummy_product_id" colspan="2" />
                         <field name="default_channel_agency_id" colspan="2" />
                         <field name="default_plan_avail_id" colspan="2" />
-                        <field name="backend_id" colspan="2"/>
                         <field name="default_ota_channel" colspan="2"/>
                         <field name="booking_agency" colspan="2"/>
                         <field name="expedia_agency" colspan="2"/>
@@ -147,6 +146,17 @@
                                             confirm="You can launch your browser for debugging. Do you want to proceed?"/>
                                 </group>
                             </group> -->
+                        <page string="Wubook">
+                            <button
+                                name="create_backend"
+                                type="object"
+                                class="oe_highlight"
+                                string="Import Backend"
+                                confirm="This function create backend?"
+                                attrs="{'invisible': [('backend_id', '!=', False)]}"
+                            />
+                            <field name="backend_id" colspan="2"/>
+                        </page>
                         <page string="Product Mapping">
                             <group>
                                 <field name="auto_create_products" />
