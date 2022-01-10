@@ -152,7 +152,6 @@ class GlassofExporterWizard(models.TransientModel):
             folio_ids = inv.line_ids.mapped("folio_line_ids.folio_id.id")
             folios = self.env["pms.folio"].browse(folio_ids)
             for folio_inv in folios.move_ids:
-                invoices_read.append(folio_inv.id)
                 country_code = ''
                 vat_partner = inv.partner_id.vat if inv.partner_id.vat else ''
                 country_partner = inv.partner_id.country_id
@@ -169,6 +168,7 @@ class GlassofExporterWizard(models.TransientModel):
                 worksheet.write(nrow, 4, vat_partner)
                 pays_read = []
                 partial_pay = {}
+                chiv = 0
                 for pay in folios.payment_ids:
                     if pay.id in pays_read:
                         continue
@@ -191,6 +191,7 @@ class GlassofExporterWizard(models.TransientModel):
                                     xls_cell_format_money)
                     pay_type = "Devolución" if pay.payment_type == "outbound" else "Cobro"
                     worksheet.write(nrow, 9, pay_type)
+                    chiv = 1
                 pays_read = []
                 partial_pay = {}
                 for pay in folios.statement_line_ids:
@@ -215,6 +216,13 @@ class GlassofExporterWizard(models.TransientModel):
                                     xls_cell_format_money)
                     pay_type = "Devolución" if pay.amount < 0 else "Cobro"
                     worksheet.write(nrow, 9, pay_type)
+                    chiv = 1
+                if not chiv:
+                    worksheet.write(nrow, 5, "Sin pagar?")
+                    worksheet.write(nrow, 6, "")
+                    worksheet.write(nrow, 7, "")
+                    worksheet.write(nrow, 8, "")
+                    worksheet.write(nrow, 9, "")
                 worksheet.write(nrow, 10, ",".join([fol.name for fol in folios]))
             nrow += 1
 
