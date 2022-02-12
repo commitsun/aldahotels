@@ -21,6 +21,7 @@
         "security/ir.model.access.csv",
         "views/pms_property_views.xml",
         "views/product_pricelist_views.xml",
+        "views/precheckin_portal_templates.xml",
     ],
     "installable": True,
 }
