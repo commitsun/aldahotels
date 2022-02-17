@@ -198,59 +198,7 @@ class CashDailyReportWizard(models.TransientModel):
             #     tipo_operacion = "Interna"
             # worksheet.write(k_payment + offset, 6, tipo_operacion)
             total_account_payment_amount += amount
-
-        statement_line_obj = self.env['account.bank.statement.line']
-        statement_lines = statement_line_obj.search([
-            ('date', '>=', self.date_start),
-            ('date', '<=', self.date_end),
-        ])
-        offset += len(account_payments)
-        total_statement_amount = k_line = 0.0
-        statement_journals = {}
-        count_statement_journals = {}
-        for k_line, v_line in enumerate(statement_lines):
-            folio = False
-            if v_line.folio_ids:
-                folio = v_line.folio_ids[0]
-            partner_name = v_line.partner_id.name
-            if not partner_name and folio:
-                partner_name = folio.partner_name
-            where = partner_name or ''
-            ingresos = 'Ingresos ' + v_line.journal_id.name
-            gastos = 'Gastos ' + v_line.journal_id.name
-            if v_line.journal_id.name not in statement_journals:
-                statement_journals.update({v_line.journal_id.name: v_line.amount})
-                count_statement_journals.update({v_line.journal_id.name : 1})
-            else:
-                statement_journals[v_line.journal_id.name] += v_line.amount
-                count_statement_journals[v_line.journal_id.name] += 1
-            if v_line.date not in total_dates:
-                total_dates.update({v_line.date: {v_line.journal_id.name: v_line.amount}})
-                total_dates[v_line.date].update({gastos: -v_line.amount if v_line.amount < 0 else 0})
-                total_dates[v_line.date].update({ingresos: v_line.amount if v_line.amount > 0 else 0})
-            else:
-                if v_line.journal_id.name not in total_dates[v_line.date]:
-                    total_dates[v_line.date].update({v_line.journal_id.name: v_line.amount})
-                    total_dates[v_line.date].update({gastos: -v_line.amount if v_line.amount < 0 else 0})
-                    total_dates[v_line.date].update({ingresos: v_line.amount if v_line.amount > 0 else 0})
-                else:
-                    total_dates[v_line.date][v_line.journal_id.name] += v_line.amount
-                    total_dates[v_line.date][gastos] += -v_line.amount
-
-            worksheet.write(k_line + offset, 0, v_line.create_uid.login)
-            worksheet.write(k_line + offset, 1, v_line.payment_ref or '')
-            worksheet.write(k_line + offset, 2, where)
-            worksheet.write(k_line + offset, 3, v_line.date,
-                            xls_cell_format_date)
-            worksheet.write(k_line + offset, 4, v_line.journal_id.name)
-            worksheet.write(k_line + offset, 5, v_line.amount,
-                            xls_cell_format_money)
-            # worksheet.write(k_line + offset, 6, "Devolucion")
-            total_statement_amount += v_line.amount
-        offset += len(statement_lines)
         line = offset
-        if k_line:
-            line = k_line + offset
 
         worksheet.write(line + 1, 1, "Fecha/Hora:", cell_format)
         timezone = pytz.timezone(self._context.get('tz') or 'UTC')
@@ -288,32 +236,6 @@ class CashDailyReportWizard(models.TransientModel):
             else:
                 result_journals[journal] += payment_journals[journal]
 
-        # STATEMENT LINES
-        # if total_statement_amount != 0:
-        #     line += 1
-        #     worksheet.write(line, 3, _('DEVOLUCIONES'), xls_cell_format_header)
-        #     worksheet.write(line, 4, _('UDS'), xls_cell_format_header)
-        #     worksheet.write(line, 5, total_statement_amount,
-        #                     xls_cell_format_header)
-        for journal in statement_journals:
-            # line += 1
-            # worksheet.write(line, 3, _(journal))
-            # worksheet.write(line, 4, statement_journals[journal],
-            #                 xls_cell_format_money)
-            # worksheet.write(line, 5, statement_journals[journal],
-            #                 xls_cell_format_money)
-            if journal not in result_journals:
-                result_journals.update({journal: statement_journals[journal]})
-            else:
-                result_journals[journal] += statement_journals[journal]
-
-        # EXPENSES
-        # if total_account_expenses != 0:
-        #     line += 1
-        #     worksheet.write(line, 3, _('GASTOS'), xls_cell_format_header)
-        #     worksheet.write(line, 4, _('UDS'), xls_cell_format_header)
-        #     worksheet.write(line, 5, -total_account_expenses,
-        #                     xls_cell_format_header)
         for journal in expense_journals:
             # line += 1
             # worksheet.write(line, 3, _(journal))
@@ -332,7 +254,7 @@ class CashDailyReportWizard(models.TransientModel):
         worksheet.write(
             line,
             5,
-            total_account_payment + total_statement_amount - total_account_expenses,
+            total_account_payment - total_account_expenses,
             xls_cell_format_header)
         for journal in result_journals:
             line += 1
