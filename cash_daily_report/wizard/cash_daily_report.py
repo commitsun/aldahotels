@@ -198,6 +198,7 @@ class CashDailyReportWizard(models.TransientModel):
             #     tipo_operacion = "Interna"
             # worksheet.write(k_payment + offset, 6, tipo_operacion)
             total_account_payment_amount += amount
+        offset += len(account_payments)
         line = offset
 
         worksheet.write(line + 1, 1, "Fecha/Hora:", cell_format)
