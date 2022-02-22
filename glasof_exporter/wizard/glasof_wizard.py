@@ -120,14 +120,15 @@ class GlassofExporterWizard(models.TransientModel):
         worksheet.set_column('J:J', 11)
         worksheet.set_column('K:K', 11)
 
-        folios = self.env["pms.folio"].search([
+        domain = [
             ('company_id', '=', self.company_id.id),
             '|',
             ('payment_ids', '!=', False),
             ('statement_line_ids', '!=', False),
-        ])
+        ]
         if self.property_id:
-            folios.filtered(lambda x: x.pms_property_id.id == self.property_id.id)
+            domain.append(('property_id', '=', self.property_id.id))
+        folios = self.env["pms.folio"].search(domain)
 
         sale_line_ids = folios.mapped("sale_line_ids.id")
 
@@ -274,14 +275,15 @@ class GlassofExporterWizard(models.TransientModel):
         worksheet = workbook.add_worksheet('ventas')
 
         account_inv_obj = self.env['account.move']
-        account_invs = account_inv_obj.search([
+        domain = [
             ('date', '>=', self.date_start),
             ('date', '<=', self.date_end),
             ('move_type', '!=', 'entry'),
             ('company_id', '=', self.company_id.id),
-        ])
+        ]
         if self.property_id:
-            account_invs.filtered(lambda x: x.pms_property_id.id == self.property_id.id)
+            domain.append(('property_id', '=', self.property_id.id))
+        account_invs = account_inv_obj.search(domain)
         nrow = 1
         for inv in account_invs:
             if inv.partner_id.parent_id:
