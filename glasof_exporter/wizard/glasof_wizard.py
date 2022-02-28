@@ -127,7 +127,7 @@ class GlassofExporterWizard(models.TransientModel):
             ('statement_line_ids', '!=', False),
         ]
         if self.property_id:
-            domain.append(('property_id', '=', self.property_id.id))
+            domain.append(('pms_property_id', '=', self.property_id.id))
         folios = self.env["pms.folio"].search(domain)
 
         sale_line_ids = folios.mapped("sale_line_ids.id")
@@ -282,16 +282,19 @@ class GlassofExporterWizard(models.TransientModel):
             ('company_id', '=', self.company_id.id),
         ]
         if self.property_id:
-            domain.append(('property_id', '=', self.property_id.id))
+            domain.append(('pms_property_id', '=', self.property_id.id))
         account_invs = account_inv_obj.search(domain)
         nrow = 1
         for inv in account_invs:
             if inv.partner_id.parent_id:
-                firstname = inv.partner_id.parent_id.firstname or ''
-                lastname = inv.partner_id.parent_id.lastname or ''
+                lastname = inv.partner_id.parent_id.name or ''
+                firstname = ''
+            elif inv.partner_id.is_company:
+                lastname = inv.partner_id.name
+                firstname = ''
             else:
-                firstname = inv.partner_id.firstname or ''
                 lastname = inv.partner_id.lastname or ''
+                firstname = inv.partner_id.firstname or ''
 
             country_code = ''
             vat_partner = inv.partner_id.vat if inv.partner_id.vat else ''
@@ -314,15 +317,15 @@ class GlassofExporterWizard(models.TransientModel):
             worksheet.write(nrow, 7, firstname)
             worksheet.write(nrow, 8, 705.0, xls_cell_format_odec)
             worksheet.write(nrow, 9, inv.amount_untaxed, xls_cell_format_money)
-            if any(inv.invoice_line_ids.tax_line_id):
+            if any(inv.line_ids.tax_line_id):
                 worksheet.write(nrow,
                                 10,
-                                inv.amount_tax,
+                                inv.line_ids.tax_line_id.amount,
                                 xls_cell_format_money)
             else:
                 worksheet.write(nrow, 10, '')
-            worksheet.write(nrow, 11, inv.invoice_line_ids.tax_line_id and
-                            inv.amount_tax or '',
+            worksheet.write(nrow, 11, inv.amount_tax
+                            and inv.amount_tax or '',
                             xls_cell_format_money)
             worksheet.write(nrow, 12, '')
             worksheet.write(nrow, 13, '')
