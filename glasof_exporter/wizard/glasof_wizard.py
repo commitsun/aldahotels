@@ -21,6 +21,7 @@
 from io import BytesIO
 import xlsxwriter
 import base64
+import json
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
@@ -96,137 +97,91 @@ class GlassofExporterWizard(models.TransientModel):
 
         worksheet = workbook.add_worksheet('Simples-1')
 
-        worksheet.write('A1', _('Num Factura'), xls_cell_format_header)
-        worksheet.write('B1', _('Cliente Reserva'), xls_cell_format_header)
-        worksheet.write('C1', _('Fecha de Factura'), xls_cell_format_header)
-        worksheet.write('D1', _('Cliente Factura'), xls_cell_format_header)
-        worksheet.write('E1', _('NIF'), xls_cell_format_header)
-        worksheet.write('F1', _('Ref-Pago'), xls_cell_format_header)
-        worksheet.write('G1', _('Fecha de Pago'), xls_cell_format_header)
-        worksheet.write('H1', _('Modo de pago'), xls_cell_format_header)
-        worksheet.write('I1', _('Importe'), xls_cell_format_header)
+        worksheet.write('A1', _('Diario'), xls_cell_format_header)
+        worksheet.write('B1', _('Estado'), xls_cell_format_header)
+        worksheet.write('C1', _('Num Factura'), xls_cell_format_header)
+        worksheet.write('D1', _('Cliente/Prov.'), xls_cell_format_header)
+        worksheet.write('E1', _('Origen'), xls_cell_format_header)
+        worksheet.write('F1', _('Fecha de Factura'), xls_cell_format_header)
+        worksheet.write('G1', _('NIF'), xls_cell_format_header)
+        worksheet.write('H1', _('Total'), xls_cell_format_header)
+        worksheet.write('I1', _('Pendiente'), xls_cell_format_header)
         worksheet.write('J1', _('Tipo'), xls_cell_format_header)
-        worksheet.write('K1', _('Origen'), xls_cell_format_header)
+        worksheet.write('K1', _('Pagos'), xls_cell_format_header)
+        worksheet.write('L1', _('Importe'), xls_cell_format_header)
+        worksheet.write('M1', _('Fecha'), xls_cell_format_header)
+        worksheet.write('N1', _('Referencia'), xls_cell_format_header)
 
         worksheet.set_column('A:A', 25)
-        worksheet.set_column('B:B', 40)
-        worksheet.set_column('C:C', 15)
+        worksheet.set_column('B:B', 10)
+        worksheet.set_column('C:C', 18)
         worksheet.set_column('D:D', 50)
         worksheet.set_column('E:E', 15)
-        worksheet.set_column('F:F', 25)
+        worksheet.set_column('F:F', 15)
         worksheet.set_column('G:G', 15)
-        worksheet.set_column('H:H', 20)
-        worksheet.set_column('I:I', 11)
-        worksheet.set_column('J:J', 11)
-        worksheet.set_column('K:K', 11)
-
-        domain = [
-            ('company_id', '=', self.company_id.id),
-            '|',
-            ('payment_ids', '!=', False),
-            ('statement_line_ids', '!=', False),
-        ]
-        if self.property_id:
-            domain.append(('pms_property_id', '=', self.property_id.id))
-        folios = self.env["pms.folio"].search(domain)
-
-        sale_line_ids = folios.mapped("sale_line_ids.id")
-
-        invoice_ids = self.env["folio.sale.line"].search([
-            ("invoice_lines", "!=", False),
-            ('id', 'in', sale_line_ids)
-        ]).mapped("invoice_lines.move_id.id")
+        worksheet.set_column('H:H', 9)
+        worksheet.set_column('I:I', 9)
+        worksheet.set_column('J:J', 18)
+        worksheet.set_column('K:K', 25)
+        worksheet.set_column('L:L', 9)
+        worksheet.set_column('M:M', 15)
+        worksheet.set_column('N:N', 20)
 
         account_inv_obj = self.env['account.move']
         account_invs = account_inv_obj.search([
             ('date', '>=', self.date_start),
             ('date', '<=', self.date_end),
+            ('company_id', '=', self.company_id.id),
+            ('pms_property_id', '=', self.property_id.id),
             ('move_type', '!=', 'entry'),
-            ('id', 'in', invoice_ids)
         ])
 
         nrow = 1
-        invoices_read = []
         for inv in account_invs:
-            if inv.id in invoices_read:
-                continue
-            folio_ids = inv.line_ids.mapped("folio_line_ids.folio_id.id")
-            folios = self.env["pms.folio"].browse(folio_ids)
-            for folio_inv in folios.move_ids:
-                country_code = ''
-                vat_partner = inv.partner_id.vat if inv.partner_id.vat else ''
-                country_partner = inv.partner_id.country_id
-                if country_partner:
-                    country_code = country_partner.code
-                    if inv.partner_id.vat:
-                        vat_partner = inv.partner_id.vat[2:] if inv.partner_id.vat[2:] == country_code else inv.partner_id.vat
-                if not vat_partner and inv.partner_id.id_numbers:
-                    vat_partner = inv.partner_id.id_numbers[0].name
-                worksheet.write(nrow, 0, inv.name)
-                worksheet.write(nrow, 1, inv.partner_id.name)
-                worksheet.write(nrow, 2, inv.date, xls_cell_format_date)
-                worksheet.write(nrow, 3, ",".join([fol.partner_name for fol in folios]))
-                worksheet.write(nrow, 4, vat_partner)
-                pays_read = []
-                partial_pay = {}
-                chiv = 0
-                for pay in folios.payment_ids:
-                    if pay.id in pays_read:
-                        continue
-                    if pay.amount == folio_inv.amount_total:
-                        pays_read.append(pay.id)
-                        amount = pay.amount
-                    elif pay.amount < folio_inv.amount_total:
-                        pays_read.append(pay.id)
-                        amount = pay.amount
-                    else:
-                        amount = folio_inv.amount_total
-                        if partial_pay.get(pay.id):
-                            partial_pay[pay.id] += folio_inv.amount_total
-                        else:
-                            partial_pay[pay.id] = folio_inv.amount_total
-                    worksheet.write(nrow, 5, pay.name)
-                    worksheet.write(nrow, 6, pay.date, xls_cell_format_date)
-                    worksheet.write(nrow, 7, pay.journal_id.name)
-                    worksheet.write(nrow, 8, amount,
-                                    xls_cell_format_money)
-                    pay_type = "Devolución" if pay.payment_type == "outbound" else "Cobro"
-                    worksheet.write(nrow, 9, pay_type)
-                    chiv = 1
-                pays_read = []
-                partial_pay = {}
-                for pay in folios.statement_line_ids:
-                    if pay.id in pays_read:
-                        continue
-                    if pay.amount == folio_inv.amount_total:
-                        pays_read.append(pay.id)
-                        amount = pay.amount
-                    elif pay.amount < folio_inv.amount_total:
-                        pays_read.append(pay.id)
-                        amount = pay.amount
-                    else:
-                        amount = folio_inv.amount_total
-                        if partial_pay.get(pay.id):
-                            partial_pay[pay.id] += folio_inv.amount_total
-                        else:
-                            partial_pay[pay.id] = folio_inv.amount_total
-                    worksheet.write(nrow, 5, pay.name)
-                    worksheet.write(nrow, 6, pay.date, xls_cell_format_date)
-                    worksheet.write(nrow, 7, pay.journal_id.name)
-                    worksheet.write(nrow, 8, amount,
-                                    xls_cell_format_money)
-                    pay_type = "Devolución" if pay.amount < 0 else "Cobro"
-                    worksheet.write(nrow, 9, pay_type)
-                    chiv = 1
-                if not chiv:
-                    worksheet.write(nrow, 5, "Sin pagar?")
-                    worksheet.write(nrow, 6, "")
-                    worksheet.write(nrow, 7, "")
-                    worksheet.write(nrow, 8, "")
-                    worksheet.write(nrow, 9, "")
-                worksheet.write(nrow, 10, ",".join([fol.name for fol in folios]))
-            nrow += 1
+            country_code = ''
+            vat_partner = inv.partner_id.vat if inv.partner_id.vat else ''
+            country_partner = inv.partner_id.country_id
+            if country_partner:
+                country_code = country_partner.code
+                if inv.partner_id.vat:
+                    vat_partner = inv.partner_id.vat[2:] if inv.partner_id.vat[2:] == country_code else inv.partner_id.vat
 
+            if not vat_partner and inv.partner_id.document_number_to_invoice:
+                vat_partner = inv.partner_id.document_number_to_invoice
+            origin = ""
+            if inv.move_type == 'out_refund':
+                origin = inv.invoice_origin
+            elif inv.folio_ids:
+                origin = ",".join([fol.name for fol in inv.folio_ids])
+
+            state = inv._fields['state'].selection
+            state_dict = dict(state)
+            state = state_dict.get(inv.state)
+
+            move_type = inv._fields['move_type'].selection
+            move_type_dict = dict(move_type)
+            move_type = move_type_dict.get(inv.move_type)
+
+            worksheet.write(nrow, 0, inv.journal_id.name)
+            worksheet.write(nrow, 1, state)
+            worksheet.write(nrow, 2, inv.name)
+            worksheet.write(nrow, 3, inv.partner_id.name)
+            worksheet.write(nrow, 4, origin)
+            worksheet.write(nrow, 5, inv.date, xls_cell_format_date)
+            worksheet.write(nrow, 6, vat_partner)
+            worksheet.write(nrow, 7, inv.amount_total, xls_cell_format_money)
+            worksheet.write(nrow, 8, inv.amount_residual, xls_cell_format_money)
+            worksheet.write(nrow, 9, move_type)
+            payments_dict = json.loads(inv.invoice_payments_widget)
+            if payments_dict:
+                worksheet.write(nrow, 10, "Pagos:")
+                for payment in payments_dict.get("content"):
+                    nrow += 1
+                    worksheet.write(nrow, 10, payment["journal_name"])
+                    worksheet.write(nrow, 11, payment["amount"])
+                    worksheet.write(nrow, 12, payment["date"])
+                    worksheet.write(nrow, 13, payment["ref"])
+            nrow += 1
         workbook.close()
         file_data.seek(0)
         tnow = str(fields.Datetime.now()).replace(' ', '_')
@@ -302,10 +257,10 @@ class GlassofExporterWizard(models.TransientModel):
             if country_partner:
                 country_code = country_partner.code
                 if inv.partner_id.vat:
-                    vat_partner = inv.partner_id.vat[2:] if inv.partner_id.vat[2:] == country_partner.code else inv.partner_id.vat
+                    vat_partner = inv.partner_id.vat[2:] if inv.partner_id.vat[2:] == country_code else inv.partner_id.vat
 
-            if not vat_partner and inv.partner_id.id_numbers:
-                vat_partner = inv.partner_id.id_numbers[0].name
+            if not vat_partner and inv.partner_id.document_number_to_invoice:
+                vat_partner = inv.partner_id.document_number_to_invoice
 
             worksheet.write(nrow, 0, inv.name)
             worksheet.write(nrow, 1, inv.invoice_date, xls_cell_format_date)

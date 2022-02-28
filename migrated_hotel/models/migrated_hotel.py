@@ -394,13 +394,25 @@ class MigratedHotel(models.Model):
 
     def _prepare_partner_remote_data(self, rpc_res_partner, country_map_ids,
                                      country_state_map_ids, category_map_ids,
-                                     document_data):
+                                     document_data, ine_codes):
         # prepare country_id related field
+        country_id = False
+        state_id = False
         remote_id = rpc_res_partner['country_id'] and rpc_res_partner['country_id'][0]
-        country_id = remote_id and country_map_ids.get(str(remote_id)) or None
+        if remote_id:
+            country_id = remote_id and country_map_ids.get(str(remote_id)) or None
+        elif rpc_res_partner['code_ine_id'] and rpc_res_partner['code_ine_id'][0]:
+            ine_code = ine_codes[rpc_res_partner['code_ine_id']]
+            if 'ES' in ine_code:
+                country_id = self.env['res.country'].search([('code', '=', 'ES')]).id
+                state_id = self.env["state_id"].search([('ine_code', '=', ine_code)]).id
+            else:
+                country_id = self.env['res.country'].search([('code_alpha3', '=', ine_code)]).id
+
         # prepare state_id related field
-        remote_id = rpc_res_partner['state_id'] and rpc_res_partner['state_id'][0]
-        state_id = remote_id and country_state_map_ids.get(str(remote_id)) or None
+        if not state_id:
+            remote_id = rpc_res_partner['state_id'] and rpc_res_partner['state_id'][0]
+            state_id = remote_id and country_state_map_ids.get(str(remote_id)) or None
         # prepare category_ids related field
         remote_ids = rpc_res_partner['category_id'] and rpc_res_partner['category_id']
         category_ids = remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or None
@@ -446,7 +458,7 @@ class MigratedHotel(models.Model):
             'street2': rpc_res_partner['street2'],
             'is_agency': rpc_res_partner['is_tour_operator'],
             # 'zip_id': rpc_res_partner['zip_id'] and rpc_res_partner['zip_id'][0],
-            'zip': rpc_res_partner['is_tour_operator'],
+            'zip': rpc_res_partner['zip'],
             'city': rpc_res_partner['city'],
             'state_id': state_id,
             'country_id': country_id,
@@ -469,9 +481,13 @@ class MigratedHotel(models.Model):
             noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
+        PartnersMigrated = self.env["migrated.partner"]
+        # prepare ine_codes
+        _logger.info("Mapping local with remote 'ine code' ids...")
+        ine_codes = noderpc.env['code.ine'].search_read([], ['code'])
+
         # prepare res.country ids
         _logger.info("Mapping local with remote 'res.country' ids...")
-        PartnersMigrated = self.env["migrated.partner"]
         remote_ids = noderpc.env['res.country'].search([])
         remote_xml_ids = noderpc.env['res.country'].browse(
             remote_ids).get_external_id()
@@ -540,7 +556,7 @@ class MigratedHotel(models.Model):
             '|', ('vat', '!=', False), ('document_number', '!=', False),
         ])
         for sublist in self.chunks(remote_partners_ids, 500):
-            self.with_company(self.pms_property_id.company_id).with_delay().partner_batch(sublist, country_map_ids, country_state_map_ids, category_map_ids)
+            self.with_company(self.pms_property_id.company_id).with_delay().partner_batch(sublist, country_map_ids, country_state_map_ids, category_map_ids, ine_codes)
 
         # Second, import remote partners with contacts (already created in the previous step)
         # TODO
@@ -564,7 +580,7 @@ class MigratedHotel(models.Model):
         noderpc.logout()
 
     @api.model
-    def partner_batch(self, sublist, country_map_ids, country_state_map_ids, category_map_ids):
+    def partner_batch(self, sublist, country_map_ids, country_state_map_ids, category_map_ids, ine_codes):
         """
             Prepare partner Batch
         """
@@ -596,6 +612,7 @@ class MigratedHotel(models.Model):
             'street',
             'street2',
             'zip',
+            'code_ine_id',
             'city',
             'comment',
             'gender',
@@ -605,14 +622,14 @@ class MigratedHotel(models.Model):
             ("id", "in", sublist),
         ], partner_remote_fields)
         for remote_res_partner in remote_partners:
-            self.with_company(self.pms_property_id.company_id).with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
+            self.with_company(self.pms_property_id.company_id).with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids, ine_codes)
 
         # self.last_import_partners = fields.Datetime.now()
         # self.count_migrated_partners = self.env["migrated.partner"].search_count([("migrated_hotel_id", "=", self.id)])
         noderpc.logout()
 
     @api.model
-    def migration_partner(self, rpc_res_partner, country_map_ids, country_state_map_ids, category_map_ids):
+    def migration_partner(self, rpc_res_partner, country_map_ids, country_state_map_ids, category_map_ids, ine_codes):
         context_no_mail = {
             'tracking_disable': True,
             'mail_notrack': True,
@@ -654,6 +671,7 @@ class MigratedHotel(models.Model):
                 country_state_map_ids,
                 category_map_ids,
                 document_data,
+                ine_codes,
             )
             migrated_res_partner = self.env['res.partner'].with_context(context_no_mail).create(vals)
             PartnersMigrated.create({
