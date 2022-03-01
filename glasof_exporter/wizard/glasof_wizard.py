@@ -167,7 +167,7 @@ class GlassofExporterWizard(models.TransientModel):
             worksheet.write(nrow, 2, inv.name)
             worksheet.write(nrow, 3, inv.partner_id.name)
             worksheet.write(nrow, 4, origin)
-            worksheet.write(nrow, 5, inv.date, xls_cell_format_date)
+            worksheet.write(nrow, 5, inv.invoice_date, xls_cell_format_date)
             worksheet.write(nrow, 6, vat_partner)
             worksheet.write(nrow, 7, inv.amount_total, xls_cell_format_money)
             worksheet.write(nrow, 8, inv.amount_residual, xls_cell_format_money)
