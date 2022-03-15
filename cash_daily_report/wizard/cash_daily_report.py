@@ -44,7 +44,7 @@ class CashDailyReportWizard(models.TransientModel):
     date_end = fields.Date("End Date", default=_get_default_date_end)
     xls_filename = fields.Char()
     xls_binary = fields.Binary()
-    pms_property_id = fields.Many2one('pms.property', string='Property', default=lambda self: self.env.user.get_active_property_ids[0])
+    #pms_property_id = fields.Many2one('pms.property', string='Property', default=lambda self: self.env.user.get_active_property_ids[0])
 
     @api.model
     def _export(self):
