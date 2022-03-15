@@ -18,6 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+from email.policy import default
 from io import BytesIO
 import datetime
 import pytz
@@ -43,6 +44,7 @@ class CashDailyReportWizard(models.TransientModel):
     date_end = fields.Date("End Date", default=_get_default_date_end)
     xls_filename = fields.Char()
     xls_binary = fields.Binary()
+    pms_property_id = fields.Many2one('pms.property', string='Property', default=lambda self: self.env.user.get_active_property_ids[0])
 
     @api.model
     def _export(self):
@@ -211,10 +213,31 @@ class CashDailyReportWizard(models.TransientModel):
 
         worksheet.write(line + 2, 1, event_date, cell_format)
 
-        account_cash_ids = self.env['account.journal'].search([('type', '=', 'cash')])
-        for account in account_cash_ids:
-            result_cash = account.get_journal_dashboard_datas().get('account_balance')
-            worksheet.write(line + 3, 1, account.name, cell_format)
+        journal_cash_ids = self.env['account.journal'].search([('type', '=', 'cash')])
+        for journal in journal_cash_ids:
+            statement = (
+            self.env["account.bank.statement"]
+            .sudo()
+            .search(
+                [
+                    ("journal_id", "=", journal.id),
+                    ("state", "=", "open"),
+                    ("date", "=", fields.Date.today()),
+                ], limit=1
+                )
+            )
+            if not statement:
+                statement = (
+                    self.env["account.bank.statement"]
+                    .sudo()
+                    .search(
+                        [
+                            ("journal_id", "=", journal.id),
+                        ], limit=1
+                    )
+                )
+            result_cash = statement.balance_end_real if statement.state != "open" else statement.balance_end
+            worksheet.write(line + 3, 1, journal.name, cell_format)
             worksheet.write(line + 4, 1, result_cash, cell_format)
 
         result_journals = {}
