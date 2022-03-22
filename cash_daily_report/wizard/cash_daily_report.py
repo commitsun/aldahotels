@@ -212,18 +212,21 @@ class CashDailyReportWizard(models.TransientModel):
         event_date = event_date.strftime(DEFAULT_SERVER_DATETIME_FORMAT)
 
         worksheet.write(line + 2, 1, event_date, cell_format)
-
-        journal_cash_ids = self.env['account.journal'].search([('type', '=', 'cash')])
+        # CJACT - ignored journal restaurant Toro
+        journal_cash_ids = self.env['account.journal'].search([
+            ('type', '=', 'cash'),
+            ('code', '!=', 'CJACT')
+        ])
         for journal in journal_cash_ids:
             statement = (
-            self.env["account.bank.statement"]
-            .sudo()
-            .search(
-                [
-                    ("journal_id", "=", journal.id),
-                    ("state", "=", "open"),
-                    ("date", "=", fields.Date.today()),
-                ], limit=1
+                self.env["account.bank.statement"]
+                .sudo()
+                .search(
+                    [
+                        ("journal_id", "=", journal.id),
+                        ("state", "=", "open"),
+                        ("date", "=", fields.Date.today()),
+                    ], limit=1
                 )
             )
             if not statement:
