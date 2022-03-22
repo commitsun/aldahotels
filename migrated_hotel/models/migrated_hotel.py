@@ -1751,12 +1751,12 @@ class MigratedHotel(models.Model):
             ('remote_id', '=', remote_id)
         ]).id or None
         # take into account merged partners are not active
-        if not res_partner_id:
-            res_partner_id = self.env['res.partner'].search([
-                ('remote_id', '=', remote_id),
-                ('active', '=', False)
-            ]).main_partner_id.id or None
-        res_partner_id = res_partner_id or default_res_partner.id
+        # if not res_partner_id:
+        #     res_partner_id = self.env['res.partner'].search([
+        #         ('remote_id', '=', remote_id),
+        #         ('active', '=', False)
+        #     ]).main_partner_id.id or None
+        # res_partner_id = res_partner_id or default_res_partner.id
 
         # search related refund_invoice_id
         refund_invoice_id = None

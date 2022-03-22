@@ -152,8 +152,8 @@ class GlassofExporterWizard(models.TransientModel):
                         else inv.partner_id.vat
                     )
 
-            if not vat_partner and inv.partner_id.document_number_to_invoice:
-                vat_partner = inv.partner_id.document_number_to_invoice
+            if not vat_partner and inv.partner_id.vat:
+                vat_partner = inv.partner_id.vat
             origin = ""
             if inv.move_type == "out_refund":
                 origin = inv.invoice_origin
@@ -261,8 +261,8 @@ class GlassofExporterWizard(models.TransientModel):
                         else inv.partner_id.vat
                     )
 
-            if not vat_partner and inv.partner_id.document_number_to_invoice:
-                vat_partner = inv.partner_id.document_number_to_invoice
+            if not vat_partner and inv.partner_id.vat:
+                vat_partner = inv.partner_id.vat
 
             worksheet.write(nrow, 0, inv.name)
             worksheet.write(nrow, 1, inv.invoice_date, xls_cell_format_date)
