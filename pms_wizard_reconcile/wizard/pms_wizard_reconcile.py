@@ -70,6 +70,22 @@ class PmsWizardReconcile(models.TransientModel):
         string="transactions not found",
         readonly=True,
     )
+    count_csv_transactions = fields.Integer(
+        string="Count CSV transactions",
+        readonly=True,
+    )
+    count_payments_found = fields.Integer(
+        string="Count Payments Found",
+        readonly=True,
+        compute="_compute_count_payments_found"
+    )
+
+    @api.depends("move_line_ids")
+    def _compute_count_payments_found(self):
+        for rec in self:
+            rec.count_payments_found = len(rec.move_line_ids)
+
+
 
     def _default_origin_statement_line_id(self):
         return self.env.context.get("active_id", False)
@@ -132,7 +148,9 @@ class PmsWizardReconcile(models.TransientModel):
                 new_item = dict(zip(keys, values))
                 csv_payments.append(new_item)
             lines = self.env["account.move.line"]
+            self.count_csv_transactions = 0
             for pay in csv_payments:
+                self.count_csv_transactions += 1
                 line = False
                 line = self.env["account.move.line"].search([
                     ("ref", "ilike", pay["Número de referencia"]),
