@@ -17,7 +17,6 @@
         "data/exit_template.xml",
         "data/cancelation_template.xml",
         "data/modification_template.xml",
-        "data/cron_jobs.xml",
         "security/ir.model.access.csv",
         "views/pms_property_views.xml",
         "views/product_pricelist_views.xml",
