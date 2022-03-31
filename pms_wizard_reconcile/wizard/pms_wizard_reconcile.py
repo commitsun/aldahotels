@@ -2,14 +2,12 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import io
-import csv
 import base64
 import pandas as pd
 from contextlib import closing
-import pyparsing as pp
 
 from odoo import fields, models, api
-from odoo.tools import float_round
+from odoo.tools import float_round, float_compare
 
 
 class PmsWizardReconcile(models.TransientModel):
@@ -142,9 +140,6 @@ class PmsWizardReconcile(models.TransientModel):
             else:
                 rec.check_reconciled_found = False
 
-
-
-
     @api.depends("move_line_ids")
     def _compute_count_payments_found(self):
         for rec in self:
@@ -226,7 +221,11 @@ class PmsWizardReconcile(models.TransientModel):
                     else:
                         mens += "(not found)"
                         self.csv_not_found = mens if not self.csv_not_found else self.csv_not_found + ", " + mens
-        if self.file_total != self.origin_statement_line_id.amount:
+        if float_compare(
+            self.file_total,
+            self.origin_statement_line_id.amount,
+            precision_rounding=2,
+        ) != 0:
             self.incongruence_file = True
         return lines
 
