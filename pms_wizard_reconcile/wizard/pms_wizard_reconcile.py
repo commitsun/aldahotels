@@ -44,6 +44,15 @@ class PmsWizardReconcile(models.TransientModel):
         string="Move lines",
     )
 
+    move_line_reconciled_ids = fields.Many2many(
+        "account.move.line",
+        string="Move lines reconciled",
+        relation="pms_wizard_reconcile_move_line_reconciled_rel",
+        column1="wizard_id",
+        column2="move_line_id",
+        readonly=True,
+    )
+
     origin_statement_line_id = fields.Many2one(
         comodel_name="account.bank.statement.line",
         string="Origin statement line",
@@ -56,12 +65,22 @@ class PmsWizardReconcile(models.TransientModel):
         comodel_name="pms.folio"
     )
 
-    target_total = fields.Float(
+    file_total = fields.Float(
+        string="Total in File",
+        readonly=True,
+    )
+
+    origin_total = fields.Monetary(
+        string="Total in Origin Statement",
+        related="origin_statement_line_id.amount",
+    )
+
+    target_total = fields.Monetary(
         string="Target total",
         compute="_compute_target_total"
     )
 
-    residual = fields.Float(
+    residual = fields.Monetary(
         string="Residual",
         compute="_compute_residual"
     )
@@ -79,13 +98,57 @@ class PmsWizardReconcile(models.TransientModel):
         readonly=True,
         compute="_compute_count_payments_found"
     )
+    journal_id = fields.Many2one(
+        string="Journal",
+        related="origin_statement_line_id.journal_id",
+    )
+    company_id = fields.Many2one(
+        string="Company",
+        related="origin_statement_line_id.company_id",
+    )
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        related="company_id.currency_id",
+        string="Company Currency",
+        store=True,
+        readonly=True,
+    )
+    incongruence_file = fields.Boolean(
+        string="Incongruence File",
+        default=False,
+        readonly=True,
+    )
+    check_reconciled_found = fields.Boolean(
+        string="Check Reconciled Found",
+        compute="_compute_check_reconciled_found",
+    )
+    check_not_found_lines_csv = fields.Boolean(
+        string="Check Not Found CSV lines",
+        compute="_compute_check_not_found_lines_csv",
+    )
+
+    @api.depends('csv_not_found', 'folio_ids')
+    def _compute_check_not_found_lines_csv(self):
+        if self.csv_not_found or self.folio_ids:
+            self.check_not_found_lines_csv = True
+        else:
+            self.check_not_found_lines_csv = False
+
+    @api.depends("move_line_reconciled_ids")
+    def _compute_check_reconciled_found(self):
+        for rec in self:
+            if rec.move_line_reconciled_ids:
+                rec.check_reconciled_found = True
+            else:
+                rec.check_reconciled_found = False
+
+
+
 
     @api.depends("move_line_ids")
     def _compute_count_payments_found(self):
         for rec in self:
             rec.count_payments_found = len(rec.move_line_ids)
-
-
 
     def _default_origin_statement_line_id(self):
         return self.env.context.get("active_id", False)
@@ -107,7 +170,6 @@ class PmsWizardReconcile(models.TransientModel):
         self.ensure_one()
         domain = [
             ("account_id.reconcile", "=", True),
-            ("reconciled", "=", False),
             ("move_id.state", "=", "posted"),
         ]
         if self.move_types != 'all':
@@ -123,7 +185,9 @@ class PmsWizardReconcile(models.TransientModel):
         if self.file and self.journal_ids:
             domain.append(("id", "in", self._get_move_line_ids(self.file)))
             domain.append(("journal_id", "in", self.journal_ids.ids))
-            self.move_line_ids = self.env["account.move.line"].search(domain)
+            move_lines = self.env["account.move.line"].search(domain)
+            self.move_line_ids = move_lines.filtered(lambda l: not l.reconciled)
+            self.move_line_reconciled_ids = move_lines.filtered(lambda l: l.reconciled)
         else:
             self.move_line_ids = False
 
@@ -139,18 +203,14 @@ class PmsWizardReconcile(models.TransientModel):
     @api.model
     def get_and_parse_csv(self, file):
         with closing(io.BytesIO(self._read_csv(file))) as binary_file:
-            csv.register_dialect('mydialect', delimiter=',', quoting=csv.QUOTE_MINIMAL, doublequote=True, skipinitialspace=True)
-            reader = pd.read_csv(binary_file, dialect='mydialect', engine="python", header=0)
-            keys = [i.replace('"', '') for i in reader.columns[0].split(",")]
-            csv_payments = []
-            for line in reader.values:
-                values = [i.replace('"', '') for i in pp.pyparsing_common.comma_separated_list.parseString(line[0]).asList()]
-                new_item = dict(zip(keys, values))
-                csv_payments.append(new_item)
+            data = pd.read_csv(binary_file)
+            data = data.to_dict('records')
             lines = self.env["account.move.line"]
             self.count_csv_transactions = 0
-            for pay in csv_payments:
+            self.file_total = 0
+            for pay in data:
                 self.count_csv_transactions += 1
+                self.file_total += pay['Importe']
                 line = False
                 line = self.env["account.move.line"].search([
                     ("ref", "ilike", pay["Número de referencia"]),
@@ -166,11 +226,13 @@ class PmsWizardReconcile(models.TransientModel):
                     else:
                         mens += "(not found)"
                         self.csv_not_found = mens if not self.csv_not_found else self.csv_not_found + ", " + mens
+        if self.file_total != self.origin_statement_line_id.amount:
+            self.incongruence_file = True
         return lines
 
     def matching_button(self):
         self.ensure_one()
-        domain = [('account_internal_type', 'in', ('receivable', 'payable', 'other')), ('reconciled', '=', False)]
+        domain = [('account_internal_type', 'in', ('receivable', 'pay   able', 'other')), ('reconciled', '=', False)]
         statement_move_line = self.origin_statement_line_id.move_id.line_ids.filtered_domain(
             domain
         )

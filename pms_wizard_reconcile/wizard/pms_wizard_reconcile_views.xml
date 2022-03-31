@@ -28,6 +28,14 @@
                     />
                     <button special="cancel" string="Cancel" class="oe_highlight" />
                 </header>
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    style="margin-bottom:0px;"
+                    attrs="{'invisible':[('incongruence_file','!=',True)]}"
+                >
+                    The file does not seem to match the line in the statement
+                </div>
                 <sheet>
                     <div class="oe_right">
                         <h1>
@@ -35,10 +43,14 @@
                                 name="count_csv_transactions"
                             />
                         </h1>
-                        <label for="target_total" string="Total on File" />
-                        <h1>
-                            <field name="target_total" />
-                        </h1>
+                        <field name="incongruence_file" invisible="1" />
+                        <label for="target_total" string="Target Total" />
+                        <h3>
+                            <field name="target_total" /> (payments) /
+                            <field name="origin_total"/> (statement) /
+                            <field name="file_total" /> (file)
+
+                        </h3>
                         <label for="residual" />
                         <h1>
                             <field name="residual" />
@@ -100,15 +112,32 @@
                             </div>
                         </group>
                     </group>
-
-                    <group>
-                        <field name="csv_not_found" />
-                    </group>
-                    <field
-                        name="folio_ids"
-                        attrs="{'invisible':[('folio_ids','=',False)]}"
-                    />
-                    <field name="move_line_ids" />
+                    <field name="check_not_found_lines_csv" invisible="1" />
+                    <field name="check_reconciled_found" invisible="1" />
+                    <notebook>
+                        <page string="Payments to Reconcile">
+                            <group>
+                                <field name="move_line_ids" nolabel="1"/>
+                            </group>
+                        </page>
+                        <page string="File lines not founds"  attrs="{'invisible':[('check_not_found_lines_csv','=',False)]}">
+                            <group>
+                                <field name="csv_not_found" />
+                                <field
+                                    name="folio_ids"
+                                    nolabel="1"
+                                />
+                            </group>
+                        </page>
+                        <page string="Found lines already reconciled" attrs="{'invisible':[('check_reconciled_found','=',False)]}">
+                            <group>
+                                <field
+                                    name="move_line_reconciled_ids"
+                                    nolabel="1"
+                                />
+                            </group>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
