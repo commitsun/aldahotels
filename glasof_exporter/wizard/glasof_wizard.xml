@@ -17,6 +17,7 @@
                 <group>
                     <field name="property_id"/>
                     <field name="company_id"/>
+                    <field name="journal_ids" widget="many2many_tags"/>
                 </group>
 				<group>
 					<field name="export_journals" string="Pagos de facturas"/>

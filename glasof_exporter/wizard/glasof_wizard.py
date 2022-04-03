@@ -43,6 +43,15 @@ class GlassofExporterWizard(models.TransientModel):
         required=True,
         comodel_name="res.company",
     )
+    journal_ids = fields.Many2many(
+        string="Journals",
+        help="Journals to include in the report",
+        comodel_name="account.journal",
+        relation="glasof_exporter_wizard_journal_rel",
+        column1="wizard_id",
+        column2="journal_id",
+        domain="[('pms_property_ids', 'in', property_id),('company_id', '=', company_id),('type', 'in', ['sale', 'purchase'])]",
+    )
     seat_num = fields.Integer("Seat Number Start", default=1)
     xls_journals_filename = fields.Char()
     xls_journals_binary = fields.Binary()
@@ -89,9 +98,7 @@ class GlassofExporterWizard(models.TransientModel):
         )
         workbook.use_zip64()
 
-        xls_cell_format_seat = workbook.add_format({"num_format": "#"})
         xls_cell_format_date = workbook.add_format({"num_format": "dd/mm/yyyy"})
-        xls_cell_format_saccount = workbook.add_format({"num_format": "000000"})
         xls_cell_format_money = workbook.add_format({"num_format": "#,##0.00"})
         xls_cell_format_header = workbook.add_format({"bg_color": "#CCCCCC"})
 
@@ -128,16 +135,17 @@ class GlassofExporterWizard(models.TransientModel):
         worksheet.set_column("N:N", 20)
 
         account_inv_obj = self.env["account.move"]
-        account_invs = account_inv_obj.search(
-            [
-                ("date", ">=", self.date_start),
-                ("date", "<=", self.date_end),
-                ("company_id", "=", self.company_id.id),
-                ("pms_property_id", "=", self.property_id.id),
-                ("move_type", "!=", "entry"),
-            ]
-        )
+        domain = [
+            ("date", ">=", self.date_start),
+            ("date", "<=", self.date_end),
+            ("company_id", "=", self.company_id.id),
+            ("pms_property_id", "=", self.property_id.id if self.property_id else False),
+            ("move_type", "!=", "entry"),
+        ]
+        if self.journal_ids:
+            domain.append(("journal_id", "in", self.journal_ids.ids))
 
+        account_invs = account_inv_obj.search(domain)
         nrow = 1
         for inv in account_invs:
             country_code = ""
@@ -218,12 +226,9 @@ class GlassofExporterWizard(models.TransientModel):
         )
         workbook.use_zip64()
 
-        xls_cell_format_seat = workbook.add_format({"num_format": "#"})
         xls_cell_format_date = workbook.add_format({"num_format": "dd/mm/yyyy"})
-        xls_cell_format_saccount = workbook.add_format({"num_format": "000000"})
         xls_cell_format_money = workbook.add_format({"num_format": "#,##0.00"})
         xls_cell_format_odec = workbook.add_format({"num_format": "#,#0.0"})
-        xls_cell_format_header = workbook.add_format({"bg_color": "#CCCCCC"})
 
         worksheet = workbook.add_worksheet("ventas")
 
@@ -234,6 +239,8 @@ class GlassofExporterWizard(models.TransientModel):
             ("move_type", "!=", "entry"),
             ("company_id", "=", self.company_id.id),
         ]
+        if self.journal_ids:
+            domain.append(("journal_id", "in", self.journal_ids.ids))
         if self.property_id:
             domain.append(("pms_property_id", "=", self.property_id.id))
         account_invs = account_inv_obj.search(domain)
