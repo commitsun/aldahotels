@@ -214,7 +214,7 @@ class PmsWizardReconcile(models.TransientModel):
                 if line:
                     lines += line
                 else:
-                    mens = pay["Número de referencia"]
+                    mens = str(pay["Número de referencia"])
                     folio = self.env["pms.folio"].search([("external_reference", "=", pay["Número de referencia"])])
                     if folio:
                         self.folio_ids = [(4, folio.id)]
