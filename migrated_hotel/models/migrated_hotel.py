@@ -402,10 +402,10 @@ class MigratedHotel(models.Model):
         if remote_id:
             country_id = remote_id and country_map_ids.get(str(remote_id)) or None
         elif rpc_res_partner['code_ine_id'] and rpc_res_partner['code_ine_id'][0]:
-            ine_code = ine_codes[rpc_res_partner['code_ine_id']]
+            ine_code = next(item for item in ine_codes if item["id"] == rpc_res_partner['code_ine_id'][0])["code"]
             if 'ES' in ine_code:
                 country_id = self.env['res.country'].search([('code', '=', 'ES')]).id
-                state_id = self.env["state_id"].search([('ine_code', '=', ine_code)]).id
+                state_id = self.env["res.country.state"].search([('ine_code', '=', ine_code)]).id
             else:
                 country_id = self.env['res.country'].search([('code_alpha3', '=', ine_code)]).id
 
@@ -455,13 +455,17 @@ class MigratedHotel(models.Model):
             'is_company': rpc_res_partner['is_company'],
             'type': rpc_res_partner['type'],
             'street': rpc_res_partner['street'],
+            'residence_street': rpc_res_partner['street'],
             'street2': rpc_res_partner['street2'],
+            'residence_street2': rpc_res_partner['street2'],
             'is_agency': rpc_res_partner['is_tour_operator'],
             # 'zip_id': rpc_res_partner['zip_id'] and rpc_res_partner['zip_id'][0],
             'zip': rpc_res_partner['zip'],
             'city': rpc_res_partner['city'],
             'state_id': state_id,
+            'residence_state_id': state_id,
             'country_id': country_id,
+            'residence_country_id': country_id,
             'nationality_id': country_id,
             'comment': comment,
             'id_numbers': [(0, 0, document_data)] if document_data else False,
