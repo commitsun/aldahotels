@@ -1749,7 +1749,7 @@ class MigratedHotel(models.Model):
         remote_id = account_invoice['partner_id'] and account_invoice['partner_id'][0]
         res_partner_id = self.env['res.partner'].search([
             ('remote_id', '=', remote_id)
-        ]).id or None
+        ]).id or default_res_partner.id
         # take into account merged partners are not active
         # if not res_partner_id:
         #     res_partner_id = self.env['res.partner'].search([
@@ -1770,41 +1770,35 @@ class MigratedHotel(models.Model):
             [('id', 'in', remote_ids)])
         invoice_line_cmds = []
         # prepare invoice lines
-        reservation_ids_cmds = reservation_line_ids_cmds = service_ids_cmds = None
+        res_folio_sale_lines = self.env["folio.sale.line"]
         for invoice_line in invoice_lines:
             # search for reservation in sale_order_line
             remote_reservation_ids = noderpc.env['hotel.reservation'].search([
-                ('order_line_id', 'in', invoice_line['sale_line_ids'])
+                ('id', 'in', invoice_line['reservation_ids'])
             ]) or None
             if remote_reservation_ids:
-                reservation_ids = self.env['hotel.reservation'].search([
+                reservation_line_ids = self.env['pms.reservation'].search([
                     ('remote_id', 'in', remote_reservation_ids)
-                ]).ids or None
-                reservation_ids_cmds = reservation_ids and [[6, False, reservation_ids]] or None
-                # The night is dark and full of terrors
-                reservation_line_ids = self.env['hotel.reservation.line'].search([
-                    ('reservation_id', 'in', reservation_ids)
-                ]).ids
-                reservation_line_ids_cmds = reservation_line_ids and [[6, False, reservation_line_ids]] or None
+                ]).reservation_line_ids.ids or None
+                res_folio_sale_lines += reservation_line_ids.sale_line_ids
 
             # search for services in sale_order_line
-            remote_service_ids = noderpc.env['hotel.service.line'].search([
-                ('service_line_id', 'in', invoice_line['sale_line_ids'])
+            remote_service_ids = noderpc.env['hotel.service'].search([
+                ('id', 'in', invoice_line['service_ids'])
             ]) or None
             if remote_service_ids:
-                service_ids = self.env['hotel.service'].search([
+                service_line_ids = self.env['hotel.service'].search([
                     ('remote_id', 'in', remote_service_ids)
-                ]).ids or None
-                service_ids_cmds = service_ids and [[6, False, service_ids]] or None
+                ]).service_line_ids.ids or None
+                res_folio_sale_lines = service_line_ids.sale_line_ids
 
+            res_folio_sale_lines_cmds = res_folio_sale_lines and [[6, False, res_folio_sale_lines.ids]] or False
             # take invoice line taxes
             invoice_line_tax_ids = invoice_line['invoice_line_tax_ids'] and invoice_line['invoice_line_tax_ids'][0] or False
             invoice_line_cmds.append((0, False, {
                 'name': invoice_line['name'],
                 'origin': invoice_line['origin'],
-                'reservation_ids': remote_reservation_ids and reservation_ids_cmds,
-                'reservation_line_ids': remote_reservation_ids and reservation_line_ids_cmds,
-                'service_ids': remote_service_ids and service_ids_cmds,
+                'folio_line_ids': res_folio_sale_lines and res_folio_sale_lines_cmds,
                 # [480, '700000 Ventas de mercaderías en España']
                 'account_id': invoice_line['account_id'] and invoice_line['account_id'][0] or 480,
                 'price_unit': invoice_line['price_unit'],
