@@ -12,7 +12,7 @@
             >${object.pms_property_id.partner_id.email | safe}</field>
             <field
                 name="email_to"
-            >${(object.folio_id.email and '"%s" &lt;%s&gt;' % (object.name, object.email) or object.partner_id.email_formatted or '') | safe}</field>
+            >${(object.email and '"%s" &lt;%s&gt;' % (object.partner_name, object.email) or object.partner_id.email or '') | safe}</field>
             <field name="body_html" type="html">
                 <style type="text/css">
 /*Global Styles*/
