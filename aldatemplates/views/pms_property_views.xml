@@ -7,9 +7,6 @@
         <field name="model">pms.property</field>
         <field name="inherit_id" ref="pms.pms_property_views_form" />
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='property_modified_template']" position="after">
-                <field name="property_exit_template" string="Exit Email" />
-            </xpath>
             <xpath expr="//field[@name='is_modified_auto_mail']" position="after">
                 <field name="is_exit_auto_mail" string="Exit Email" />
             </xpath>
