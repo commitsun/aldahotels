@@ -147,6 +147,13 @@
                                 </group>
                             </group> -->
                         <page string="Wubook">
+                            <group>
+                                <field
+                                    name="wubook_journal_id"
+                                    domain="[('type', '=', 'bank'),('company_id', '=', company_id),('pms_property_ids', 'in', pms_property_id)]"
+                                />
+                                <field name="backend_id" colspan="2"/>
+                            </group>
                             <button
                                 name="create_backend"
                                 type="object"
@@ -155,7 +162,6 @@
                                 confirm="This function create backend?"
                                 attrs="{'invisible': [('backend_id', '!=', False)]}"
                             />
-                            <field name="backend_id" colspan="2"/>
                         </page>
                         <page string="Product Mapping">
                             <group>

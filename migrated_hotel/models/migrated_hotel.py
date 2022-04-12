@@ -83,6 +83,11 @@ class MigratedHotel(models.Model):
     complete_invoices = fields.Boolean("Invoices Complete", compute="_compute_complete_invocies", store=True, copy=False)
 
     backend_id = fields.Many2one('channel.wubook.backend', copy=False)
+    wubook_journal_id = fields.Many2one(
+        'account.journal',
+        string='Wubook Journal',
+        copy=False,
+    )
 
     dummy_closure_reason_id = fields.Many2one(string='Default Clousure Reasen', comodel_name='room.closure.reason')
     dummy_product_id = fields.Many2one(string='Default Product', comodel_name='product.product')
@@ -2136,7 +2141,7 @@ class MigratedHotel(models.Model):
                     ])
                     remote_parity_pricelist = noderpc.env['channel.product.pricelist'].browse(remote_parity_pricelist_id)
                     general_backend = self.env['channel.backend'].create({
-                        "name": remote_backend.username,
+                        "name": self.pms_property_id.name + " (" + remote_backend.username + ")",
                         "pms_property_id": self.pms_property_id.id,
                         "user_id": user_wubook.id,
                         "backend_type_id": self.env["channel.backend.type"].search([])[0].id,
@@ -2147,6 +2152,7 @@ class MigratedHotel(models.Model):
                         "username": remote_backend.username,
                         "password": remote_backend.passwd,
                         "property_code": remote_backend.lcode,
+                        "wubook_journal_id": self.wubook_journal_id.id,
                         "pkey": remote_backend.pkey,
                         "pricelist_external_id": remote_parity_pricelist.external_id,
                     })
