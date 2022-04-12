@@ -20,6 +20,8 @@
 ##############################################################################
 from io import BytesIO
 import xlsxwriter
+from itertools import cycle
+
 import base64
 import json
 from odoo import api, fields, models, _
@@ -98,9 +100,7 @@ class GlassofExporterWizard(models.TransientModel):
         )
         workbook.use_zip64()
 
-        xls_cell_format_date = workbook.add_format({"num_format": "dd/mm/yyyy"})
-        xls_cell_format_money = workbook.add_format({"num_format": "#,##0.00"})
-        xls_cell_format_header = workbook.add_format({"bg_color": "#CCCCCC"})
+        xls_cell_format_header = workbook.add_format({"bg_color": "#000000", "font_color": "#FFFFFF"})
 
         worksheet = workbook.add_worksheet("Simples-1")
 
@@ -121,7 +121,7 @@ class GlassofExporterWizard(models.TransientModel):
 
         worksheet.set_column("A:A", 25)
         worksheet.set_column("B:B", 10)
-        worksheet.set_column("C:C", 18)
+        worksheet.set_column("C:C", 25)
         worksheet.set_column("D:D", 50)
         worksheet.set_column("E:E", 15)
         worksheet.set_column("F:F", 15)
@@ -145,9 +145,21 @@ class GlassofExporterWizard(models.TransientModel):
         if self.journal_ids:
             domain.append(("journal_id", "in", self.journal_ids.ids))
 
-        account_invs = account_inv_obj.search(domain)
+        account_invs = account_inv_obj.search(domain, order="name")
         nrow = 1
+        xls_cell_format_date1 = workbook.add_format({"num_format": "dd/mm/yyyy", 'bg_color': '#FFFFFF'})
+        xls_cell_format_date2 = workbook.add_format({"num_format": "dd/mm/yyyy", 'bg_color': '#CCCCCC'})
+        xls_cell_format_money1 = workbook.add_format({"num_format": "#,##0.00", 'bg_color': '#FFFFFF'})
+        xls_cell_format_money2 = workbook.add_format({"num_format": "#,##0.00", 'bg_color': '#CCCCCC'})
+        data_format1 = workbook.add_format({'bg_color': '#FFFFFF'})
+        data_format2 = workbook.add_format({'bg_color': '#CCCCCC'})
+        data_formats = cycle([data_format1, data_format2])
+        date_formats = cycle([xls_cell_format_date1, xls_cell_format_date2])
+        money_formats = cycle([xls_cell_format_money1, xls_cell_format_money2])
         for inv in account_invs:
+            data_format = next(data_formats)
+            date_format = next(date_formats)
+            money_format = next(money_formats)
             country_code = ""
             vat_partner = inv.partner_id.vat if inv.partner_id.vat else ""
             country_partner = inv.partner_id.country_id
@@ -175,27 +187,40 @@ class GlassofExporterWizard(models.TransientModel):
             move_type = inv._fields["move_type"].selection
             move_type_dict = dict(move_type)
             move_type = move_type_dict.get(inv.move_type)
-
-            worksheet.write(nrow, 0, inv.journal_id.name)
-            worksheet.write(nrow, 1, state)
-            worksheet.write(nrow, 2, inv.name)
-            worksheet.write(nrow, 3, inv.partner_id.name)
-            worksheet.write(nrow, 4, origin)
-            worksheet.write(nrow, 5, inv.invoice_date, xls_cell_format_date)
-            worksheet.write(nrow, 6, vat_partner)
-            worksheet.write(nrow, 7, inv.amount_total, xls_cell_format_money)
-            worksheet.write(nrow, 8, inv.amount_residual, xls_cell_format_money)
-            worksheet.write(nrow, 9, move_type)
             payments_dict = json.loads(inv.invoice_payments_widget)
-            if payments_dict:
-                worksheet.write(nrow, 10, "Pagos:")
+
+            if not payments_dict:
+                worksheet.write(nrow, 0, inv.journal_id.name)
+                worksheet.write(nrow, 1, state)
+                worksheet.write(nrow, 2, inv.name)
+                worksheet.write(nrow, 3, inv.partner_id.name)
+                worksheet.write(nrow, 4, origin)
+                worksheet.write(nrow, 5, inv.invoice_date, date_format)
+                worksheet.write(nrow, 6, vat_partner)
+                worksheet.write(nrow, 7, inv.amount_total, money_format)
+                worksheet.write(nrow, 8, inv.amount_residual, money_format)
+                worksheet.write(nrow, 9, move_type)
+                worksheet.set_row(nrow, cell_format=data_format)
+                nrow += 1
+            else:
                 for payment in payments_dict.get("content"):
-                    nrow += 1
+                    payment_date = fields.Date.from_string(payment.get("date"))
+                    worksheet.write(nrow, 0, inv.journal_id.name)
+                    worksheet.write(nrow, 1, state)
+                    worksheet.write(nrow, 2, inv.name)
+                    worksheet.write(nrow, 3, inv.partner_id.name)
+                    worksheet.write(nrow, 4, origin)
+                    worksheet.write(nrow, 5, inv.invoice_date, date_format)
+                    worksheet.write(nrow, 6, vat_partner)
+                    worksheet.write(nrow, 7, inv.amount_total, money_format)
+                    worksheet.write(nrow, 8, inv.amount_residual, money_format)
+                    worksheet.write(nrow, 9, move_type)
                     worksheet.write(nrow, 10, payment["journal_name"])
-                    worksheet.write(nrow, 11, payment["amount"])
-                    worksheet.write(nrow, 12, payment["date"])
+                    worksheet.write(nrow, 11, payment["amount"], money_format)
+                    worksheet.write(nrow, 12, payment_date, date_format)
                     worksheet.write(nrow, 13, payment["ref"])
-            nrow += 1
+                    worksheet.set_row(nrow, cell_format=data_format)
+                    nrow += 1
         workbook.close()
         file_data.seek(0)
         tnow = str(fields.Datetime.now()).replace(" ", "_")
