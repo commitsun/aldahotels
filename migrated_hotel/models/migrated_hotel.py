@@ -1384,6 +1384,7 @@ class MigratedHotel(models.Model):
                 'channel_type': remote_service['channel_type'] or 'door',
                 'is_board_service': remote_service['is_board_service'],
                 'service_line_ids': service_lines_cmds,
+                'no_auto_add_lines': True,
             }
             return service_vals
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
@@ -1500,18 +1501,18 @@ class MigratedHotel(models.Model):
                         for payment in payments:
                             _logger.info('Normal Payments')
                             balance += self.create_payment_migration(payment, res_users_map_ids, remote_journal, date_str, journal, statement)
+                            self.with_company(self.pms_property_id.company_id).create_bank_payment_migration(payment, remote_journal, res_users_map_ids, journal_id)
                             count += 1
                             _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
                                 count, total, payment['id'])
-
-                        # # Add payments internal transfer with same date and journal like destination journal
-                        # destination_payment_vals = list(filter(lambda x: x["payment_type"] == "transfer" and x["payment_date"] == date and x["destination_journal_id"][0] == remote_journal[0], journal_payments_tarjet))
-                        # for pay in destination_payment_vals:
-                        #     _logger.info('Destination Journal Payments')
-                        #     balance += self.create_payment_migration(pay, res_users_map_ids, remote_journal, date_str, journal, statement)
-                        #     count += 1
-                        #     _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
-                        #                  count, total, payment['id'])
+                        destination_payment_vals = list(filter(lambda x: x["payment_type"] == "transfer" and x["payment_date"] == date and x["destination_journal_id"][0] == remote_journal[0], journal_payments_tarjet))
+                        for pay in destination_payment_vals:
+                            _logger.info('Destination Journal Payments')
+                            balance += self.create_payment_migration(pay, res_users_map_ids, remote_journal, date_str, journal, statement)
+                            self.with_company(self.pms_property_id.company_id).create_bank_payment_migration(payment, remote_journal, res_users_map_ids, journal_id)
+                            count += 1
+                            _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
+                                         count, total, payment['id'])
                         statement.write({
                             "balance_end_real": balance,
                             "move_line_ids": line_vals,
@@ -1527,10 +1528,19 @@ class MigratedHotel(models.Model):
                         # Some payment are garbage, so we skip them (know by old dates)
                         if fields.Datetime.from_string(payment["payment_date"]) < (datetime.datetime.now() - datetime.timedelta(days=2000)):
                             continue
-                        self.with_company(self.pms_property_id.company_id).with_delay().create_bank_payment_migration(payment, res_users_map_ids, journal_id)
+                        self.with_company(self.pms_property_id.company_id).with_delay().create_bank_payment_migration(payment, remote_journal, res_users_map_ids, journal_id)
                         count += 1
                         _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
                             count, total, payment['id'])
+                    # Add payments internal transfer with same date and journal like destination journal
+                    destination_payment_vals = list(filter(lambda x: x["payment_type"] == "transfer" and x["destination_journal_id"][0] == remote_journal[0], journal_payments_tarjet))
+                    for pay in destination_payment_vals:
+                        _logger.info('Destination Journal Payments')
+                        self.with_company(self.pms_property_id.company_id).with_delay().create_bank_payment_migration(payment, remote_journal, res_users_map_ids, journal_id)
+                        count += 1
+                        _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
+                                        count, total, payment['id'])
+
 
         except (ValueError, ValidationError, Exception) as err:
             traceback.print_exc()
@@ -1544,7 +1554,7 @@ class MigratedHotel(models.Model):
             _logger.error('ERROR account.payment with LOG #%s: (%s)',
                         migrated_log.id, err)
 
-    def create_bank_payment_migration(self, payment, res_users_map_ids, journal_id):
+    def create_bank_payment_migration(self, payment, remote_journal, res_users_map_ids, journal_id):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
         res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
         if payment["partner_id"]:
@@ -1568,17 +1578,36 @@ class MigratedHotel(models.Model):
             ], limit=1).id or False
         else:
             folio_id = False
+
+        payment_type = payment["payment_type"]
+        is_internal_transfer = False
+        destination_journal = False
+        if payment_type == "transfer":
+            is_internal_transfer = True
+            destination_journal = self.env["migrated.journal"].search([
+                ("migrated_hotel_id", "=", self.id),
+                ("remote_id", "=", payment["destination_journal_id"][0]),
+            ]).account_journal_id
+            partner_id = destination_journal.company_id.partner_id.id
+            if payment["destination_journal_id"][0] == remote_journal[0]:
+                payment_type = "inbound"
+            elif payment["journal_id"][0] == remote_journal[0]:
+                payment_type = "outbound"
         vals = {
             "journal_id": journal_id,
             "partner_id": partner_id,
             "amount": payment["amount"],
             "date": fields.Datetime.from_string(payment["payment_date"]),
             "ref": payment_ref,
-            "payment_type": payment["payment_type"],
-            "partner_type": payment["partner_type"],
+            "payment_type": payment_type,
             "state": "draft",
             "create_uid": res_create_uid,
+            "is_internal_transfer": is_internal_transfer,
         }
+        if payment["partner_type"]:
+            vals["partner_type"] = payment["partner_type"]
+        if destination_journal and destination_journal.bank_account_id:
+            vals["partner_bank_id"] = destination_journal.bank_account_id.id
         if folio_id:
             vals["folio_ids"] = [(6, 0, [folio_id])]
         context_no_mail = {
@@ -1755,10 +1784,15 @@ class MigratedHotel(models.Model):
             ('user_ids', 'in', self._context.get('uid', self._uid))
         ])
         # search res_partner id
-        remote_id = account_invoice['partner_id'] and account_invoice['partner_id'][0]
-        res_partner_id = self.env['res.partner'].search([
-            ('remote_id', '=', remote_id)
-        ]).id or default_res_partner.id
+        res_partner = self.env['migrated.partner'].search([
+            ('remote_id', '=', remote_id),
+            ('migrated_hotel_id', '=', self.id),
+        ]).partner_id or False
+        if not res_partner:
+            remote_partner = noderpc.env['res.partner'].browse(remote_id)
+            res_partner = self.env['res.partner'].search([
+                ('vat', '=', remote_partner.vat),
+            ])
         # take into account merged partners are not active
         # if not res_partner_id:
         #     res_partner_id = self.env['res.partner'].search([
@@ -1770,7 +1804,7 @@ class MigratedHotel(models.Model):
         # search related refund_invoice_id
         refund_invoice_id = None
         if account_invoice['refund_invoice_id']:
-            refund_invoice_id = self.env['account.invoice'].search([
+            refund_invoice_id = self.env['account.move'].search([
                 ('remote_id', '=', account_invoice['refund_invoice_id'][0])
             ]).id or None
 
@@ -1779,63 +1813,75 @@ class MigratedHotel(models.Model):
             [('id', 'in', remote_ids)])
         invoice_line_cmds = []
         # prepare invoice lines
-        res_folio_sale_lines = self.env["folio.sale.line"]
         for invoice_line in invoice_lines:
+            res_folio_sale_lines = self.env["folio.sale.line"]
             # search for reservation in sale_order_line
             remote_reservation_ids = noderpc.env['hotel.reservation'].search([
                 ('id', 'in', invoice_line['reservation_ids'])
             ]) or None
             if remote_reservation_ids:
-                reservation_line_ids = self.env['pms.reservation'].search([
+                reservation_lines = self.env['pms.reservation'].search([
+                    ('pms_property_id', '=', self.pms_property_id.id),
                     ('remote_id', 'in', remote_reservation_ids)
-                ]).reservation_line_ids.ids or None
-                res_folio_sale_lines += reservation_line_ids.sale_line_ids
+                ]).reservation_line_ids or None
+                res_folio_sale_lines += reservation_lines.sale_line_ids
 
             # search for services in sale_order_line
             remote_service_ids = noderpc.env['hotel.service'].search([
                 ('id', 'in', invoice_line['service_ids'])
             ]) or None
             if remote_service_ids:
-                service_line_ids = self.env['hotel.service'].search([
+                service_lines = self.env['pms.service'].search([
+                    ('pms_property_id', '=', self.pms_property_id.id),
                     ('remote_id', 'in', remote_service_ids)
-                ]).service_line_ids.ids or None
-                res_folio_sale_lines = service_line_ids.sale_line_ids
+                ]).service_line_ids or None
+                res_folio_sale_lines = service_lines.sale_line_ids if service_lines else False
 
             res_folio_sale_lines_cmds = res_folio_sale_lines and [[6, False, res_folio_sale_lines.ids]] or False
+            product_id = False
+            if res_folio_sale_lines and len(res_folio_sale_lines) == 1:
+                product_id = res_folio_sale_lines.product_id.id or False
             # take invoice line taxes
-            invoice_line_tax_ids = invoice_line['invoice_line_tax_ids'] and invoice_line['invoice_line_tax_ids'][0] or False
-            invoice_line_cmds.append((0, False, {
-                'name': invoice_line['name'],
-                'origin': invoice_line['origin'],
+            invoice_line_tax_ids = False
+            remote_tax = noderpc.env['account.tax'].browse(invoice_line['invoice_line_tax_ids'])
+            if remote_tax:
+                invoice_line_tax_ids = self.env["account.tax"].search([
+                    ("company_id", "=", self.company_id.id),
+                    ("name", "=", remote_tax.name)
+                ]).ids or False
+            vals = {
+                'display_name': invoice_line['name'],
+                "name": invoice_line['name'],
+                "product_id": product_id,
+                # 'origin': invoice_line['origin'],
                 'folio_line_ids': res_folio_sale_lines and res_folio_sale_lines_cmds,
                 # [480, '700000 Ventas de mercaderías en España']
-                'account_id': invoice_line['account_id'] and invoice_line['account_id'][0] or 480,
+                # 'account_id': invoice_line['account_id'] and invoice_line['account_id'][0] or 480,
                 'price_unit': invoice_line['price_unit'],
                 'quantity': invoice_line['quantity'],
                 'discount': invoice_line['discount'],
-                'uom_id': invoice_line['uom_id'] and invoice_line['uom_id'][0] or 1,
-                'invoice_line_tax_ids': [[6, False, [invoice_line_tax_ids or 59]]],  # 10% (services) as default
-            }))
+                # 'product_uom_id': invoice_line['uom_id'] and invoice_line['uom_id'][0] or 1,
+            }
+            if invoice_line_tax_ids:
+                vals['tax_ids'] = [[6, False, invoice_line_tax_ids]]
+            invoice_line_cmds.append((0, False, vals))
 
         vals = {
             'remote_id': account_invoice['id'],
-            'number': account_invoice['number'],
-            'invoice_number': account_invoice['invoice_number'],
-            'name': account_invoice['name'],
-            'display_name': account_invoice['display_name'],
-            'origin': account_invoice['origin'],
-            'date_invoice': account_invoice['date_invoice'],
-            'type': account_invoice['type'],
-            'refund_invoice_id': account_invoice['refund_invoice_id'] and refund_invoice_id,
-            'reference': False,
+            'name': account_invoice['number'],
+            'ref': account_invoice['origin'],
+            'invoice_date': account_invoice['date_invoice'],
+            'move_type': account_invoice['type'],
+            # 'refund_invoice_id': account_invoice['refund_invoice_id'] and refund_invoice_id,
             # [193, '430000 Clientes (euros)']
-            'account_id': account_invoice['account_id'] and account_invoice['account_id'][0] or 193,
+            # 'account_id': account_invoice['account_id'] and account_invoice['account_id'][0] or 193,
             'partner_id': res_partner_id,
             # [1, 'EUR']
-            'currency_id': account_invoice['currency_id'] and account_invoice['currency_id'][0] or 1,
-            'comment': account_invoice['comment'],
+            # 'currency_id': account_invoice['currency_id'] and account_invoice['currency_id'][0] or 1,
+            # 'comment': account_invoice['comment'],
             'invoice_line_ids': invoice_line_cmds,
-            'user_id': res_user_id,
+            'invoice_user_id': res_user_id,
+            'pms_property_id': self.pms_property_id.id,
         }
 
         return vals
@@ -1867,17 +1913,16 @@ class MigratedHotel(models.Model):
             )
 
             _logger.info("Migrating 'account.invoice'...")
+            _logger.info("Total of 'account.invoice' to migrate: %s" % len(remote_account_invoice_ids))
             # disable mail feature to speed-up migration
-            context_no_mail = {
-                'tracking_disable': True,
-                'mail_notrack': True,
-                'mail_create_nolog': True,
-            }
+            total = len(remote_account_invoice_ids)
+            i = 0
             for remote_account_invoice_id in remote_account_invoice_ids:
                 try:
-                    migrated_account_invoice = self.env['account.invoice'].search(
-                        [('remote_id', '=', remote_account_invoice_id)]
-                    ) or None
+                    migrated_account_invoice = self.env['account.move'].search([
+                        ('remote_id', '=', remote_account_invoice_id),
+                        ('pms_property_id', '=', self.pms_property_id.id),
+                    ]) or None
                     if not migrated_account_invoice:
                         _logger.info('User #%s started migration of account.invoice with remote ID: [%s]',
                                      self._uid, remote_account_invoice_id)
@@ -1894,38 +1939,11 @@ class MigratedHotel(models.Model):
                             res_users_map_ids,
                             noderpc,
                         )
-
-                        migrated_account_invoice = self.env['account.invoice'].with_context(
-                            context_no_mail
-                        ).create(vals)
-                        # this function require a valid vat number in the associated partner_id
-                        migrated_account_invoice.with_context(
-                            {'validate_vat_number': False}
-                        ).action_invoice_open()
-                        #
-                        payment_ids = self.env['account.payment'].search([
-                            ('remote_id', 'in', rpc_account_invoice['payment_ids'])
-                        ]).ids or None
-                        #
-                        if payment_ids:
-                            domain = [
-                                ('account_id', '=', migrated_account_invoice.account_id.id),
-                                ('payment_id', 'in', payment_ids),
-                                ('reconciled', '=', False),
-                                '|', ('amount_residual', '!=', 0.0),
-                                ('amount_residual_currency', '!=', 0.0)
-                            ]
-                            if migrated_account_invoice.type in ('out_invoice', 'in_refund'):
-                                domain.extend([('credit', '>', 0), ('debit', '=', 0)])
-                            else:
-                                domain.extend([('credit', '=', 0), ('debit', '>', 0)])
-                            lines = self.env['account.move.line'].search(domain)
-                            for line in lines:
-                                migrated_account_invoice.assign_outstanding_credit(line.id)
-
-                        _logger.info('User #%s migrated account.invoice with ID [local, remote]: [%s, %s]',
-                                     self._uid, migrated_account_invoice.id, remote_account_invoice_id)
-
+                        self.create_migration_invoice(
+                            vals, rpc_account_invoice["payment_ids"]
+                        )
+                        i += 1
+                        _logger.info(str(i) + ' of ' + str(total) + ' migrated')
                 except (ValueError, ValidationError, Exception) as err:
                     migrated_log = self.env['migrated.log'].create({
                         'name': err,
@@ -1942,6 +1960,45 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         else:
             noderpc.logout()
+
+    def create_migration_invoice(self, vals, remote_payment_ids):
+        context_no_mail = {
+            'tracking_disable': True,
+            'mail_notrack': True,
+            'mail_create_nolog': True,
+        }
+        migrated_account_invoice = self.env['account.move'].with_context(
+            context_no_mail
+        ).create(vals)
+        migrated_account_invoice.message_post_with_view(
+            "mail.message_origin_link",
+            values={"self": migrated_account_invoice, "origin": migrated_account_invoice.folio_ids},
+            subtype_id=self.env.ref("mail.mt_note").id,
+        )
+        # this function require a valid vat number in the associated partner_id
+        migrated_account_invoice.with_context(
+            {'validate_vat_number': False}
+        ).action_post()
+        #
+        payment_ids = self.env['account.payment'].search([
+            ('remote_id', 'in', remote_payment_ids)
+        ]).ids or None
+        #
+        if payment_ids:
+            domain = [
+                ('account_id', '=', migrated_account_invoice.account_id.id),
+                ('payment_id', 'in', payment_ids),
+                ('reconciled', '=', False),
+                '|', ('amount_residual', '!=', 0.0),
+                ('amount_residual_currency', '!=', 0.0)
+            ]
+            if migrated_account_invoice.move_type in ('out_invoice', 'in_refund'):
+                domain.extend([('credit', '>', 0), ('debit', '=', 0)])
+            else:
+                domain.extend([('credit', '=', 0), ('debit', '>', 0)])
+            lines = self.env['account.move.line'].search(domain)
+            for line in lines:
+                migrated_account_invoice.assign_outstanding_credit(line.id)
 
     def _update_special_field_names(self, local_model, remote_model, res_users_map_ids, noderpc):
         # prepare record ids
@@ -2159,9 +2216,6 @@ class MigratedHotel(models.Model):
         except (ValueError, ValidationError, Exception) as err:
             _logger.error('backend import error:%s', err)
 
-
-
-
     def import_pricelists(self):
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -2179,6 +2233,7 @@ class MigratedHotel(models.Model):
             remote_records = noderpc.env['product.pricelist'].browse(remote_ids)
             pricelist_migrated_ids = self.mapped("migrated_pricelist_ids.remote_id")
             for record in remote_records:
+                name = record.name if record.active else record.name + " (Obsoleta)"
                 match_record = self.env['product.pricelist'].search([
                     ('name', '=', record.name),
                 ])
@@ -2186,7 +2241,7 @@ class MigratedHotel(models.Model):
                 if record.id not in pricelist_migrated_ids:
                     self.migrated_pricelist_ids = [(0, 0, {
                         'remote_id': record.id,
-                        'remote_name': record.name,
+                        'remote_name': name,
                         'last_sync': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'pms_pricelist_id': match_record.id if match_record else False,
@@ -2208,7 +2263,11 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         try:
             _logger.info("Importing Remote Room Types Classes...")
-            remote_ids = noderpc.env['hotel.room.type.class'].search([])
+            remote_ids = noderpc.env['hotel.room.type'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['hotel.room.type.class'].browse(remote_ids)
             room_type_class_migrated_ids = self.mapped("migrated_room_type_class_ids.remote_id")
             for record in remote_records:
@@ -2219,9 +2278,10 @@ class MigratedHotel(models.Model):
                 ])
                 # TODO: Create Binding Wubook??
                 if record.id not in room_type_class_migrated_ids:
+                    name = record.name if record.active else record.name + ' (Obsoleta)'
                     self.migrated_room_type_class_ids = [(0, 0, {
                         'remote_id': record.id,
-                        'remote_name': record.name,
+                        'remote_name': name,
                         'last_sync': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'pms_room_type_class_id': match_record.id if match_record and len(match_record) == 1 else False,
@@ -2595,7 +2655,7 @@ class MigratedHotel(models.Model):
                     })]
                     if match_record.pms_property_ids:
                         match_record.pms_property_ids = [(4, self.pms_property_id.id)]
-                    _logger.info('Pricelist imported: %s',
+                    _logger.info('Journal imported: %s',
                                  record.name)
             self.count_migrated_journals = len(self.migrated_journal_ids)
         except (ValueError, ValidationError, Exception) as err:
