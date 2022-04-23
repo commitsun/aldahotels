@@ -639,11 +639,6 @@ class MigratedHotel(models.Model):
 
     @api.model
     def migration_partner(self, rpc_res_partner, country_map_ids, country_state_map_ids, category_map_ids, ine_codes):
-        context_no_mail = {
-            'tracking_disable': True,
-            'mail_notrack': True,
-            'mail_create_nolog': True,
-        }
         PartnersMigrated = self.env["migrated.partner"]
         is_company = rpc_res_partner["is_company"]
         is_ota = rpc_res_partner["is_tour_operator"]
@@ -682,7 +677,20 @@ class MigratedHotel(models.Model):
                 document_data,
                 ine_codes,
             )
-            migrated_res_partner = self.env['res.partner'].with_context(context_no_mail).create(vals)
+            context_partner = {
+                'tracking_disable': True,
+                'mail_notrack': True,
+                'mail_create_nolog': True,
+                'id_no_validate': True,
+            }
+            migrated_res_partner = self.env['res.partner'].with_context(context_partner).create(vals)
+            migrated_res_partner.message_post(
+                body=_(
+                    """Migrated from: <b>%s</b> V2""",
+                    self.pms_property_id.name,
+                ),
+                email_from=self.pms_property_id.partner_id.email_formatted,
+            )
             PartnersMigrated.create({
                 "date_time": fields.Datetime.now(),
                 "migrated_hotel_id": self.id,
@@ -1153,15 +1161,32 @@ class MigratedHotel(models.Model):
             remote_bindings,
         )
         # disable mail feature to speed-up migration
-        context_no_mail = {
+        context_folio = {
             'tracking_disable': True,
             'mail_notrack': True,
             'mail_create_nolog': True,
             'connector_no_export': True,
+            'id_no_validate': True,
         }
-        self.env['pms.folio'].with_context(
-            context_no_mail
+        new_folio = self.env['pms.folio'].with_context(
+            context_folio
         ).create(vals)
+        new_folio.message_post(
+            body=_(
+                """Migrated from: <b>%s</b> V2""",
+                self.pms_property_id.name,
+            ),
+            email_from=self.pms_property_id.partner_id.email_formatted,
+        )
+        for reservation in new_folio.reservation_ids:
+            reservation.message_post(
+                body=_(
+                    """Migrated from: <b>%s</b> V2""",
+                    self.pms_property_id.name,
+                ),
+                email_from=self.pms_property_id.partner_id.email_formatted,
+            )
+
 
     # RESERVATIONS ---------------------------------------------------------------------------------------------------------------------------
 
@@ -1778,21 +1803,51 @@ class MigratedHotel(models.Model):
         # search res_users ids
         remote_id = account_invoice['user_id'] and account_invoice['user_id'][0]
         res_user_id = remote_id and res_users_map_ids.get(str(remote_id)) or self._context.get('uid', self._uid)
-
         # prepare partner_id related field
         default_res_partner = self.env['res.partner'].search([
             ('user_ids', 'in', self._context.get('uid', self._uid))
         ])
         # search res_partner id
+        remote_id = account_invoice['partner_id'] and account_invoice['partner_id'][0]
+        _logger.info("partner remote_id: %s", remote_id)
         res_partner = self.env['migrated.partner'].search([
             ('remote_id', '=', remote_id),
             ('migrated_hotel_id', '=', self.id),
         ]).partner_id or False
+        _logger.info("partner res_partner: %s", res_partner.name if res_partner else "Not Found")
         if not res_partner:
             remote_partner = noderpc.env['res.partner'].browse(remote_id)
-            res_partner = self.env['res.partner'].search([
-                ('vat', '=', remote_partner.vat),
-            ])
+            if remote_partner.vat:
+                res_partner = self.env['res.partner'].search([
+                    ('vat', '=', remote_partner.vat),
+                ])
+            _logger.info("search vat res_partner: %s", res_partner.name if res_partner else "Not Found")
+            if not res_partner:
+                try:
+                    res_partner = self.env['res.partner'].with_context(no_vat_validation=True).create({
+                        'name': remote_partner.name,
+                        'vat': remote_partner.vat,
+                        'is_company': remote_partner.is_company,
+                        'street': remote_partner.street,
+                        'street2': remote_partner.street2,
+                        'city': remote_partner.city,
+                        'zip': remote_partner.zip,
+                        'phone': remote_partner.phone,
+                        'mobile': remote_partner.mobile,
+                        'email': remote_partner.email,
+                        'remote_id': remote_partner.id,
+                    })
+                    _logger.info("create res_partner: %s", res_partner.name if res_partner else "No Created")
+                except (ValueError, ValidationError, Exception) as err:
+                    migrated_log = self.env['migrated.log'].create({
+                        'name': err,
+                        'date_time': fields.Datetime.now(),
+                        'migrated_hotel_id': self.id,
+                        'model': 'invoice',
+                        'remote_id': remote_account_invoice_id,
+                    })
+                    _logger.error('Remote partner with ID remote: [%s] not found', remote_id)
+                    return False
         # take into account merged partners are not active
         # if not res_partner_id:
         #     res_partner_id = self.env['res.partner'].search([
@@ -1805,7 +1860,9 @@ class MigratedHotel(models.Model):
         refund_invoice_id = None
         if account_invoice['refund_invoice_id']:
             refund_invoice_id = self.env['account.move'].search([
-                ('remote_id', '=', account_invoice['refund_invoice_id'][0])
+                ('remote_id', '=', account_invoice['refund_invoice_id'][0]),
+                ('pms_property_id', '=', self.pms_property_id.id),
+
             ]).id or None
 
         remote_ids = account_invoice['invoice_line_ids'] and account_invoice['invoice_line_ids']
@@ -1875,7 +1932,7 @@ class MigratedHotel(models.Model):
             # 'refund_invoice_id': account_invoice['refund_invoice_id'] and refund_invoice_id,
             # [193, '430000 Clientes (euros)']
             # 'account_id': account_invoice['account_id'] and account_invoice['account_id'][0] or 193,
-            'partner_id': res_partner_id,
+            'partner_id': res_partner.id,
             # [1, 'EUR']
             # 'currency_id': account_invoice['currency_id'] and account_invoice['currency_id'][0] or 1,
             # 'comment': account_invoice['comment'],
@@ -1917,6 +1974,7 @@ class MigratedHotel(models.Model):
             # disable mail feature to speed-up migration
             total = len(remote_account_invoice_ids)
             i = 0
+            self.pms_property_id.company_id.check_min_partner_data_invoice = False
             for remote_account_invoice_id in remote_account_invoice_ids:
                 try:
                     migrated_account_invoice = self.env['account.move'].search([
@@ -1924,11 +1982,13 @@ class MigratedHotel(models.Model):
                         ('pms_property_id', '=', self.pms_property_id.id),
                     ]) or None
                     if not migrated_account_invoice:
+                        i += 1
+                        _logger.info(str(i) + ' of ' + str(total) + ' migration')
                         _logger.info('User #%s started migration of account.invoice with remote ID: [%s]',
                                      self._uid, remote_account_invoice_id)
-
                         rpc_account_invoice = noderpc.env['account.invoice'].search_read(
                             [('id', '=', remote_account_invoice_id)],
+                            ['user_id', 'partner_id', 'refund_invoice_id', 'invoice_line_ids', 'id', 'number', 'origin', 'date_invoice', 'type','payment_ids']
                         )[0]
 
                         if rpc_account_invoice['number'].strip() == '':
@@ -1939,11 +1999,11 @@ class MigratedHotel(models.Model):
                             res_users_map_ids,
                             noderpc,
                         )
+                        if not vals:
+                            continue
                         self.create_migration_invoice(
                             vals, rpc_account_invoice["payment_ids"]
                         )
-                        i += 1
-                        _logger.info(str(i) + ' of ' + str(total) + ' migrated')
                 except (ValueError, ValidationError, Exception) as err:
                     migrated_log = self.env['migrated.log'].create({
                         'name': err,
@@ -1955,7 +2015,7 @@ class MigratedHotel(models.Model):
                     _logger.error('Remote account.invoice with ID remote: [%s] with ERROR LOG #%s: (%s)',
                                   remote_account_invoice_id, migrated_log.id, err)
                     continue
-
+            self.pms_property_id.company_id.check_min_partner_data_invoice = True
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
@@ -1967,18 +2027,20 @@ class MigratedHotel(models.Model):
             'mail_notrack': True,
             'mail_create_nolog': True,
         }
+
         migrated_account_invoice = self.env['account.move'].with_context(
             context_no_mail
         ).create(vals)
         migrated_account_invoice.message_post_with_view(
             "mail.message_origin_link",
-            values={"self": migrated_account_invoice, "origin": migrated_account_invoice.folio_ids},
+            values={
+                "self": migrated_account_invoice,
+                "origin": migrated_account_invoice.folio_ids
+            },
             subtype_id=self.env.ref("mail.mt_note").id,
         )
         # this function require a valid vat number in the associated partner_id
-        migrated_account_invoice.with_context(
-            {'validate_vat_number': False}
-        ).action_post()
+        migrated_account_invoice.action_post()
         #
         payment_ids = self.env['account.payment'].search([
             ('remote_id', 'in', remote_payment_ids)
@@ -2263,7 +2325,7 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         try:
             _logger.info("Importing Remote Room Types Classes...")
-            remote_ids = noderpc.env['hotel.room.type'].search([
+            remote_ids = noderpc.env['hotel.room.type.class'].search([
                 '|',
                 ('active', '=', True),
                 ('active', '=', False),
@@ -2303,7 +2365,11 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
         try:
             _logger.info("Importing Remote Room Types...")
-            remote_ids = noderpc.env['hotel.room.type'].search([])
+            remote_ids = noderpc.env['hotel.room.type'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['hotel.room.type'].browse(remote_ids)
             room_type_migrated_ids = self.mapped("migrated_room_type_ids.remote_id")
             for record in remote_records:
@@ -2314,9 +2380,10 @@ class MigratedHotel(models.Model):
                 ])
                 # TODO: Create Binding Wubook??
                 if record.id not in room_type_migrated_ids:
+                    name = record.name if record.active else record.name + ' (Obsoleta)'
                     self.migrated_room_type_ids = [(0, 0, {
                         'remote_id': record.id,
-                        'remote_name': record.name,
+                        'remote_name': name,
                         'last_sync': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'pms_room_type_id': match_record.id if match_record and len(match_record) == 1 else False,

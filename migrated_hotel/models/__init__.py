@@ -20,3 +20,5 @@ from . import inherited_pms_checkin
 from . import inherited_hotel_service
 from . import inherited_account_payment
 from . import inherited_account_invoice
+from . import inherited_queue_job
+from . import inherited_checkin_partner
