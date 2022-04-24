@@ -2,6 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
+from multiprocessing.spawn import prepare
 from operator import ne
 from dateutil.relativedelta import relativedelta
 import datetime
@@ -13,7 +14,8 @@ import odoorpc.odoo
 from odoo.exceptions import UserError, ValidationError
 from odoo import models, fields, api, _
 import traceback
-from odoo.tools import DEFAULT_SERVER_DATE_FORMAT
+from odoo.tools import DEFAULT_SERVER_DATE_FORMAT, float_compare
+import yaml
 
 _logger = logging.getLogger(__name__)
 
@@ -998,6 +1000,7 @@ class MigratedHotel(models.Model):
             "create_uid",
             "room_lines",
             "partner_invoice_id",
+            "amount_total",
         ]) or []
         _logger.info("%s Folios to migrate", len(remote_hotel_folios))
 
@@ -1171,22 +1174,25 @@ class MigratedHotel(models.Model):
         new_folio = self.env['pms.folio'].with_context(
             context_folio
         ).create(vals)
+        new_folio.incongruence_data_migration = False
+        if remote_hotel_folio["reservation_type"] == "normal":
+            remote_amount = remote_hotel_folio["amount_total"]
+            if float_compare(remote_amount, new_folio.amount_total, precision_digits=2) != 0:
+                new_folio.incongruence_data_migration = True
+        folio_note = self._get_folio_note(remote_hotel_folio)
         new_folio.message_post(
-            body=_(
-                """Migrated from: <b>%s</b> V2""",
-                self.pms_property_id.name,
-            ),
+            body=folio_note,
             email_from=self.pms_property_id.partner_id.email_formatted,
         )
         for reservation in new_folio.reservation_ids:
+            remote_res = [res for res in reservations if res['id'] == reservation.remote_id]
+            remote_res_lines = [res for res in reservation_lines if res['reservation_id'][0] == reservation.remote_id]
+            remote_services = [res for res in services if res['ser_room_line'][0] == reservation.remote_id]
+            res_note = self._get_reservation_note(remote_res, remote_res_lines, remote_services)
             reservation.message_post(
-                body=_(
-                    """Migrated from: <b>%s</b> V2""",
-                    self.pms_property_id.name,
-                ),
+                body=res_note,
                 email_from=self.pms_property_id.partner_id.email_formatted,
             )
-
 
     # RESERVATIONS ---------------------------------------------------------------------------------------------------------------------------
 
@@ -2777,3 +2783,33 @@ class MigratedHotel(models.Model):
         # actualizar campos especiales (creado en, creado por...)
         # crear bindings para tarifas, room_types, plan de dipo (0), board services??
         # wubook: desactivar el check de export disabled
+
+    def _get_folio_note(self, remote_hotel_folio):
+        note = "<p>Migrated from: <b>" + self.odoo_host + "</b>: </p>"
+        for key, val in remote_hotel_folio.items():
+            note += "<p><b>" + key + ": </b>" + str(val) + "</p>"
+        return note
+
+    def _get_reservation_note(self, remote_reservation, remote_res_lines, remote_service):
+        note = "<p>Migrated from: <b>" + self.odoo_host + ":<b></p>"
+        for key, val in remote_reservation[0].items():
+            if key == "reservation_line_ids" and val:
+                note += "<p><b>Reservation Lines:</b></p>"
+                for line in remote_res_lines:
+                    note += "<p><b>-> " + line["date"] + "</b></p>"
+                    for key, val in line.items():
+                        if key == "date":
+                            continue
+                        note += "<b>" + key + ": </b>" + str(val) + ", "
+            if key == "service_ids" and val:
+                note += "<p><b>Services:</b></p>"
+                for service in remote_service:
+                    note += "<p><b>-> " + service["name"] + "</b></p>"
+                    for key, val in service.items():
+                        if key == "name":
+                            continue
+                        note += "<b>" + key + ": </b>" + str(val) + ","
+            else:
+                note += "<p><b>" + key + ": </b>" + str(val) + "</p>"
+        return note
+

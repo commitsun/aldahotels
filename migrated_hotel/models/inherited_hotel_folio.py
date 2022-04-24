@@ -13,3 +13,9 @@ class PmsFolio(models.Model):
         readonly=True,
         help="ID of the target record in the previous version"
     )
+    incongruence_data_migration = fields.Boolean(
+        string="Incongruence Data Migration",
+        default=False,
+        copy=False,
+    )
+
