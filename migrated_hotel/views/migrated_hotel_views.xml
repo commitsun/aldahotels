@@ -212,7 +212,7 @@
                                 <tree editable="bottom">
                                     <field name="remote_id" />
                                     <field name="remote_name" />
-                                    <field name="pms_pricelist_id" />
+                                    <field name="pms_pricelist_id" domain="['|',('active','=',True),('active','=',False)]"/>
                                 </tree>
                             </field>
                         </page>
