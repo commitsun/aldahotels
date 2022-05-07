@@ -2411,14 +2411,18 @@ class MigratedHotel(models.Model):
         try:
             _logger.info("Importing Remote Rooms...")
             import_datetime = fields.Datetime.now()
-            remote_ids = noderpc.env['hotel.room'].search([])
+            remote_ids = noderpc.env['hotel.room'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             remote_records = noderpc.env['hotel.room'].browse(remote_ids)
             room_migrated_ids = self.mapped("migrated_room_ids.remote_id")
             total_records = len(remote_records)
             count = 0
             for record in remote_records:
                 room_clean_name = [int(item) for item in record.name.split() if item.isdigit()]
-                room_clean_name = room_clean_name[0] if len(room_clean_name) == 1 else False
+                room_clean_name = str(room_clean_name[0]) if len(room_clean_name) == 1 else False
                 # TODO: Habitaciones compartidas tienen el mismo room_clean_name!!
                 match_record = self.env['pms.room'].search([
                     ("pms_property_id", "=", self.pms_property_id.id),
@@ -2427,10 +2431,11 @@ class MigratedHotel(models.Model):
                     ('name', '=', room_clean_name),
                 ])
                 if record.id not in room_migrated_ids:
+                    room_name = record.name if record.active else record.name + ' (Obsoleta)'
                     if match_record:
                         self.migrated_room_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': record.name,
+                            'remote_name': room_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                             'pms_room_id': match_record.id if match_record and len(match_record) == 1 else False,
@@ -2452,11 +2457,12 @@ class MigratedHotel(models.Model):
                             'sequence': record.sequence,
                             'in_ine': record.in_ine,
                             'pms_property_id': self.pms_property_id.id,
+                            'active': record.active,
                         })
                         count += 1
                         self.migrated_room_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': record.name,
+                            'remote_name': room_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                             'pms_room_id': new_room.id,
@@ -2466,7 +2472,7 @@ class MigratedHotel(models.Model):
                     else:
                         self.migrated_room_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': record.name,
+                            'remote_name': room_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                         })]
@@ -2510,8 +2516,7 @@ class MigratedHotel(models.Model):
                     ('name', '=', record.name),
                 ])
                 if record.id not in product_migrated_ids:
-                    if not record.active:
-                        product_name = record.name + ' (Obsoleto)'
+                    product_name = record.name if record.active else record.name + ' (Obsoleto)'
                     if match_record:
                         self.migrated_product_ids = [(0, 0, {
                             'remote_id': record.id,
@@ -2522,6 +2527,17 @@ class MigratedHotel(models.Model):
                         })]
                         if match_record.pms_property_ids:
                             match_record.pms_property_ids = [(4, self.pms_property_id.id)]
+                        count += 1
+                        _logger.info('(%s/%s) Product Matching imported: %s',
+                                     total_records, count, record.name)
+                    elif not record.active:
+                        self.migrated_product_ids = [(0, 0, {
+                            'remote_id': record.id,
+                            'remote_name': product_name,
+                            'last_sync': fields.Datetime.now(),
+                            'migrated_hotel_id': self.id,
+                            'product_id': self.dummy_product_id.id,
+                        })]
                         count += 1
                         _logger.info('(%s/%s) Product Matching imported: %s',
                                      total_records, count, record.name)
@@ -2575,6 +2591,7 @@ class MigratedHotel(models.Model):
             remote_records = noderpc.env['hotel.board.service'].browse(remote_ids)
             board_service_migrated_ids = self.mapped("migrated_board_service_ids.remote_id")
             for record in remote_records:
+                board_service_name = record.name
                 match_record = self.env['pms.board.service'].search([
                     ('name', '=', record.name),
                 ])
@@ -2582,7 +2599,7 @@ class MigratedHotel(models.Model):
                 if record.id not in board_service_migrated_ids:
                     self.migrated_board_service_ids = [(0, 0, {
                         'remote_id': record.id,
-                        'remote_name': record.name,
+                        'remote_name': board_service_name,
                         'last_sync': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'board_service_id': match_record.id if match_record and len(match_record) == 1 else False,
@@ -2627,10 +2644,11 @@ class MigratedHotel(models.Model):
                     ("pms_property_ids", "in", self.pms_property_id.id),
                 ])
                 if record.id not in board_service_room_type_migrated_ids:
+                    board_service_room_type_name = match_record.display_name if match_record else record.name
                     if match_record:
                         self.migrated_board_service_room_type_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': match_record.display_name,
+                            'remote_name': board_service_room_type_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                             'board_service_room_type_id': match_record.id if match_record and len(match_record) == 1 else False,
@@ -2680,7 +2698,7 @@ class MigratedHotel(models.Model):
                         count += 1
                         self.migrated_board_service_room_type_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': match_record.display_name,
+                            'remote_name': board_service_room_type_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                             'board_service_room_type_id': new_board.id,
@@ -2690,7 +2708,7 @@ class MigratedHotel(models.Model):
                     else:
                         self.migrated_board_service_room_type_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': match_record.display_name,
+                            'remote_name': board_service_room_type_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                         })]
@@ -2726,9 +2744,10 @@ class MigratedHotel(models.Model):
                     ("pms_property_ids", "in", self.pms_property_id.id),
                 ])
                 if record.id not in journal_migrated_ids:
+                    journal_name = record.name if record.active else record.name + ' (Obsoleto)'
                     self.migrated_journal_ids = [(0, 0, {
                         'remote_id': record.id,
-                        'remote_name': record.name,
+                        'remote_name': journal_name,
                         'last_sync': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'account_journal_id': match_record.id if match_record else False,
