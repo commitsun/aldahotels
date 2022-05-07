@@ -2487,7 +2487,11 @@ class MigratedHotel(models.Model):
         try:
             _logger.info("Importing Remote Products...")
             import_datetime = fields.Datetime.now()
-            remote_ids = noderpc.env['product.product'].search([])
+            remote_ids = noderpc.env['product.product'].search([
+                '|',
+                ('active', '=', True),
+                ('active', '=', False),
+            ])
             # We want discard room type products associated
             remote_room_type_ids = noderpc.env['hotel.room.type'].search([])
             remote_room_types = noderpc.env['hotel.room.type'].browse(remote_room_type_ids)
@@ -2506,10 +2510,12 @@ class MigratedHotel(models.Model):
                     ('name', '=', record.name),
                 ])
                 if record.id not in product_migrated_ids:
+                    if not record.active:
+                        product_name = record.name + ' (Obsoleto)'
                     if match_record:
                         self.migrated_product_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': record.name,
+                            'remote_name': product_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                             'product_id': match_record.id if match_record and len(match_record) == 1 else False,
@@ -2530,11 +2536,12 @@ class MigratedHotel(models.Model):
                             'per_person': record.per_person,
                             'daily_limit': record.daily_limit,
                             'consumed_on': record.consumed_on,
+                            'active': record.active,
                         })
                         count += 1
                         self.migrated_product_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': record.name,
+                            'remote_name': product_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                             'product_id': new_product.id,
@@ -2544,7 +2551,7 @@ class MigratedHotel(models.Model):
                     else:
                         self.migrated_product_ids = [(0, 0, {
                             'remote_id': record.id,
-                            'remote_name': record.name,
+                            'remote_name': product_name,
                             'last_sync': fields.Datetime.now(),
                             'migrated_hotel_id': self.id,
                         })]
@@ -2812,4 +2819,5 @@ class MigratedHotel(models.Model):
             else:
                 note += "<p><b>" + key + ": </b>" + str(val) + "</p>"
         return note
+
 
