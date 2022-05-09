@@ -5,7 +5,7 @@
     <data noupdate="0">
         <record id="channel_migrated_hotel" model="queue.job.channel">
             <field name="name">migration</field>
-            <field name="parent_id" ref="connector_pms.channel_pms" />
+            <field name="parent_id" ref="queue_job.channel_root" />
         </record>
         <record id="channel_migrated_hotel_batch" model="queue.job.channel">
             <field name="name">batch</field>
