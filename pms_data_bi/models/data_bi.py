@@ -931,18 +931,13 @@ class DataBi(models.Model):
                     else 0
                 )
 
-                PrecioComision = round(
+                precio_comision = round(
                     linea.reservation_id.commission_amount
                     / len(linea.reservation_id.reservation_line_ids),
                     2,
                 )
-                PrecioIva = round(
-                    (
-                        linea.reservation_id.sale_line_ids.tax_ids.amount
-                        * linea.price
-                        / 100
-                    ),
-                    2,
+                precio_iva = round(
+                    (linea.reservation_id.tax_ids.amount * linea.price / 100), 2
                 )
 
                 dic_reservas.append(
@@ -968,10 +963,10 @@ class DataBi(models.Model):
                         "Adultos": linea.reservation_id.adults,
                         "Menores": linea.reservation_id.children,
                         "Cunas": cuna,
-                        "PrecioDiario": linea.price - PrecioComision - PrecioIva,
+                        "PrecioDiario": linea.price - precio_comision - precio_iva,
                         "PrecioDto": linea.discount * (linea.price / 100),
-                        "PrecioComision": PrecioComision,
-                        "PrecioIva": PrecioIva,
+                        "PrecioComision": precio_comision,
+                        "PrecioIva": precio_iva,
                         "ID_Tarifa": linea.reservation_id.pricelist_id.id,
                         "ID_Pais": self.data_bi_get_codeine(linea),
                         "ID_Room": linea.room_id.id,
