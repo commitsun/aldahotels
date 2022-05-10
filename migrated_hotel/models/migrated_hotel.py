@@ -1089,6 +1089,9 @@ class MigratedHotel(models.Model):
             'discount',
             'channel_type',
             'service_line_ids',
+            'create_date',
+            'product_qty',
+            'price_unit',
         ])
 
         _logger.info("%s Services to migrate", len(remote_hotel_services))
@@ -1398,13 +1401,19 @@ class MigratedHotel(models.Model):
                 for line in remote_service_lines:
                     date = line["date"]
                     if not date:
-                        date = remote_service_lines["create_date"]
+                        date = remote_service["create_date"]
                     date = fields.Date.from_string(date).strftime(DEFAULT_SERVER_DATE_FORMAT)
                     service_lines_cmds.append((0, 0, {
                         'date': date,
                         'day_qty': line["day_qty"],
                         'price_unit': line["price_unit"],
                     }))
+            else:
+                service_lines_cmds = [(0, 0, {
+                    'date': remote_service["create_date"],
+                    'day_qty': remote_service["day_qty"],
+                    'price_unit': remote_service["price_unit"],
+                })]
 
             service_vals = {
                 'remote_id': remote_service['id'],
