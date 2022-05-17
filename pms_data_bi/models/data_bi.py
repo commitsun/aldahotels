@@ -942,7 +942,7 @@ class DataBi(models.Model):
 
                 dic_reservas.append(
                     {
-                        "ID_Reserva": linea.reservation_id.folio_id.id,
+                        "ID_Reserva": linea.reservation_id.id,
                         "ID_Hotel": prop.id,
                         "ID_EstadoReserva": estado_array.index(
                             linea.reservation_id.state
