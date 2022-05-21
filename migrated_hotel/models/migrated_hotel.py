@@ -34,9 +34,8 @@ class MigratedHotel(models.Model):
                                      'Protocol', required=True, default='jsonrpc+ssl')
     odoo_version = fields.Char()
 
-    migration_date_d = fields.Date('Migration Ddate', copy=False)
-    migration_before_date_d = fields.Boolean('Migrate data before Ddate', default=True)
-    migration_date_operator = fields.Char(default='<')
+    migration_date_from = fields.Date('Migration date from (included)', copy=False)
+    migration_date_to = fields.Date('Migration date to (included)', copy=False)
 
     log_ids = fields.One2many('migrated.log', 'migrated_hotel_id')
 
@@ -298,17 +297,10 @@ class MigratedHotel(models.Model):
             else:
                 record.complete_channels = False
 
-    @api.onchange('migration_before_date_d')
-    def onchange_migration_before_date_d(self):
-        if self.migration_before_date_d:
-            self.migration_date_operator = '<'
-        else:
-            self.migration_date_operator = '>='
-
-    @api.onchange('migration_date_operator', 'migration_date_d')
+    @api.onchange('migration_date_to', 'migration_date_from')
     def onchange_count_remote_date(self):
         if self.odoo_db and self.odoo_host and self.odoo_port and self.odoo_protocol and self.odoo_user and \
-                self.odoo_version and self.odoo_password and self. migration_date_d and self.migration_date_operator:
+                self.odoo_version and self.odoo_password and self.migration_date_from and self.migration_date_to:
             try:
                 noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
                 noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
@@ -348,22 +340,27 @@ class MigratedHotel(models.Model):
                 '|', ('vat', '!=', False), ('document_number', '!=', False),
             ])
             self.count_tarjet_folios = noderpc.env['hotel.folio'].search_count([
-                ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
                 '|',
                 ("room_lines", "!=", False),
                 ("service_ids", "!=", False),
             ])
             self.count_tarjet_reservations = noderpc.env['hotel.reservation'].search_count([
-                ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))
+                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             ])
             self.count_tarjet_checkins = noderpc.env['hotel.checkin.partner'].search_count([
-                ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))
+                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             ])
             self.count_tarjet_payments = noderpc.env['account.payment'].search_count([
-                ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))
+                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             ])
             self.count_tarjet_invoices = noderpc.env['account.invoice'].search_count([
-                ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))
+                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             ])
 
     @api.model
@@ -562,7 +559,8 @@ class MigratedHotel(models.Model):
             ('id', 'not in', partners_migrated_remote_ids),
             ('parent_id', '=', False),
             ('user_ids', '=', False),
-            ('write_date', self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             '|', ('active', '=', True), ('active', '=', False),
             '|', ('vat', '!=', False), ('document_number', '!=', False),
         ])
@@ -949,7 +947,8 @@ class MigratedHotel(models.Model):
             _logger.info("Preparing 'hotel.folio' of interest...")
 
             remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
-                ("write_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
                 '|',
                 ("room_lines", "!=", False),
                 ("service_ids", "!=", False),
@@ -1442,14 +1441,6 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
 
         try:
-            # Funtion to group by journal
-            def journal_func(k):
-                return k['journal_id']
-
-            # Funtion to group by date
-            def date_func(k):
-                return k['payment_date']
-
             # Prepare Users
             _logger.info("Mapping local with remote 'res.users' ids...")
             remote_ids = noderpc.env['res.users'].search([])
@@ -1463,7 +1454,8 @@ class MigratedHotel(models.Model):
                 res_users_map_ids.update({record.id: res_users_id})
 
             remote_payment_vals = noderpc.env['account.payment'].search_read(
-                [("payment_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))],
+                ("payment_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("payment_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
                 [
                     "payment_type",
                     "partner_type",
@@ -1478,9 +1470,34 @@ class MigratedHotel(models.Model):
                     "create_uid"
                 ],
             )
-            # TODO
             total = len(remote_payment_vals)
             _logger.info("Total Number of Payments: %s", total)
+            self.with_company(self.pms_property_id.company_id).with_delay().migration_payments(
+                remote_payment_vals,
+                res_users_map_ids,
+            )
+        except (ValueError, ValidationError, Exception) as err:
+            traceback.print_exc()
+            _logger.info("error: {}".format(err))
+            migrated_log = self.env['migrated.log'].create({
+                'name': err,
+                'date_time': fields.Datetime.now(),
+                'migrated_hotel_id': self.id,
+                'model': 'payment',
+            })
+            _logger.error('ERROR account.payment with LOG #%s: (%s)',
+                        migrated_log.id, err)
+
+    def migration_payments(self, remote_payment_vals, res_users_map_ids):
+        try:
+            # Funtion to group by journal
+            def journal_func(k):
+                return k['journal_id']
+
+            # Funtion to group by date
+            def date_func(k):
+                return k['payment_date']
+            total = len(remote_payment_vals)
             remote_payment_by_journal_vals = sorted(remote_payment_vals, key=journal_func)
             migrated_journals = []
             count = 0
@@ -1578,8 +1595,6 @@ class MigratedHotel(models.Model):
                         count += 1
                         _logger.info('(%s/%s) Migrated account.payment with ID (remote): %s',
                                         count, total, payment['id'])
-
-
         except (ValueError, ValidationError, Exception) as err:
             traceback.print_exc()
             _logger.info("error: {}".format(err))
@@ -1989,9 +2004,11 @@ class MigratedHotel(models.Model):
                 res_users_map_ids.update({record.id: res_users_id})
 
             _logger.info("Preparing 'account.invoice' of interest...")
-            remote_account_invoice_ids = noderpc.env['account.invoice'].search(
-                [('number', 'not in', [False]),("date_invoice", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))],
-                order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
+            remote_account_invoice_ids = noderpc.env['account.invoice'].search([
+                ('number', 'not in', [False]),
+                ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("date_invoice", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
             )
 
             _logger.info("Migrating 'account.invoice'...")

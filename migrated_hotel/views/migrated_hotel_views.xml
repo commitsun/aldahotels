@@ -38,9 +38,8 @@
                     </group>
                     <group colspan="4">
                         <field name="folio_prefix" />
-                        <field name="migration_date_d"/>
-                        <field name="migration_before_date_d"/>
-                        <field name="migration_date_operator" invisible="1"/>
+                        <field name="migration_date_from"/>
+                        <field name="migration_date_to"/>
                     </group>
                     <notebook>
                         <page name="migration" string="Data Migration" >
