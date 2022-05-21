@@ -18,3 +18,8 @@ class PmsReservation(models.Model):
         if self._context.get('tracking_disable'):
             return True
         return super().confirm()
+
+    def _check_capacity(self):
+        for record in self:
+            if record.remote_id:
+                return True

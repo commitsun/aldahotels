@@ -1190,7 +1190,8 @@ class MigratedHotel(models.Model):
         for reservation in new_folio.reservation_ids:
             remote_res = [res for res in reservations if res['id'] == reservation.remote_id]
             remote_res_lines = [res for res in reservation_lines if res['reservation_id'][0] == reservation.remote_id]
-            remote_services = [res for res in services if res['ser_room_line'][0] == reservation.remote_id]
+            remote_services = []
+            remote_services = [res for res in services if res['ser_room_line'] and res['ser_room_line'][0] == reservation.remote_id]
             res_note = self._get_reservation_note(remote_res, remote_res_lines, remote_services)
             reservation.message_post(
                 body=res_note,
@@ -1226,7 +1227,7 @@ class MigratedHotel(models.Model):
         hotel_checkin_partners = [checkin for checkin in remote_checkin_partners if checkin['id'] in remote_ids]
         checkins_cmds = []
 
-        for hotel_checkin in hotel_checkin_partners:
+        for hotel_checkin in hotel_checkin_partners[:reservation['adults']]:
             partner_id = self.env["migrated.partner"].search([("remote_id", "=", hotel_checkin['partner_id'][0]), ("migrated_hotel_id", "=", self.id)]).partner_id.id
 
             state = hotel_checkin["state"]
@@ -1316,7 +1317,7 @@ class MigratedHotel(models.Model):
             'pricelist_id': pricelist_id,
             'cancelled_reason': reservation['cancelled_reason'],
             'out_service_description': reservation['out_service_description'],
-            'adults': min(reservation['adults'], self.env['pms.room'].browse(preferred_room_id).capacity),
+            'adults': reservation['adults'],
             'children': reservation['children'],
             'overbooking': reservation['overbooking'],
             'service_ids': services_vals if services_vals else False,
@@ -1461,11 +1462,8 @@ class MigratedHotel(models.Model):
                 res_users_id = res_users.id if res_users else self._context.get('uid', self._uid)
                 res_users_map_ids.update({record.id: res_users_id})
 
-            migrated_folio_ids = self.env["pms.folio"].search([
-                ("pms_property_id", "=", self.pms_property_id.id)
-            ]).mapped("remote_id")
             remote_payment_vals = noderpc.env['account.payment'].search_read(
-                [],
+                [("payment_date", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))],
                 [
                     "payment_type",
                     "partner_type",
@@ -1818,10 +1816,18 @@ class MigratedHotel(models.Model):
         # search res_users ids
         remote_id = account_invoice['user_id'] and account_invoice['user_id'][0]
         res_user_id = remote_id and res_users_map_ids.get(str(remote_id)) or self._context.get('uid', self._uid)
+
         # prepare partner_id related field
         default_res_partner = self.env['res.partner'].search([
             ('user_ids', 'in', self._context.get('uid', self._uid))
         ])
+        # Journal
+        journal_id = self.env["migrated.journal"].search([
+            ('remote_id', '=', account_invoice['journal_id'][0]),
+            ('migrated_hotel_id', '=', self.id),
+        ]).account_journal_id.id
+        if not journal_id:
+            raise ValidationError("Debes asignar un diario v14 para el diario v3: %s", account_invoice['journal_id'][1])
         # search res_partner id
         remote_id = account_invoice['partner_id'] and account_invoice['partner_id'][0]
         _logger.info("partner remote_id: %s", remote_id)
@@ -1896,6 +1902,9 @@ class MigratedHotel(models.Model):
                     ('pms_property_id', '=', self.pms_property_id.id),
                     ('remote_id', 'in', remote_reservation_ids)
                 ]).reservation_line_ids or None
+                if not reservation_lines:
+                    _logger.warning("Invoice migration cancel, not reservation in V14: %s", invoice_line['name'])
+                    return False
                 res_folio_sale_lines += reservation_lines.sale_line_ids
 
             # search for services in sale_order_line
@@ -1944,6 +1953,7 @@ class MigratedHotel(models.Model):
             'ref': account_invoice['origin'],
             'invoice_date': account_invoice['date_invoice'],
             'move_type': account_invoice['type'],
+            'journal_id': journal_id,
             # 'refund_invoice_id': account_invoice['refund_invoice_id'] and refund_invoice_id,
             # [193, '430000 Clientes (euros)']
             # 'account_id': account_invoice['account_id'] and account_invoice['account_id'][0] or 193,
@@ -1980,7 +1990,7 @@ class MigratedHotel(models.Model):
 
             _logger.info("Preparing 'account.invoice' of interest...")
             remote_account_invoice_ids = noderpc.env['account.invoice'].search(
-                [('number', 'not in', [False])],
+                [('number', 'not in', [False]),("date_invoice", self.migration_date_operator, self.migration_date_d.strftime(DEFAULT_SERVER_DATE_FORMAT))],
                 order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
             )
 
@@ -2003,7 +2013,7 @@ class MigratedHotel(models.Model):
                                      self._uid, remote_account_invoice_id)
                         rpc_account_invoice = noderpc.env['account.invoice'].search_read(
                             [('id', '=', remote_account_invoice_id)],
-                            ['user_id', 'partner_id', 'refund_invoice_id', 'invoice_line_ids', 'id', 'number', 'origin', 'date_invoice', 'type','payment_ids']
+                            ['user_id', 'partner_id', 'refund_invoice_id', 'invoice_line_ids', 'id', 'number', 'origin', 'date_invoice', 'type', 'payment_ids', 'journal_id']
                         )[0]
 
                         if rpc_account_invoice['number'].strip() == '':
@@ -2847,5 +2857,23 @@ class MigratedHotel(models.Model):
             else:
                 note += "<p><b>" + key + ": </b>" + str(val) + "</p>"
         return note
+
+    # def _account_close_migration_past_years(self):
+    #     # limit date is included in search
+    #     limit_date = datetime.datetime(2020, 1, 31)
+    #     journals = self.env["account.journal"].search([
+    #         ("company_id", "=", self.company_id.id),
+    #     ])
+    #     for journal in journals:
+    #         lines = self.env["account.move.line"].search([
+    #             ("journal_id", "=", journal.id),
+    #             ("date", "<=", limit_date),
+    #             ("pms_property_id", "=", self.pms_property_id.id),
+    #         ])
+    #         if not lines:
+    #             continue
+    #         for past_year in range(min(lines.mapped("date")).year, limit_date.year):
+    #             year_lines = lines.filtered(lambda l: l.date.year == past_year)
+    #             year_balance = sum(year_lines.balance)
 
 
