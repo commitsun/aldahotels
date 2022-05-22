@@ -1453,9 +1453,10 @@ class MigratedHotel(models.Model):
                 res_users_id = res_users.id if res_users else self._context.get('uid', self._uid)
                 res_users_map_ids.update({record.id: res_users_id})
 
-            remote_payment_vals = noderpc.env['account.payment'].search_read(
+            remote_payment_vals = noderpc.env['account.payment'].search_read([
                 ("payment_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                ("payment_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("payment_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT))
+                ],
                 [
                     "payment_type",
                     "partner_type",
