@@ -930,6 +930,7 @@ class DataBi(models.Model):
                     if linea.reservation_id.agency_id.id
                     else 0
                 )
+                cliente = canal if cliente == 0 else cliente
 
                 precio_comision = round(
                     linea.reservation_id.commission_amount
