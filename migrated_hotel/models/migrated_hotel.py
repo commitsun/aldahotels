@@ -9,6 +9,7 @@ import datetime
 from itertools import groupby
 from itertools import islice
 import urllib.error
+import json
 from odoo.tools.mail import email_escape_char
 import odoorpc.odoo
 from odoo.exceptions import UserError, ValidationError
@@ -665,6 +666,11 @@ class MigratedHotel(models.Model):
                     "name": rpc_res_partner["document_number"],
                     "valid_from": rpc_res_partner["document_expedition_date"],
                 }
+        if not migrated_res_partner and rpc_res_partner["vat"]:
+            migrated_res_partner = self.env["res.partner"].search([
+                ("vat", "=", rpc_res_partner["vat"]),
+                ("vat_document_type", "=", "vat"),
+            ])
         if migrated_res_partner:
             _logger.info('User #%s found with identity document: [%s]',
                          rpc_res_partner["id"], rpc_res_partner['document_number'])
@@ -2876,22 +2882,72 @@ class MigratedHotel(models.Model):
                 note += "<p><b>" + key + ": </b>" + str(val) + "</p>"
         return note
 
-    # def _account_close_migration_past_years(self):
-    #     # limit date is included in search
-    #     limit_date = datetime.datetime(2020, 1, 31)
-    #     journals = self.env["account.journal"].search([
-    #         ("company_id", "=", self.company_id.id),
-    #     ])
-    #     for journal in journals:
-    #         lines = self.env["account.move.line"].search([
-    #             ("journal_id", "=", journal.id),
-    #             ("date", "<=", limit_date),
-    #             ("pms_property_id", "=", self.pms_property_id.id),
-    #         ])
-    #         if not lines:
-    #             continue
-    #         for past_year in range(min(lines.mapped("date")).year, limit_date.year):
-    #             year_lines = lines.filtered(lambda l: l.date.year == past_year)
-    #             year_balance = sum(year_lines.balance)
+    def ensure_matching_payment_invoices(self, journal_id):
+        invoices = self.env["account.move"].search([
+            ("journal_id", "=", journal_id),
+            ("amount_residual", ">", 0),
+        ])
+        for move in invoices:
+            to_reconcile_payments_widget_vals = json.loads(
+                move.invoice_outstanding_credits_debits_widget
+            )
+            if not to_reconcile_payments_widget_vals:
+                continue
+            current_amounts = {
+                vals["move_id"]: vals["amount"]
+                for vals in to_reconcile_payments_widget_vals["content"]
+            }
+            pay_term_lines = move.line_ids.filtered(
+                lambda line: line.account_id.user_type_id.type
+                in ("receivable", "payable")
+            )
+            to_propose = (
+                self.env["account.move"]
+                .browse(list(current_amounts.keys()))
+                .line_ids.filtered(
+                    lambda line: line.account_id == pay_term_lines.account_id
+                    and not line.reconciled
+                    and (
+                        line.folio_ids in move.folio_ids
+                        or (
+                            line.move_id.partner_id == move.partner_id
+                            or not line.move_id.partner_id
+                        )
+                    )
+                )
+            )
+            to_reconcile = move.match_pays_by_amount(
+                payments=to_propose, invoice=move
+            )
+            if to_reconcile:
+                (pay_term_lines + to_reconcile).reconcile()
+                # Set partner in payment
+                for record in to_reconcile:
+                    if record.payment_id and not record.payment_id.partner_id:
+                        record.payment_id.partner_id = move.partner_id
+                    if (
+                        record.statement_line_id
+                        and not record.statement_line_id.partner_id
+                    ):
+                        record.statement_line_id.partner_id = move.partner_id
+
+
+    def _account_close_migration_past_years(self):
+        # limit date is included in search
+        limit_date = datetime.datetime(2020, 1, 31)
+        journals = self.env["account.journal"].search([
+            ("company_id", "=", self.company_id.id),
+        ])
+        for journal in journals:
+            lines = self.env["account.move.line"].search([
+                ("journal_id", "=", journal.id),
+                ("date", "<=", limit_date),
+                ("pms_property_id", "=", self.pms_property_id.id),
+            ])
+            if not lines:
+                continue
+            for past_year in range(min(lines.mapped("date")).year, limit_date.year):
+                year_lines = lines.filtered(lambda l: l.date.year == past_year)
+                year_balance = sum(year_lines.balance)
 
 
