@@ -139,7 +139,7 @@ class WizardCreateProperty(models.TransientModel):
                 ], limit=1)
                 default_account_id = account_reference.copy()
                 default_account_id.code = default_account_code
-                default_account_id.name = "CC " + bank_name + " " + self.name + " " + bank.acc_number[:4]
+                default_account_id.name = "CC " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
 
             suspense_code = "5720080"
             suspense_account_code = suspense_code + bank_digit + self.account_code
@@ -154,7 +154,7 @@ class WizardCreateProperty(models.TransientModel):
                 ], limit=1)
                 suspense_account_id = account_reference.copy()
                 suspense_account_id.code = suspense_account_code
-                suspense_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[:4]
+                suspense_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
 
             payment_code = "5720090"
             payment_account_code = payment_code + bank_digit + self.account_code
@@ -169,7 +169,7 @@ class WizardCreateProperty(models.TransientModel):
                 ], limit=1)
                 payment_account_id = account_reference.copy()
                 payment_account_id.code = payment_account_code
-                payment_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[:4]
+                payment_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
 
             bank_journal = Journals.create({
                 "name": default_account_id.name ,
@@ -186,7 +186,7 @@ class WizardCreateProperty(models.TransientModel):
             # Redsys Journal
             if self.tpv_bank_id.id == bank.id:
                 tpv_journal = Journals.create({
-                    "name": "P&S Redsys " + self.name + " " + bank.acc_number[:4],
+                    "name": "P&S Redsys " + self.name + " " + bank.acc_number[-4:],
                     "type": "bank",
                     "pms_property_ids": [(4, pms_property.id)],
                     "code": "PS" + self.property_code,
@@ -212,7 +212,7 @@ class WizardCreateProperty(models.TransientModel):
                 ], limit=1)
                 if not default_account_id:
                     account_reference = self.env["account.account"].search([
-                        ("code", "ilike", default_code[:4]),
+                        ("code", "ilike", default_code[-4:]),
                         ("company_id", "=", self.company_id.id),
                     ], limit=1)
                     default_account_id = account_reference.copy()
@@ -220,7 +220,7 @@ class WizardCreateProperty(models.TransientModel):
                     default_account_id.name = "CC Virtual Booking" + self.name
 
                 tpv_journal = Journals.create({
-                    "name": "Booking " + self.name  + " " + bank.acc_number[:4],
+                    "name": "Booking " + self.name  + " " + bank.acc_number[-4:],
                     "type": "bank",
                     "pms_property_ids": [(4, pms_property.id)],
                     "code": "BK" + self.property_code,
@@ -259,7 +259,7 @@ class WizardCreateProperty(models.TransientModel):
             ], limit=1)
             suspense_account_id = account_reference.copy()
             suspense_account_id.code = suspense_account_code
-            suspense_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[:4]
+            suspense_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
 
         payment_code = "57000900"
         payment_account_code = payment_code + self.account_code
