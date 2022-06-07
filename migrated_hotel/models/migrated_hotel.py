@@ -1429,7 +1429,7 @@ class MigratedHotel(models.Model):
             else:
                 service_lines_cmds = [(0, 0, {
                     'date': remote_service["create_date"],
-                    'day_qty': remote_service["day_qty"],
+                    'day_qty': remote_service["product_qty"],
                     'price_unit': remote_service["price_unit"],
                 })]
 
