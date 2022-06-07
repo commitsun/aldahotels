@@ -196,10 +196,10 @@ class MigratedHotel(models.Model):
     last_import_products = fields.Datetime("Updated Products", copy=False)
     last_import_board_services = fields.Datetime("Updated BoardServices", copy=False)
 
-    @api.depends("count_total_partners", "count_migrated_partners")
+    @api.depends("count_tarjet_partners", "count_migrated_partners")
     def _compute_complete_partners(self):
         for record in self:
-            if record.count_total_partners == record.count_migrated_partners:
+            if record.count_tarjet_partners == record.count_migrated_partners:
                 record.complete_partners = True
             else:
                 record.complete_partners = False
@@ -298,8 +298,7 @@ class MigratedHotel(models.Model):
             else:
                 record.complete_channels = False
 
-    @api.onchange('migration_date_to', 'migration_date_from')
-    def onchange_count_remote_date(self):
+    def count_remote_date(self):
         if self.odoo_db and self.odoo_host and self.odoo_port and self.odoo_protocol and self.odoo_user and \
                 self.odoo_version and self.odoo_password and self.migration_date_from and self.migration_date_to:
             try:
@@ -307,12 +306,18 @@ class MigratedHotel(models.Model):
                 noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
             except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
                 raise ValidationError(err)
-            self.count_total_pricelists = noderpc.env['product.pricelist'].search_count([])
-            self.count_total_room_types = noderpc.env['hotel.room.type'].search_count([])
+            self.count_total_pricelists = noderpc.env['product.pricelist'].search_count([
+                '|', ('active', '=', True), ('active', '=', False)
+            ])
+            self.count_total_room_types = noderpc.env['hotel.room.type'].search_count([
+                '|', ('active', '=', True), ('active', '=', False)
+            ])
             self.count_total_rooms = noderpc.env['hotel.room'].search_count([])
             self.count_total_board_services = noderpc.env['hotel.board.service.room.type'].search_count([])
             self.count_total_journals = noderpc.env['account.journal'].search_count([])
-            self.count_total_products = noderpc.env['product.product'].search_count([])
+            self.count_total_products = noderpc.env['product.product'].search_count([
+                '|', ('active', '=', True), ('active', '=', False)
+            ])
             self.count_total_partners = noderpc.env['res.partner'].search_count([])
             self.count_total_folios = noderpc.env['hotel.folio'].search_count([])
             self.count_total_reservations = noderpc.env['hotel.reservation'].search_count([])
@@ -556,12 +561,13 @@ class MigratedHotel(models.Model):
         # First, import remote partners without contacts (parent_id is not set)
 
         _logger.info("Migrating 'res.partners' without parent_id...")
+        import_datetime = fields.Datetime.now()
         remote_partners_ids = noderpc.env['res.partner'].search([
             ('id', 'not in', partners_migrated_remote_ids),
             ('parent_id', '=', False),
             ('user_ids', '=', False),
-            ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ("create_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ("create_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             '|', ('active', '=', True), ('active', '=', False),
             '|', ('vat', '!=', False), ('document_number', '!=', False),
         ])
@@ -586,7 +592,7 @@ class MigratedHotel(models.Model):
         #     self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
         #     count += 1
         #     total_count += 1
-
+        self.last_import_partners = import_datetime
         noderpc.logout()
 
     @api.model
@@ -669,7 +675,6 @@ class MigratedHotel(models.Model):
         if not migrated_res_partner and rpc_res_partner["vat"]:
             migrated_res_partner = self.env["res.partner"].search([
                 ("vat", "=", rpc_res_partner["vat"]),
-                ("vat_document_type", "=", "vat"),
             ])
         if migrated_res_partner:
             _logger.info('User #%s found with identity document: [%s]',
@@ -951,10 +956,16 @@ class MigratedHotel(models.Model):
 
             # prepare folios of interest
             _logger.info("Preparing 'hotel.folio' of interest...")
-
+            import_datetime = fields.Datetime.now()
+            remote_hotel_reservation_ids = noderpc.env['hotel.reservation'].search([
+                ("checkout", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("checkout", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ])
+            remote_hotel_reservations = noderpc.env['hotel.reservation'].search_read([
+                ("id", "in", remote_hotel_reservation_ids),
+            ], ["folio_id"]) or []
             remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
-                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ("id", "in", list(set(res["folio_id"][0] for res in remote_hotel_reservations))),
                 '|',
                 ("room_lines", "!=", False),
                 ("service_ids", "!=", False),
@@ -963,6 +974,7 @@ class MigratedHotel(models.Model):
             # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
             for sublist in self.chunks(remote_hotel_folio_ids, 500):
                 self.with_company(self.pms_property_id.company_id).with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
+            self.last_import_folios = import_datetime
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
@@ -1458,7 +1470,7 @@ class MigratedHotel(models.Model):
                 ])
                 res_users_id = res_users.id if res_users else self._context.get('uid', self._uid)
                 res_users_map_ids.update({record.id: res_users_id})
-
+            import_datetime = fields.Datetime.now()
             remote_payment_vals = noderpc.env['account.payment'].search_read([
                 ("payment_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
                 ("payment_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT))
@@ -1483,6 +1495,7 @@ class MigratedHotel(models.Model):
                 remote_payment_vals,
                 res_users_map_ids,
             )
+            self.last_import_payments = import_datetime
         except (ValueError, ValidationError, Exception) as err:
             traceback.print_exc()
             _logger.info("error: {}".format(err))
@@ -1663,6 +1676,7 @@ class MigratedHotel(models.Model):
             "state": "draft",
             "create_uid": res_create_uid,
             "is_internal_transfer": is_internal_transfer,
+            "remote_id": payment["id"],
         }
         if payment["partner_type"]:
             vals["partner_type"] = payment["partner_type"]
@@ -1754,6 +1768,7 @@ class MigratedHotel(models.Model):
             "counterpart_account_id": journal.suspense_account_id.id,
             "statement_id": statement.id,
             "create_uid": res_create_uid,
+            "remote_id": payment["id"],
         }
         if folio_id:
             vals["folio_ids"] = [(6, 0, [folio_id])]
@@ -2011,6 +2026,7 @@ class MigratedHotel(models.Model):
                 res_users_map_ids.update({record.id: res_users_id})
 
             _logger.info("Preparing 'account.invoice' of interest...")
+            import_datetime = self.Datetime.now()
             remote_account_invoice_ids = noderpc.env['account.invoice'].search([
                 ('number', 'not in', [False]),
                 ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
@@ -2065,6 +2081,7 @@ class MigratedHotel(models.Model):
                                   remote_account_invoice_id, migrated_log.id, err)
                     continue
             self.pms_property_id.company_id.check_min_partner_data_invoice = True
+            self.last_import_invoices = import_datetime
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
@@ -2132,8 +2149,8 @@ class MigratedHotel(models.Model):
                     create_date = rpc_record['create_date'] and rpc_record['create_date'] or record.create_date
 
                     self.env.cr.execute('''UPDATE ''' + self.env[local_model]._table + '''
-                                           SET create_uid = %s, user_id = %s, create_date = %s WHERE id = %s''',
-                                        (create_uid, create_uid, create_date, record.id))
+                                           SET create_uid = %s, create_date = %s WHERE id = %s''',
+                                        (create_uid, create_date, record.id))
 
 
                     _logger.info('User #%s has updated %s with ID [local, remote]: [%s, %s] - ',
@@ -2144,7 +2161,7 @@ class MigratedHotel(models.Model):
 
             except (ValueError, ValidationError, Exception) as err:
                 _logger.error('Failed updating hotel.folio with ID [local]: [%s] with ERROR LOG #%s: (%s)',
-                              record.id,  err)
+                              record.id, err)
                 continue
 
     def action_update_special_field_names(self):
@@ -2205,8 +2222,8 @@ class MigratedHotel(models.Model):
 
             self._update_special_field_names('pms.folio', 'hotel.folio', res_users_map_ids, noderpc)
             self._update_special_field_names('pms.reservation', 'hotel.reservation', res_users_map_ids, noderpc)
-            #self._update_special_field_names('account.payment', 'payment', res_users_map_ids, noderpc)
-            #self._update_special_field_names('account.invoice', 'invoice', res_users_map_ids, noderpc)
+            self._update_special_field_names('account.payment', 'account.payment', res_users_map_ids, noderpc)
+            self._update_special_field_names('account.move', 'account.invoice', res_users_map_ids, noderpc)
 
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)

@@ -8,6 +8,14 @@
         <field name="model">migrated.hotel</field>
         <field name="arch" type="xml">
             <form string="Hotel Remote Node">
+                <header>
+                    <button name="count_remote_date"
+                            type="object"
+                            class="oe_highlight"
+                            string="Update Counts"
+                            help="Update Total Migrate Counts"
+                    />
+                </header>
                 <sheet>
                     <label for="name" class="oe_edit_only"/>
                     <h1>
@@ -184,7 +192,7 @@
                                 <tree editable="bottom">
                                     <field name="remote_id"/>
                                     <field name="remote_name" />
-                                    <field name="product_id" />
+                                    <field name="product_id" domain="['|',('active','=',True),('active','=',False)]"/>
                                 </tree>
                             </field>
                         </page>
@@ -355,13 +363,9 @@
         <field name="arch" type="xml">
             <tree string="Remote Nodes">
                 <field name="pms_property_id"/>
-                <field name="complete_pricelists" />
-                <field name="complete_rooms" />
-                <field name="complete_products" />
-                <field name="complete_boards" />
-                <field name="complete_channels" />
-                <!-- <field name="last_import_rooms"/>
-                <field name="last_import_pricelists"/> -->
+                <field name="last_import_pricelists" />
+                <field name="last_import_products" />
+                <field name="last_import_board_services" />
                 <field name="last_import_partners"/>
                 <field name="last_import_folios"/>
                 <field name="last_import_payments"/>
