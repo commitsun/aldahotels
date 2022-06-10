@@ -104,14 +104,18 @@ class WizardCreateProperty(models.TransientModel):
 
         # BANKS
         for bank in self.bank_ids:
-            if "Sabadell" in bank.bank_id.name:
+            if "SABADELL" in bank.bank_id.name.upper():
                 bank_code = "SA"
                 bank_name = "Sabadell"
                 bank_digit = "1"
-            elif "CaixaBank" in bank.bank_id.name:
+            elif "CAIXABANK" in bank.bank_id.name.upper():
                 bank_code = "CB"
-                bank_name = "CaixaBank"
+                bank_name = "Caixabank"
                 bank_digit = "2"
+            elif "ABANCA" in bank.bank_id.name.upper():
+                bank_code = "CB"
+                bank_name = "A"
+                bank_digit = "3"
             else:
                 bank_code = bank.bank_id.bic[:2]
                 bank_name = bank.bank_name
@@ -169,7 +173,7 @@ class WizardCreateProperty(models.TransientModel):
                 ], limit=1)
                 payment_account_id = account_reference.copy()
                 payment_account_id.code = payment_account_code
-                payment_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
+                payment_account_id.name = "Pendientes " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
 
             bank_journal = Journals.create({
                 "name": default_account_id.name ,
@@ -212,12 +216,12 @@ class WizardCreateProperty(models.TransientModel):
                 ], limit=1)
                 if not default_account_id:
                     account_reference = self.env["account.account"].search([
-                        ("code", "ilike", default_code[-4:]),
+                        ("code", "ilike", default_code),
                         ("company_id", "=", self.company_id.id),
                     ], limit=1)
                     default_account_id = account_reference.copy()
                     default_account_id.code = default_account_code
-                    default_account_id.name = "CC Virtual Booking" + self.name
+                    default_account_id.name = "CC Virtual Booking " + self.name
 
                 tpv_journal = Journals.create({
                     "name": "Booking " + self.name  + " " + bank.acc_number[-4:],
