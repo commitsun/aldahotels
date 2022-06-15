@@ -2,15 +2,21 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
+from multiprocessing.spawn import prepare
+from operator import ne
+from dateutil.relativedelta import relativedelta
 import datetime
 from itertools import groupby
+from itertools import islice
 import urllib.error
 import json
+from odoo.tools.mail import email_escape_char
 import odoorpc.odoo
 from odoo.exceptions import UserError, ValidationError
 from odoo import models, fields, api, _
 import traceback
 from odoo.tools import DEFAULT_SERVER_DATE_FORMAT, float_compare
+import yaml
 
 _logger = logging.getLogger(__name__)
 
@@ -2020,7 +2026,7 @@ class MigratedHotel(models.Model):
                 res_users_map_ids.update({record.id: res_users_id})
 
             _logger.info("Preparing 'account.invoice' of interest...")
-            import_datetime = fields.Datetime.now()
+            import_datetime = self.Datetime.now()
             remote_account_invoice_ids = noderpc.env['account.invoice'].search([
                 ('number', 'not in', [False]),
                 ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
@@ -2959,6 +2965,6 @@ class MigratedHotel(models.Model):
                 continue
             for past_year in range(min(lines.mapped("date")).year, limit_date.year):
                 year_lines = lines.filtered(lambda l: l.date.year == past_year)
-                sum(year_lines.balance)
+                year_balance = sum(year_lines.balance)
 
 

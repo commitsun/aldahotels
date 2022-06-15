@@ -18,7 +18,10 @@
                     </group>
                     <group>
                         <field name="bank_ids" />
-                        <field name="tpv_bank_id" />
+                        <field name="tpv1_bank_id" />
+                        <field name="tpv2_bank_id" />
+                        <field name="tpv3_bank_id" />
+                        <field name="ps_bank_id" />
                         <field name="booking_bank_id" />
                     </group>
                     <footer>

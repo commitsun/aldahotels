@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of BrowseInfo. See LICENSE file for full copyright and licensing details.
 
+from xml.dom import ValidationErr
 from odoo.exceptions import UserError
 from odoo import _, models, fields
 import logging
@@ -26,8 +27,27 @@ class WizardCreateProperty(models.TransientModel):
         comodel_name="res.partner.bank",
         string="Banks",
     )
-    tpv_bank_id = fields.Many2one(
-        string="Bank linked with Redsys Gateway payments",
+    tpv1_bank_id = fields.Many2one(
+        string="TPV 1 Bank",
+        help="Bank linked with TPV1 payments",
+        comodel_name="res.partner.bank",
+        domain="[('id', 'in', bank_ids)]"
+    )
+    tpv2_bank_id = fields.Many2one(
+        string="TPV 2 Bank",
+        help="Bank linked with TPV2 payments",
+        comodel_name="res.partner.bank",
+        domain="[('id', 'in', bank_ids)]"
+    )
+    tpv3_bank_id = fields.Many2one(
+        string="TPV 3 Bank",
+        help="Bank linked with 2 payments",
+        comodel_name="res.partner.bank",
+        domain="[('id', 'in', bank_ids)]"
+    )
+    ps_bank_id = fields.Many2one(
+        string="Redsys Bank",
+        help="Bank linked with Redsys Gateway payments",
         comodel_name="res.partner.bank",
         domain="[('id', 'in', bank_ids)]"
     )
@@ -68,23 +88,9 @@ class WizardCreateProperty(models.TransientModel):
             "check_chronology": True,
             "refund_sequence": True,
             "default_account_id": default_account_id.id,
+            "sequence": 5,
         })
         pms_property.journal_normal_invoice_id = customer_journal.id
-
-        # Supplier Invoices
-        default_account_id = self.env["account.account"].search([
-            ("company_id", "=", self.company_id.id),
-            ("code", "=", "60000000000"),
-        ])
-        Journals.create({
-            "name": "Proveedores " + self.name,
-            "type": "purchase",
-            "pms_property_ids": [(4, pms_property.id)],
-            "code": "FS" + self.property_code,
-            "check_chronology": True,
-            "refund_sequence": True,
-            "default_account_id": default_account_id.id,
-        })
 
         # Simplified Invoices
         default_account_id = self.env["account.account"].search([
@@ -99,10 +105,28 @@ class WizardCreateProperty(models.TransientModel):
             "check_chronology": True,
             "refund_sequence": True,
             "default_account_id": default_account_id.id,
+            "sequence": 6,
         })
         pms_property.journal_simplified_invoice_id = simplified_journal.id
 
+        # Supplier Invoices
+        default_account_id = self.env["account.account"].search([
+            ("company_id", "=", self.company_id.id),
+            ("code", "=", "60000000000"),
+        ])
+        Journals.create({
+            "name": "Proveedores " + self.name,
+            "type": "purchase",
+            "pms_property_ids": [(4, pms_property.id)],
+            "code": "FS" + self.property_code,
+            "check_chronology": True,
+            "refund_sequence": True,
+            "default_account_id": default_account_id.id,
+            "sequence": 7,
+        })
+
         # BANKS
+        bank_sequence = 13
         for bank in self.bank_ids:
             if "SABADELL" in bank.bank_id.name.upper():
                 bank_code = "SA"
@@ -185,11 +209,58 @@ class WizardCreateProperty(models.TransientModel):
                 "payment_credit_account_id": payment_account_id.id,
                 "payment_debit_account_id": payment_account_id.id,
                 "bank_account_id": bank.id,
+                "sequence": bank_sequence,
             })
+            bank_sequence += 1
+
+            # TPV1 Journal
+            if self.tpv1_bank_id and self.tpv1_bank_id.id == bank.id:
+                journal = Journals.create({
+                    "name": "TPV " + self.name + " " + bank.acc_number[-4:],
+                    "type": "bank",
+                    "pms_property_ids": [(4, pms_property.id)],
+                    "code": "TPV" + self.property_code,
+                    "default_account_id": default_account_id.id,
+                    "suspense_account_id": suspense_account_id.id,
+                    "payment_credit_account_id": payment_account_id.id,
+                    "payment_debit_account_id": payment_account_id.id,
+                    "allowed_pms_payments": True,
+                    "sequence": 8,
+                })
+
+            # TPV2 Journal
+            if self.tpv2_bank_id and self.tpv2_bank_id.id == bank.id:
+                journal = Journals.create({
+                    "name": "TPV " + self.name + " " + bank.acc_number[-4:],
+                    "type": "bank",
+                    "pms_property_ids": [(4, pms_property.id)],
+                    "code": "TPV" + self.property_code,
+                    "default_account_id": default_account_id.id,
+                    "suspense_account_id": suspense_account_id.id,
+                    "payment_credit_account_id": payment_account_id.id,
+                    "payment_debit_account_id": payment_account_id.id,
+                    "allowed_pms_payments": True,
+                    "sequence": 9,
+                })
+
+            # TPV3 Journal
+            if self.tpv3_bank_id and self.tpv3_bank_id.id == bank.id:
+                journal = Journals.create({
+                    "name": "TPV " + self.name + " " + bank.acc_number[-4:],
+                    "type": "bank",
+                    "pms_property_ids": [(4, pms_property.id)],
+                    "code": "TPV" + self.property_code,
+                    "default_account_id": default_account_id.id,
+                    "suspense_account_id": suspense_account_id.id,
+                    "payment_credit_account_id": payment_account_id.id,
+                    "payment_debit_account_id": payment_account_id.id,
+                    "allowed_pms_payments": True,
+                    "sequence": 10,
+                })
 
             # Redsys Journal
-            if self.tpv_bank_id.id == bank.id:
-                tpv_journal = Journals.create({
+            if self.ps_bank_id.id == bank.id:
+                ps_journal = Journals.create({
                     "name": "P&S Redsys " + self.name + " " + bank.acc_number[-4:],
                     "type": "bank",
                     "pms_property_ids": [(4, pms_property.id)],
@@ -198,6 +269,7 @@ class WizardCreateProperty(models.TransientModel):
                     "suspense_account_id": suspense_account_id.id,
                     "payment_credit_account_id": payment_account_id.id,
                     "payment_debit_account_id": payment_account_id.id,
+                    "sequence": 11,
                 })
 
             # Booking.com Journal
@@ -304,4 +376,5 @@ class WizardCreateProperty(models.TransientModel):
             "profit_account_id": profit_account_id.id,
             "loss_account_id": loss_account_id.id,
             "allowed_pms_payments": True,
+            "sequence": 12,
         })
