@@ -872,7 +872,7 @@ class MigratedHotel(models.Model):
 
         return vals
 
-    def action_migrate_folios(self):
+    def action_migrate_folios(self, remote_folio_ids=False):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -957,31 +957,35 @@ class MigratedHotel(models.Model):
             # prepare folios of interest
             _logger.info("Preparing 'hotel.folio' of interest...")
             import_datetime = fields.Datetime.now()
-            remote_hotel_reservation_ids = noderpc.env['hotel.reservation'].search([
-                ("checkout", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                ("checkout", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            ])
-            remote_hotel_reservations = noderpc.env['hotel.reservation'].search_read([
-                ("id", "in", remote_hotel_reservation_ids),
-            ], ["folio_id"]) or []
-            remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
-                ("id", "in", list(set(res["folio_id"][0] for res in remote_hotel_reservations))),
-                '|',
-                ("room_lines", "!=", False),
-                ("service_ids", "!=", False),
-            ])
+            if not remote_folio_ids:
+                remote_hotel_reservation_ids = noderpc.env['hotel.reservation'].search([
+                    ("checkout", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                    ("checkout", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ])
+                remote_hotel_reservations = noderpc.env['hotel.reservation'].search_read([
+                    ("id", "in", remote_hotel_reservation_ids),
+                ], ["folio_id"]) or []
+                remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
+                    ("id", "in", list(set(res["folio_id"][0] for res in remote_hotel_reservations))),
+                    '|',
+                    ("room_lines", "!=", False),
+                    ("service_ids", "!=", False),
+                ])
 
-            # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
-            for sublist in self.chunks(remote_hotel_folio_ids, 500):
-                self.with_company(self.pms_property_id.company_id).with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
-            self.last_import_folios = import_datetime
+                # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
+                for sublist in self.chunks(remote_hotel_folio_ids, 500):
+                    self.with_company(self.pms_property_id.company_id).with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
+                self.last_import_folios = import_datetime
+            else:
+                self.with_company(self.pms_property_id.company_id).folio_batch(remote_folio_ids, category_map_ids, res_users_map_ids, direct_import=True)
+
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
             noderpc.logout()
 
     @api.model
-    def folio_batch(self, sublist, category_map_ids, res_users_map_ids):
+    def folio_batch(self, sublist, category_map_ids, res_users_map_ids, direct_import=False):
         """
         Prepare Folio batch
         """
@@ -1148,17 +1152,30 @@ class MigratedHotel(models.Model):
             service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
             checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
             folio_remote_bindings = [b for b in remote_bindings if b['odoo_id'][0] in [item["id"] for item in reservations_folio]]
-            self.with_company(self.pms_property_id.company_id).with_delay().migration_folio(
-                remote_hotel_folio,
-                res_users_map_ids,
-                category_map_ids,
-                reservations_folio,
-                reservation_lines_folio,
-                services_folio,
-                service_lines_folio,
-                checkins_partners_folio,
-                folio_remote_bindings,
-            )
+            if not direct_import:
+                self.with_company(self.pms_property_id.company_id).with_delay().migration_folio(
+                    remote_hotel_folio,
+                    res_users_map_ids,
+                    category_map_ids,
+                    reservations_folio,
+                    reservation_lines_folio,
+                    services_folio,
+                    service_lines_folio,
+                    checkins_partners_folio,
+                    folio_remote_bindings,
+                )
+            else:
+                self.with_company(self.pms_property_id.company_id).migration_folio(
+                    remote_hotel_folio,
+                    res_users_map_ids,
+                    category_map_ids,
+                    reservations_folio,
+                    reservation_lines_folio,
+                    services_folio,
+                    service_lines_folio,
+                    checkins_partners_folio,
+                    folio_remote_bindings,
+                )
             count += 1
             _logger.info('Finished migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
             _logger.info('Migrated %s of %s hotel.folio', count, total)
@@ -1902,7 +1919,6 @@ class MigratedHotel(models.Model):
                         'date_time': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'model': 'invoice',
-                        'remote_id': remote_account_invoice_id,
                     })
                     _logger.error('Remote partner with ID remote: [%s] not found', remote_id)
                     return False
@@ -1940,8 +1956,19 @@ class MigratedHotel(models.Model):
                     ('remote_id', 'in', remote_reservation_ids)
                 ]).reservation_line_ids or None
                 if not reservation_lines:
-                    _logger.warning("Invoice migration cancel, not reservation in V14: %s", invoice_line['name'])
-                    return False
+                    # Try to force folio import
+                    remote_reservations = noderpc.env['hotel.reservation'].search_read(
+                        [('id', 'in', remote_reservation_ids)], ["folio_id"]
+                    )
+                    remote_folio_ids = list(set(res["folio_id"][0] for res in remote_reservations))
+                    self.action_migrate_folios(remote_folio_ids)
+                    reservation_lines = self.env['pms.reservation'].search([
+                        ('pms_property_id', '=', self.pms_property_id.id),
+                        ('remote_id', 'in', remote_reservation_ids)
+                    ]).reservation_line_ids or None
+                    if not reservation_lines:
+                        _logger.warning("Invoice migration cancel, not reservation in V14: %s", invoice_line['name'])
+                        return False
                 res_folio_sale_lines += reservation_lines.sale_line_ids
 
             # search for services in sale_order_line
