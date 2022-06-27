@@ -410,7 +410,7 @@ class MigratedHotel(models.Model):
         state_id = False
         remote_id = rpc_res_partner['country_id'] and rpc_res_partner['country_id'][0]
         if remote_id:
-            country_id = remote_id and country_map_ids.get(str(remote_id)) or None
+            country_id = remote_id and country_map_ids.get(remote_id) or None
         elif rpc_res_partner['code_ine_id'] and rpc_res_partner['code_ine_id'][0]:
             ine_code = next(item for item in ine_codes if item["id"] == rpc_res_partner['code_ine_id'][0])["code"]
             if 'ES' in ine_code:
@@ -422,10 +422,10 @@ class MigratedHotel(models.Model):
         # prepare state_id related field
         if not state_id:
             remote_id = rpc_res_partner['state_id'] and rpc_res_partner['state_id'][0]
-            state_id = remote_id and country_state_map_ids.get(str(remote_id)) or None
+            state_id = remote_id and country_state_map_ids.get(remote_id) or None
         # prepare category_ids related field
         remote_ids = rpc_res_partner['category_id'] and rpc_res_partner['category_id']
-        category_ids = remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or None
+        category_ids = remote_ids and [category_map_ids.get(r) for r in remote_ids] or None
         # prepare parent_id related field
         parent_id = rpc_res_partner['parent_id']
         vat = rpc_res_partner['vat']
@@ -765,13 +765,12 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = rpc_hotel_folio['user_id'] and rpc_hotel_folio['user_id'][0]
-        res_user_id = remote_id and res_users_map_ids.get(str(remote_id))
+        res_user_id = remote_id and res_users_map_ids.get(remote_id)
         remote_id = rpc_hotel_folio['create_uid'] and rpc_hotel_folio['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
-
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
         # prepare category_ids related field
         remote_ids = rpc_hotel_folio['segmentation_ids'] and rpc_hotel_folio['segmentation_ids']
-        category_ids = remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or False
+        category_ids = remote_ids and [category_map_ids.get(r) for r in remote_ids] or False
 
         # Prepare pricelist
         remote_id = rpc_hotel_folio['pricelist_id'][0]
@@ -1248,7 +1247,7 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = reservation['create_uid'] and reservation['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
 
         # Prepare pricelist
         remote_id = reservation['pricelist_id'][0]
@@ -1646,7 +1645,7 @@ class MigratedHotel(models.Model):
 
     def create_bank_payment_migration(self, payment, remote_journal, res_users_map_ids, journal_id):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
         if payment["partner_id"]:
             partner_id = self.env["migrated.partner"].search([
                 ("remote_id", "=", payment['partner_id'][0]),
@@ -1743,7 +1742,7 @@ class MigratedHotel(models.Model):
 
     def create_payment_migration(self, payment, res_users_map_ids, remote_journal, date_str, journal, statement):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
         if payment["partner_id"]:
             partner_id = self.env["migrated.partner"].search([
                 ("remote_id", "=", payment['partner_id'][0]),
@@ -1869,7 +1868,7 @@ class MigratedHotel(models.Model):
     def _prepare_invoice_remote_data(self, account_invoice, res_users_map_ids, noderpc):
         # search res_users ids
         remote_id = account_invoice['user_id'] and account_invoice['user_id'][0]
-        res_user_id = remote_id and res_users_map_ids.get(str(remote_id)) or self._context.get('uid', self._uid)
+        res_user_id = remote_id and res_users_map_ids.get(remote_id) or self._context.get('uid', self._uid)
 
         # prepare partner_id related field
         default_res_partner = self.env['res.partner'].search([
