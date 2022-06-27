@@ -1880,7 +1880,7 @@ class MigratedHotel(models.Model):
             ('migrated_hotel_id', '=', self.id),
         ]).account_journal_id.id
         if not journal_id:
-            raise ValidationError("Debes asignar un diario v14 para el diario v3: %s", account_invoice['journal_id'][1])
+            raise ValidationError("Debes asignar los diarios de facturación en el configurador antes de importar facturas")
         # search res_partner id
         remote_id = account_invoice['partner_id'] and account_invoice['partner_id'][0]
         _logger.info("partner remote_id: %s", remote_id)
@@ -2031,7 +2031,7 @@ class MigratedHotel(models.Model):
 
         return vals
 
-    def action_migrate_invoices(self):
+    def action_migrate_invoices(self, remote_invoice_ids=False):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -2052,13 +2052,19 @@ class MigratedHotel(models.Model):
                 res_users_map_ids.update({record.id: res_users_id})
 
             _logger.info("Preparing 'account.invoice' of interest...")
-            import_datetime = self.Datetime.now()
-            remote_account_invoice_ids = noderpc.env['account.invoice'].search([
-                ('number', 'not in', [False]),
-                ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                ("date_invoice", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
-            )
+            import_datetime = fields.Datetime.now()
+            if not remote_invoice_ids:
+                remote_account_invoice_ids = noderpc.env['account.invoice'].search([
+                    ('number', 'not in', [False]),
+                    ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                    ("date_invoice", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
+                )
+            else:
+                remote_account_invoice_ids = noderpc.env['account.invoice'].search([
+                    ('id', 'in', remote_invoice_ids),
+                ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
+                )
 
             _logger.info("Migrating 'account.invoice'...")
             _logger.info("Total of 'account.invoice' to migrate: %s" % len(remote_account_invoice_ids))
