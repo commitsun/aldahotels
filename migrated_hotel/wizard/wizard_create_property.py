@@ -326,7 +326,7 @@ class WizardCreateProperty(models.TransientModel):
         suspense_account_code = suspense_code + self.account_code
         suspense_account_id = self.env["account.account"].search([
             ("company_id", "=", self.company_id.id),
-            ("code", "=", default_account_code),
+            ("code", "=", suspense_account_code),
         ], limit=1)
         if not suspense_account_id:
             account_reference = self.env["account.account"].search([
@@ -335,7 +335,7 @@ class WizardCreateProperty(models.TransientModel):
             ], limit=1)
             suspense_account_id = account_reference.copy()
             suspense_account_id.code = suspense_account_code
-            suspense_account_id.name = "Transitoria " + bank_name + " " + self.name + " " + bank.acc_number[-4:]
+            suspense_account_id.name = "Transitoria Caja " + self.name
 
         payment_code = "57000900"
         payment_account_code = payment_code + self.account_code
