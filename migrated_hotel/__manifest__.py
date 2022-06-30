@@ -14,6 +14,7 @@
     'license': "AGPL-3",
     'data': [
         'wizard/view_import_chart.xml',
+        'wizard/view_wizard_create_property.xml',
         'views/migrated_hotel_views.xml',
         'views/migrated_log_views.xml',
         'views/inherited_res_partner_views.xml',

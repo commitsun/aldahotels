@@ -9,6 +9,7 @@ import datetime
 from itertools import groupby
 from itertools import islice
 import urllib.error
+import json
 from odoo.tools.mail import email_escape_char
 import odoorpc.odoo
 from odoo.exceptions import UserError, ValidationError
@@ -195,10 +196,10 @@ class MigratedHotel(models.Model):
     last_import_products = fields.Datetime("Updated Products", copy=False)
     last_import_board_services = fields.Datetime("Updated BoardServices", copy=False)
 
-    @api.depends("count_total_partners", "count_migrated_partners")
+    @api.depends("count_tarjet_partners", "count_migrated_partners")
     def _compute_complete_partners(self):
         for record in self:
-            if record.count_total_partners == record.count_migrated_partners:
+            if record.count_tarjet_partners == record.count_migrated_partners:
                 record.complete_partners = True
             else:
                 record.complete_partners = False
@@ -297,8 +298,7 @@ class MigratedHotel(models.Model):
             else:
                 record.complete_channels = False
 
-    @api.onchange('migration_date_to', 'migration_date_from')
-    def onchange_count_remote_date(self):
+    def count_remote_date(self):
         if self.odoo_db and self.odoo_host and self.odoo_port and self.odoo_protocol and self.odoo_user and \
                 self.odoo_version and self.odoo_password and self.migration_date_from and self.migration_date_to:
             try:
@@ -306,12 +306,18 @@ class MigratedHotel(models.Model):
                 noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
             except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
                 raise ValidationError(err)
-            self.count_total_pricelists = noderpc.env['product.pricelist'].search_count([])
-            self.count_total_room_types = noderpc.env['hotel.room.type'].search_count([])
+            self.count_total_pricelists = noderpc.env['product.pricelist'].search_count([
+                '|', ('active', '=', True), ('active', '=', False)
+            ])
+            self.count_total_room_types = noderpc.env['hotel.room.type'].search_count([
+                '|', ('active', '=', True), ('active', '=', False)
+            ])
             self.count_total_rooms = noderpc.env['hotel.room'].search_count([])
             self.count_total_board_services = noderpc.env['hotel.board.service.room.type'].search_count([])
             self.count_total_journals = noderpc.env['account.journal'].search_count([])
-            self.count_total_products = noderpc.env['product.product'].search_count([])
+            self.count_total_products = noderpc.env['product.product'].search_count([
+                '|', ('active', '=', True), ('active', '=', False)
+            ])
             self.count_total_partners = noderpc.env['res.partner'].search_count([])
             self.count_total_folios = noderpc.env['hotel.folio'].search_count([])
             self.count_total_reservations = noderpc.env['hotel.reservation'].search_count([])
@@ -404,7 +410,7 @@ class MigratedHotel(models.Model):
         state_id = False
         remote_id = rpc_res_partner['country_id'] and rpc_res_partner['country_id'][0]
         if remote_id:
-            country_id = remote_id and country_map_ids.get(str(remote_id)) or None
+            country_id = remote_id and country_map_ids.get(remote_id) or None
         elif rpc_res_partner['code_ine_id'] and rpc_res_partner['code_ine_id'][0]:
             ine_code = next(item for item in ine_codes if item["id"] == rpc_res_partner['code_ine_id'][0])["code"]
             if 'ES' in ine_code:
@@ -416,10 +422,10 @@ class MigratedHotel(models.Model):
         # prepare state_id related field
         if not state_id:
             remote_id = rpc_res_partner['state_id'] and rpc_res_partner['state_id'][0]
-            state_id = remote_id and country_state_map_ids.get(str(remote_id)) or None
+            state_id = remote_id and country_state_map_ids.get(remote_id) or None
         # prepare category_ids related field
         remote_ids = rpc_res_partner['category_id'] and rpc_res_partner['category_id']
-        category_ids = remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or None
+        category_ids = remote_ids and [category_map_ids.get(r) for r in remote_ids] or None
         # prepare parent_id related field
         parent_id = rpc_res_partner['parent_id']
         vat = rpc_res_partner['vat']
@@ -555,12 +561,13 @@ class MigratedHotel(models.Model):
         # First, import remote partners without contacts (parent_id is not set)
 
         _logger.info("Migrating 'res.partners' without parent_id...")
+        import_datetime = fields.Datetime.now()
         remote_partners_ids = noderpc.env['res.partner'].search([
             ('id', 'not in', partners_migrated_remote_ids),
             ('parent_id', '=', False),
             ('user_ids', '=', False),
-            ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ("create_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+            ("create_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
             '|', ('active', '=', True), ('active', '=', False),
             '|', ('vat', '!=', False), ('document_number', '!=', False),
         ])
@@ -585,7 +592,7 @@ class MigratedHotel(models.Model):
         #     self.with_delay().migration_partner(remote_res_partner, country_map_ids, country_state_map_ids, category_map_ids)
         #     count += 1
         #     total_count += 1
-
+        self.last_import_partners = import_datetime
         noderpc.logout()
 
     @api.model
@@ -665,6 +672,10 @@ class MigratedHotel(models.Model):
                     "name": rpc_res_partner["document_number"],
                     "valid_from": rpc_res_partner["document_expedition_date"],
                 }
+        if not migrated_res_partner and rpc_res_partner["vat"]:
+            migrated_res_partner = self.env["res.partner"].search([
+                ("vat", "=", rpc_res_partner["vat"]),
+            ])
         if migrated_res_partner:
             _logger.info('User #%s found with identity document: [%s]',
                          rpc_res_partner["id"], rpc_res_partner['document_number'])
@@ -754,13 +765,12 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = rpc_hotel_folio['user_id'] and rpc_hotel_folio['user_id'][0]
-        res_user_id = remote_id and res_users_map_ids.get(str(remote_id))
+        res_user_id = remote_id and res_users_map_ids.get(remote_id)
         remote_id = rpc_hotel_folio['create_uid'] and rpc_hotel_folio['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
-
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
         # prepare category_ids related field
         remote_ids = rpc_hotel_folio['segmentation_ids'] and rpc_hotel_folio['segmentation_ids']
-        category_ids = remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or False
+        category_ids = remote_ids and [category_map_ids.get(r) for r in remote_ids] or False
 
         # Prepare pricelist
         remote_id = rpc_hotel_folio['pricelist_id'][0]
@@ -861,7 +871,7 @@ class MigratedHotel(models.Model):
 
         return vals
 
-    def action_migrate_folios(self):
+    def action_migrate_folios(self, remote_folio_ids=False):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -945,25 +955,36 @@ class MigratedHotel(models.Model):
 
             # prepare folios of interest
             _logger.info("Preparing 'hotel.folio' of interest...")
+            import_datetime = fields.Datetime.now()
+            if not remote_folio_ids:
+                remote_hotel_reservation_ids = noderpc.env['hotel.reservation'].search([
+                    ("checkout", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                    ("checkout", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ])
+                remote_hotel_reservations = noderpc.env['hotel.reservation'].search_read([
+                    ("id", "in", remote_hotel_reservation_ids),
+                ], ["folio_id"]) or []
+                remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
+                    ("id", "in", list(set(res["folio_id"][0] for res in remote_hotel_reservations))),
+                    '|',
+                    ("room_lines", "!=", False),
+                    ("service_ids", "!=", False),
+                ])
 
-            remote_hotel_folio_ids = noderpc.env['hotel.folio'].search([
-                ("write_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                ("write_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                '|',
-                ("room_lines", "!=", False),
-                ("service_ids", "!=", False),
-            ])
+                # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
+                for sublist in self.chunks(remote_hotel_folio_ids, 500):
+                    self.with_company(self.pms_property_id.company_id).with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
+                self.last_import_folios = import_datetime
+            else:
+                self.with_company(self.pms_property_id.company_id).folio_batch(remote_folio_ids, category_map_ids, res_users_map_ids, direct_import=True)
 
-            # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
-            for sublist in self.chunks(remote_hotel_folio_ids, 500):
-                self.with_company(self.pms_property_id.company_id).with_delay().folio_batch(sublist, category_map_ids, res_users_map_ids)
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
             noderpc.logout()
 
     @api.model
-    def folio_batch(self, sublist, category_map_ids, res_users_map_ids):
+    def folio_batch(self, sublist, category_map_ids, res_users_map_ids, direct_import=False):
         """
         Prepare Folio batch
         """
@@ -1130,17 +1151,30 @@ class MigratedHotel(models.Model):
             service_lines_folio = [res for res in remote_hotel_service_lines if res['service_id'][0] in [item["id"] for item in services_folio]]
             checkins_partners_folio = [res for res in remote_checkin_partners if res['reservation_id'][0] in [item["id"] for item in reservations_folio]]
             folio_remote_bindings = [b for b in remote_bindings if b['odoo_id'][0] in [item["id"] for item in reservations_folio]]
-            self.with_company(self.pms_property_id.company_id).with_delay().migration_folio(
-                remote_hotel_folio,
-                res_users_map_ids,
-                category_map_ids,
-                reservations_folio,
-                reservation_lines_folio,
-                services_folio,
-                service_lines_folio,
-                checkins_partners_folio,
-                folio_remote_bindings,
-            )
+            if not direct_import:
+                self.with_company(self.pms_property_id.company_id).with_delay().migration_folio(
+                    remote_hotel_folio,
+                    res_users_map_ids,
+                    category_map_ids,
+                    reservations_folio,
+                    reservation_lines_folio,
+                    services_folio,
+                    service_lines_folio,
+                    checkins_partners_folio,
+                    folio_remote_bindings,
+                )
+            else:
+                self.with_company(self.pms_property_id.company_id).migration_folio(
+                    remote_hotel_folio,
+                    res_users_map_ids,
+                    category_map_ids,
+                    reservations_folio,
+                    reservation_lines_folio,
+                    services_folio,
+                    service_lines_folio,
+                    checkins_partners_folio,
+                    folio_remote_bindings,
+                )
             count += 1
             _logger.info('Finished migration of hotel.folio with remote ID: [%s]', remote_hotel_folio)
             _logger.info('Migrated %s of %s hotel.folio', count, total)
@@ -1213,7 +1247,7 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = reservation['create_uid'] and reservation['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
 
         # Prepare pricelist
         remote_id = reservation['pricelist_id'][0]
@@ -1411,7 +1445,7 @@ class MigratedHotel(models.Model):
             else:
                 service_lines_cmds = [(0, 0, {
                     'date': remote_service["create_date"],
-                    'day_qty': remote_service["day_qty"],
+                    'day_qty': remote_service["product_qty"],
                     'price_unit': remote_service["price_unit"],
                 })]
 
@@ -1452,7 +1486,7 @@ class MigratedHotel(models.Model):
                 ])
                 res_users_id = res_users.id if res_users else self._context.get('uid', self._uid)
                 res_users_map_ids.update({record.id: res_users_id})
-
+            import_datetime = fields.Datetime.now()
             remote_payment_vals = noderpc.env['account.payment'].search_read([
                 ("payment_date", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
                 ("payment_date", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT))
@@ -1477,6 +1511,7 @@ class MigratedHotel(models.Model):
                 remote_payment_vals,
                 res_users_map_ids,
             )
+            self.last_import_payments = import_datetime
         except (ValueError, ValidationError, Exception) as err:
             traceback.print_exc()
             _logger.info("error: {}".format(err))
@@ -1610,7 +1645,7 @@ class MigratedHotel(models.Model):
 
     def create_bank_payment_migration(self, payment, remote_journal, res_users_map_ids, journal_id):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
         if payment["partner_id"]:
             partner_id = self.env["migrated.partner"].search([
                 ("remote_id", "=", payment['partner_id'][0]),
@@ -1657,6 +1692,7 @@ class MigratedHotel(models.Model):
             "state": "draft",
             "create_uid": res_create_uid,
             "is_internal_transfer": is_internal_transfer,
+            "remote_id": payment["id"],
         }
         if payment["partner_type"]:
             vals["partner_type"] = payment["partner_type"]
@@ -1706,7 +1742,7 @@ class MigratedHotel(models.Model):
 
     def create_payment_migration(self, payment, res_users_map_ids, remote_journal, date_str, journal, statement):
         remote_id = payment['create_uid'] and payment['create_uid'][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
         if payment["partner_id"]:
             partner_id = self.env["migrated.partner"].search([
                 ("remote_id", "=", payment['partner_id'][0]),
@@ -1748,6 +1784,7 @@ class MigratedHotel(models.Model):
             "counterpart_account_id": journal.suspense_account_id.id,
             "statement_id": statement.id,
             "create_uid": res_create_uid,
+            "remote_id": payment["id"],
         }
         if folio_id:
             vals["folio_ids"] = [(6, 0, [folio_id])]
@@ -1831,7 +1868,7 @@ class MigratedHotel(models.Model):
     def _prepare_invoice_remote_data(self, account_invoice, res_users_map_ids, noderpc):
         # search res_users ids
         remote_id = account_invoice['user_id'] and account_invoice['user_id'][0]
-        res_user_id = remote_id and res_users_map_ids.get(str(remote_id)) or self._context.get('uid', self._uid)
+        res_user_id = remote_id and res_users_map_ids.get(remote_id) or self._context.get('uid', self._uid)
 
         # prepare partner_id related field
         default_res_partner = self.env['res.partner'].search([
@@ -1843,7 +1880,7 @@ class MigratedHotel(models.Model):
             ('migrated_hotel_id', '=', self.id),
         ]).account_journal_id.id
         if not journal_id:
-            raise ValidationError("Debes asignar un diario v14 para el diario v3: %s", account_invoice['journal_id'][1])
+            raise ValidationError("Debes asignar los diarios de facturación en el configurador antes de importar facturas")
         # search res_partner id
         remote_id = account_invoice['partner_id'] and account_invoice['partner_id'][0]
         _logger.info("partner remote_id: %s", remote_id)
@@ -1881,7 +1918,6 @@ class MigratedHotel(models.Model):
                         'date_time': fields.Datetime.now(),
                         'migrated_hotel_id': self.id,
                         'model': 'invoice',
-                        'remote_id': remote_account_invoice_id,
                     })
                     _logger.error('Remote partner with ID remote: [%s] not found', remote_id)
                     return False
@@ -1919,8 +1955,19 @@ class MigratedHotel(models.Model):
                     ('remote_id', 'in', remote_reservation_ids)
                 ]).reservation_line_ids or None
                 if not reservation_lines:
-                    _logger.warning("Invoice migration cancel, not reservation in V14: %s", invoice_line['name'])
-                    return False
+                    # Try to force folio import
+                    remote_reservations = noderpc.env['hotel.reservation'].search_read(
+                        [('id', 'in', remote_reservation_ids)], ["folio_id"]
+                    )
+                    remote_folio_ids = list(set(res["folio_id"][0] for res in remote_reservations))
+                    self.action_migrate_folios(remote_folio_ids)
+                    reservation_lines = self.env['pms.reservation'].search([
+                        ('pms_property_id', '=', self.pms_property_id.id),
+                        ('remote_id', 'in', remote_reservation_ids)
+                    ]).reservation_line_ids or None
+                    if not reservation_lines:
+                        _logger.warning("Invoice migration cancel, not reservation in V14: %s", invoice_line['name'])
+                        return False
                 res_folio_sale_lines += reservation_lines.sale_line_ids
 
             # search for services in sale_order_line
@@ -1984,7 +2031,7 @@ class MigratedHotel(models.Model):
 
         return vals
 
-    def action_migrate_invoices(self):
+    def action_migrate_invoices(self, remote_invoice_ids=False):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -2005,12 +2052,19 @@ class MigratedHotel(models.Model):
                 res_users_map_ids.update({record.id: res_users_id})
 
             _logger.info("Preparing 'account.invoice' of interest...")
-            remote_account_invoice_ids = noderpc.env['account.invoice'].search([
-                ('number', 'not in', [False]),
-                ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-                ("date_invoice", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
-            ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
-            )
+            import_datetime = fields.Datetime.now()
+            if not remote_invoice_ids:
+                remote_account_invoice_ids = noderpc.env['account.invoice'].search([
+                    ('number', 'not in', [False]),
+                    ("date_invoice", ">=", self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                    ("date_invoice", "<=", self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT)),
+                ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
+                )
+            else:
+                remote_account_invoice_ids = noderpc.env['account.invoice'].search([
+                    ('id', 'in', remote_invoice_ids),
+                ], order='id ASC'  # ensure refunded invoices are retrieved after the normal invoice
+                )
 
             _logger.info("Migrating 'account.invoice'...")
             _logger.info("Total of 'account.invoice' to migrate: %s" % len(remote_account_invoice_ids))
@@ -2059,6 +2113,7 @@ class MigratedHotel(models.Model):
                                   remote_account_invoice_id, migrated_log.id, err)
                     continue
             self.pms_property_id.company_id.check_min_partner_data_invoice = True
+            self.last_import_invoices = import_datetime
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
         else:
@@ -2126,8 +2181,8 @@ class MigratedHotel(models.Model):
                     create_date = rpc_record['create_date'] and rpc_record['create_date'] or record.create_date
 
                     self.env.cr.execute('''UPDATE ''' + self.env[local_model]._table + '''
-                                           SET create_uid = %s, user_id = %s, create_date = %s WHERE id = %s''',
-                                        (create_uid, create_uid, create_date, record.id))
+                                           SET create_uid = %s, create_date = %s WHERE id = %s''',
+                                        (create_uid, create_date, record.id))
 
 
                     _logger.info('User #%s has updated %s with ID [local, remote]: [%s, %s] - ',
@@ -2138,7 +2193,7 @@ class MigratedHotel(models.Model):
 
             except (ValueError, ValidationError, Exception) as err:
                 _logger.error('Failed updating hotel.folio with ID [local]: [%s] with ERROR LOG #%s: (%s)',
-                              record.id,  err)
+                              record.id, err)
                 continue
 
     def action_update_special_field_names(self):
@@ -2199,8 +2254,8 @@ class MigratedHotel(models.Model):
 
             self._update_special_field_names('pms.folio', 'hotel.folio', res_users_map_ids, noderpc)
             self._update_special_field_names('pms.reservation', 'hotel.reservation', res_users_map_ids, noderpc)
-            #self._update_special_field_names('account.payment', 'payment', res_users_map_ids, noderpc)
-            #self._update_special_field_names('account.invoice', 'invoice', res_users_map_ids, noderpc)
+            self._update_special_field_names('account.payment', 'account.payment', res_users_map_ids, noderpc)
+            self._update_special_field_names('account.move', 'account.invoice', res_users_map_ids, noderpc)
 
         except (odoorpc.error.RPCError, odoorpc.error.InternalError, urllib.error.URLError) as err:
             raise ValidationError(err)
@@ -2876,22 +2931,72 @@ class MigratedHotel(models.Model):
                 note += "<p><b>" + key + ": </b>" + str(val) + "</p>"
         return note
 
-    # def _account_close_migration_past_years(self):
-    #     # limit date is included in search
-    #     limit_date = datetime.datetime(2020, 1, 31)
-    #     journals = self.env["account.journal"].search([
-    #         ("company_id", "=", self.company_id.id),
-    #     ])
-    #     for journal in journals:
-    #         lines = self.env["account.move.line"].search([
-    #             ("journal_id", "=", journal.id),
-    #             ("date", "<=", limit_date),
-    #             ("pms_property_id", "=", self.pms_property_id.id),
-    #         ])
-    #         if not lines:
-    #             continue
-    #         for past_year in range(min(lines.mapped("date")).year, limit_date.year):
-    #             year_lines = lines.filtered(lambda l: l.date.year == past_year)
-    #             year_balance = sum(year_lines.balance)
+    def ensure_matching_payment_invoices(self, journal_id):
+        invoices = self.env["account.move"].search([
+            ("journal_id", "=", journal_id),
+            ("amount_residual", ">", 0),
+        ])
+        for move in invoices:
+            to_reconcile_payments_widget_vals = json.loads(
+                move.invoice_outstanding_credits_debits_widget
+            )
+            if not to_reconcile_payments_widget_vals:
+                continue
+            current_amounts = {
+                vals["move_id"]: vals["amount"]
+                for vals in to_reconcile_payments_widget_vals["content"]
+            }
+            pay_term_lines = move.line_ids.filtered(
+                lambda line: line.account_id.user_type_id.type
+                in ("receivable", "payable")
+            )
+            to_propose = (
+                self.env["account.move"]
+                .browse(list(current_amounts.keys()))
+                .line_ids.filtered(
+                    lambda line: line.account_id == pay_term_lines.account_id
+                    and not line.reconciled
+                    and (
+                        line.folio_ids in move.folio_ids
+                        or (
+                            line.move_id.partner_id == move.partner_id
+                            or not line.move_id.partner_id
+                        )
+                    )
+                )
+            )
+            to_reconcile = move.match_pays_by_amount(
+                payments=to_propose, invoice=move
+            )
+            if to_reconcile:
+                (pay_term_lines + to_reconcile).reconcile()
+                # Set partner in payment
+                for record in to_reconcile:
+                    if record.payment_id and not record.payment_id.partner_id:
+                        record.payment_id.partner_id = move.partner_id
+                    if (
+                        record.statement_line_id
+                        and not record.statement_line_id.partner_id
+                    ):
+                        record.statement_line_id.partner_id = move.partner_id
+
+
+    def _account_close_migration_past_years(self):
+        # limit date is included in search
+        limit_date = datetime.datetime(2020, 1, 31)
+        journals = self.env["account.journal"].search([
+            ("company_id", "=", self.company_id.id),
+        ])
+        for journal in journals:
+            lines = self.env["account.move.line"].search([
+                ("journal_id", "=", journal.id),
+                ("date", "<=", limit_date),
+                ("pms_property_id", "=", self.pms_property_id.id),
+            ])
+            if not lines:
+                continue
+            for past_year in range(min(lines.mapped("date")).year, limit_date.year):
+                year_lines = lines.filtered(lambda l: l.date.year == past_year)
+                year_balance = sum(year_lines.balance)
 
 

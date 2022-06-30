@@ -684,7 +684,7 @@ img {
                                                 </td>
                                             </tr>
                                             <!--Article with thumbnail amount-->
-                                            % if not object.partner_id.invoice_to_agency
+                                            % if not object.invoice_to_agency
                                             <tr>
                                                 <td
                                                     class="borderbottom"
