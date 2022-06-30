@@ -157,6 +157,7 @@ class DataBi(models.Model):
     @api.model
     def export_all(self, hotels, limit_ago):
         line_res = self.env["pms.reservation.line"].search(
+            [("pms_property_id", "in", hotels.ids)],
             [("date", ">=", limit_ago)], order="id"
         )
         dic_reservas = self.data_bi_reservas(
@@ -187,6 +188,7 @@ class DataBi(models.Model):
     def export_one(self, hotels, limit_ago, archivo):
         if (archivo == 0) or (archivo == 10) or (archivo == 6):
             line_res = self.env["pms.reservation.line"].search(
+                [("pms_property_id", "in", hotels.ids)],
                 [("date", ">=", limit_ago)], order="id"
             )
             dic_reservas = self.data_bi_reservas(
@@ -239,7 +241,7 @@ class DataBi(models.Model):
                     ("active", "=", False),
                     ("active", "=", True),
                     "|",
-                    ("pms_property_ids", "=", prop.id),
+                    ("pms_property_ids", "in", prop.id),
                     ("pms_property_ids", "=", False),
                 ],
                 ["name"],
