@@ -44,7 +44,7 @@ class CashDailyReportWizard(models.TransientModel):
     date_end = fields.Date("End Date", default=_get_default_date_end)
     xls_filename = fields.Char()
     xls_binary = fields.Binary()
-    #pms_property_id = fields.Many2one('pms.property', string='Property', default=lambda self: self.env.user.get_active_property_ids[0])
+    pms_property_id = fields.Many2one('pms.property', string='Property', default=lambda self: self.env.user.get_active_property_ids()[0])
 
     @api.model
     def _export(self):
@@ -84,7 +84,7 @@ class CashDailyReportWizard(models.TransientModel):
         worksheet.write('C1', _('Cliente/Prov.'), xls_cell_format_header)
         worksheet.write('D1', _('Fecha'), xls_cell_format_header)
         worksheet.write('E1', _('Diario'), xls_cell_format_header)
-        worksheet.write('F1', _('CAntidad'), xls_cell_format_header)
+        worksheet.write('F1', _('Cantidad'), xls_cell_format_header)
         # worksheet.write('G1', _('Tipo'), xls_cell_format_header)
 
         worksheet.set_column('A:A', 15)
@@ -96,6 +96,7 @@ class CashDailyReportWizard(models.TransientModel):
 
         account_payments_obj = self.env['account.payment']
         account_payments = account_payments_obj.search([
+            ('pms_property_id', "=", self.pms_property_id.id),
             ('date', '>=', self.date_start),
             ('date', '<=', self.date_end),
         ])
@@ -214,6 +215,7 @@ class CashDailyReportWizard(models.TransientModel):
         worksheet.write(line + 2, 1, event_date, cell_format)
         # CJACT - ignored journal restaurant Toro
         journal_cash_ids = self.env['account.journal'].search([
+            ('pms_property_ids', "in", self.pms_property_id.id),
             ('type', '=', 'cash'),
             ('code', '!=', 'CJACT')
         ])

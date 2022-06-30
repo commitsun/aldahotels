@@ -7,6 +7,9 @@
 		<field name="arch" type="xml">
 			<form string="Cash Daily Report" >
 				<group>
+                    <group>
+                        <field name="pms_property_id" required="1" />
+                    </group>
 					<group>
 						<field name="date_start" required="1" />
 					</group>
