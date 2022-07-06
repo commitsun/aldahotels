@@ -798,7 +798,7 @@ class DataBi(models.Model):
                     {
                         "ID_Hotel": prop.id,
                         "ID_Cliente": linea.id,
-                        "Descripción": linea.name,
+                        "Descripción": linea.data_bi_ref if linea.data_bi_ref else linea.name,
                     }
                 )
         return dic_clientes
