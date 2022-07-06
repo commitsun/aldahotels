@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 #    OpenERP, Open Source Management Solution
@@ -20,28 +19,24 @@
 ##############################################################################
 
 {
-    'name': 'Cash Daily Report',
-    'version': '1.0',
-    'author': "Alexandre Díaz <dev@redneboa.es>",
-    'website': 'https://www.eiqui.com',
-    'category': 'reports',
-    'summary': "Export payments report in xls format",
-    'description': "Cash Daily Report",
-    'depends': ['pms'],
-    'external_dependencies': {
-        'python': ['xlsxwriter']
-    },
-    'data': [
-        'wizard/cash_daily_report.xml',
-        'data/menus.xml',
+    "name": "Cash Daily Report",
+    "version": "1.0",
+    "author": "Alexandre Díaz <dev@redneboa.es>",
+    "website": "https://github.com/OCA/aldahotels",
+    "category": "reports",
+    "summary": "Export payments report in xls format",
+    "description": "Cash Daily Report",
+    "depends": ["pms"],
+    "external_dependencies": {"python": ["xlsxwriter"]},
+    "data": [
+        "wizard/cash_daily_report.xml",
+        "data/menus.xml",
         "security/ir.model.access.csv",
     ],
-    'qweb': [],
-    'test': [
-    ],
-
-    'installable': True,
-    'auto_install': False,
-    'application': False,
-    'license': 'AGPL-3',
+    "qweb": [],
+    "test": [],
+    "installable": True,
+    "auto_install": False,
+    "application": False,
+    "license": "AGPL-3",
 }

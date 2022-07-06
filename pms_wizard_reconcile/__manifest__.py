@@ -4,7 +4,7 @@
 {
     "name": "PMS Reconcile Payments",
     "author": "Commit [Sun], Odoo Community Association (OCA)",
-    "website": "https://github.com/OCA/pms",
+    "website": "https://github.com/OCA/aldahotels",
     "category": "Generic Modules/Property Management System",
     "version": "14.0.1.0.0",
     "license": "AGPL-3",
