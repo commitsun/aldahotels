@@ -85,6 +85,7 @@ class CashDailyReportWizard(models.TransientModel):
         worksheet.write('D1', _('Fecha'), xls_cell_format_header)
         worksheet.write('E1', _('Diario'), xls_cell_format_header)
         worksheet.write('F1', _('Cantidad'), xls_cell_format_header)
+        worksheet.write('G1', _('Tipo'), xls_cell_format_header)
         # worksheet.write('G1', _('Tipo'), xls_cell_format_header)
 
         worksheet.set_column('A:A', 15)
@@ -93,6 +94,7 @@ class CashDailyReportWizard(models.TransientModel):
         worksheet.set_column('D:D', 11)
         worksheet.set_column('E:E', 10)
         worksheet.set_column('F:F', 12)
+        worksheet.set_column('G:G', 10)
 
         account_payments_obj = self.env['account.payment']
         account_payments = account_payments_obj.search([
@@ -193,13 +195,14 @@ class CashDailyReportWizard(models.TransientModel):
             worksheet.write(k_payment + offset, 4, v_payment.journal_id.name)
             worksheet.write(k_payment + offset, 5, amount,
                             xls_cell_format_money)
-            # if v_payment.partner_type == 'customer':
-            #     tipo_operacion = "Cliente"
-            # elif v_payment.partner_type == 'supplier':
-            #     tipo_operacion = "Proveedor"
-            # else:
-            #     tipo_operacion = "Interna"
-            # worksheet.write(k_payment + offset, 6, tipo_operacion)
+            if v_payment.is_internal_transfer:
+                tipo_operacion = "Interna"
+            elif v_payment.partner_type == 'customer':
+                tipo_operacion = "Cliente"
+            elif v_payment.partner_type == 'supplier':
+                tipo_operacion = "Proveedor"
+
+            worksheet.write(k_payment + offset, 6, tipo_operacion)
             total_account_payment_amount += amount
         offset += len(account_payments)
         line = offset
