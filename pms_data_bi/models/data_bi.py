@@ -922,8 +922,8 @@ class DataBi(models.Model):
                         cuna += 1
 
                 canal = (
-                    linea.reservation_id.channel_type_id.id
-                    if linea.reservation_id.channel_type_id.id
+                    linea.reservation_id.sale_channel_origin_id.id
+                    if linea.reservation_id.sale_channel_origin_id.id
                     else 0
                 )
 
