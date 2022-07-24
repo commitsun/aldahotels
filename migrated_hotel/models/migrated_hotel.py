@@ -1981,6 +1981,11 @@ class MigratedHotel(models.Model):
                 ]).service_line_ids or None
                 res_folio_sale_lines = service_lines.sale_line_ids if service_lines else False
 
+            if not remote_reservation_ids and not remote_service_ids:
+                remote_folio_ids = self.env["pms.folio"].search([
+                    ('pms_property_id', "=", self.pms_property_id.id),
+                    ('remote_id', "=", account_invoice['folio_ids']),
+                ])
             res_folio_sale_lines_cmds = res_folio_sale_lines and [[6, False, res_folio_sale_lines.ids]] or False
             product_id = False
             if res_folio_sale_lines and len(res_folio_sale_lines) == 1:
@@ -2085,7 +2090,7 @@ class MigratedHotel(models.Model):
                                      self._uid, remote_account_invoice_id)
                         rpc_account_invoice = noderpc.env['account.invoice'].search_read(
                             [('id', '=', remote_account_invoice_id)],
-                            ['user_id', 'partner_id', 'refund_invoice_id', 'invoice_line_ids', 'id', 'number', 'origin', 'date_invoice', 'type', 'payment_ids', 'journal_id']
+                            ['user_id', 'partner_id', 'refund_invoice_id', 'invoice_line_ids', 'id', 'number', 'origin', 'date_invoice', 'type', 'payment_ids', 'journal_id', 'folio_ids']
                         )[0]
 
                         if rpc_account_invoice['number'].strip() == '':
@@ -2983,7 +2988,7 @@ class MigratedHotel(models.Model):
 
     def _account_close_migration_past_years(self):
         # limit date is included in search
-        limit_date = datetime.datetime(2020, 1, 31)
+        limit_date = datetime.datetime(2021, 1, 31)
         journals = self.env["account.journal"].search([
             ("company_id", "=", self.company_id.id),
         ])
