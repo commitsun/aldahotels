@@ -835,13 +835,13 @@ class MigratedHotel(models.Model):
             binding = [b for b in remote_bindings if b['external_id'] == wubook_reservation['external_id']][0]
             remote_ota_id = wubook_reservation['ota_id'] and wubook_reservation['ota_id'][1] or None
             if remote_ota_id:
-                vals["channel_type_id"] = self.default_ota_channel.id
+                vals["sale_channel_origin_id"] = self.default_ota_channel.id
                 if remote_ota_id == "Booking.com":
-                    vals["agency_id"] = self.booking_agency.id
+                    vals["sale_channel_origin_id"] = self.booking_agency.id
                 if remote_ota_id == "Expedia":
-                    vals["agency_id"] = self.expedia_agency.id
+                    vals["sale_channel_origin_id"] = self.expedia_agency.id
                 if remote_ota_id == "HotelBeds":
-                    vals["agency_id"] = self.hotelbeds_agency.id
+                    vals["sale_channel_origin_id"] = self.hotelbeds_agency.id
             binding_vals = {
                 'backend_id': self.backend_id.id,
                 'external_id': binding['external_id'],
@@ -858,16 +858,16 @@ class MigratedHotel(models.Model):
             res_create = self.env["res.users"].browse(res_create_uid)
             if remote_id:
                 vals["agency_id"] = agency.id
-                vals["channel_type_id"] = agency.sale_channel_id.id
+                vals["sale_channel_origin_id"] = agency.sale_channel_id.id
             elif "@thinkin.es" in res_create.login:
                 vals["agency_id"] = self.thinkin_agency.id
-                vals["channel_type_id"] = self.thinkin_agency.sale_channel_id.id
+                vals["sale_channel_origin_id"] = self.thinkin_agency.sale_channel_id.id
             elif "@sh360.es" in res_create.login:
                 vals["agency_id"] = self.sh360_agency.id
-                vals["channel_type_id"] = self.sh360_agency.sale_channel_id.id
+                vals["sale_channel_origin_id"] = self.sh360_agency.sale_channel_id.id
             else:
                 vals["agency_id"] = False
-                vals["channel_type_id"] = self.env["migrated.channel.type"].search([("remote_name", "=", rpc_hotel_folio['channel_type']), ("migrated_hotel_id", "=", self.id)]).channel_type_id.id
+                vals["sale_channel_origin_id"] = self.env["migrated.channel.type"].search([("remote_name", "=", rpc_hotel_folio['channel_type']), ("migrated_hotel_id", "=", self.id)]).channel_type_id.id
 
         return vals
 
