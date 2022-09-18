@@ -1356,8 +1356,11 @@ class MigratedHotel(models.Model):
             'service_ids': services_vals if services_vals else False,
             'reservation_line_ids': reservation_line_cmds,
             'create_uid': res_create_uid,
-            'to_send_mail': False,
-            'is_modified_reservation': False,
+            'avoid_mails': True,
+            'to_send_confirmation_mail': False,
+            'to_send_cancelation_mail': False,
+            'to_send_modification_mail': False,
+            'to_send_exit_mail': False,
             'ota_reservation_code': reservation['ota_reservation_id'],
 
         }

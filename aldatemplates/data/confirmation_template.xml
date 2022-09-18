@@ -761,13 +761,13 @@ img {
                                                                                         style="padding: 10px 0 0 0;"
                                                                                     >
                                                                                         <strong
-                                                                                        >Base imponible</strong>: ${object.amount_untaxed} €<br
+                                                                                        >Base imponible</strong>: $$round({object.amount_untaxed},2) €<br
                                                                                         />
                                                                                         <strong
-                                                                                        >I.V.A (10%)</strong>: ${object.amount_tax} €<br
+                                                                                        >I.V.A (10%)</strong>: $$round({object.amount_tax},2) €<br
                                                                                         />
                                                                                         <strong
-                                                                                        >Precio total</strong>: ${object.amount_total} €<br
+                                                                                        >Precio total</strong>: $round({object.amount_total},2) €<br
                                                                                         />
                                                                                         <br
                                                                                         />
