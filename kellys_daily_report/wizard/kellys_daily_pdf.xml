@@ -28,6 +28,7 @@
                         </group>
                         <group colspan="2">
                             <field name="order" />
+                            <field name="pms_property_id" />
                         </group>
                         <group>
                             <group>

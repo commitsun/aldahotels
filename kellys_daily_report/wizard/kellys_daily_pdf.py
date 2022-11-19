@@ -55,6 +55,11 @@ class KellysWizard(models.TransientModel):
 
     xls_filename = fields.Char()
     xls_binary = fields.Binary("Export data")
+    pms_property_id = fields.Many2one(
+        "pms.property",
+        string="Property",
+        default=lambda self: self.env.user.get_active_property_ids()[0],
+    )
 
     def calculate_report(self):
         self.habitaciones = self.calculalimpiar(self.date_start)
@@ -62,7 +67,7 @@ class KellysWizard(models.TransientModel):
 
     def calculalimpiar(self, fechalimpieza=date.today()):
         grids = self.env["pms.room"].search(
-            [("pms_property_id", "=", self.env.user.get_active_property_ids()[0])],
+            [("pms_property_id", "=", self.pms_property_id.id)],
             order="sequence ASC",
         )
         grids2 = self.env["kellysrooms"]
@@ -147,9 +152,7 @@ class KellysWizard(models.TransientModel):
         workbook = xlsxwriter.Workbook(
             file_data, {"strings_to_numbers": True, "default_date_format": "dd/mm/yyyy"}
         )
-        pms_property = self.env["pms.property"].browse(
-            self.env.user.get_active_property_ids()[0]
-        )
+        pms_property = self.pms_property_id
         workbook.set_properties(
             {
                 "title": "Exported data from " + pms_property.name,
