@@ -750,7 +750,7 @@ class MigratedHotel(models.Model):
         # prepare category_ids related field
         remote_ids = rpc_res_partner["category_id"] and rpc_res_partner["category_id"]
         category_ids = (
-            remote_ids and [category_map_ids.get(r) for r in remote_ids] or None
+            remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or None
         )
         # prepare parent_id related field
         parent_id = rpc_res_partner["parent_id"]
@@ -1214,15 +1214,15 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = rpc_hotel_folio["user_id"] and rpc_hotel_folio["user_id"][0]
-        res_user_id = remote_id and res_users_map_ids.get(remote_id)
+        res_user_id = remote_id and res_users_map_ids.get(str(remote_id))
         remote_id = rpc_hotel_folio["create_uid"] and rpc_hotel_folio["create_uid"][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
         # prepare category_ids related field
         remote_ids = (
             rpc_hotel_folio["segmentation_ids"] and rpc_hotel_folio["segmentation_ids"]
         )
         category_ids = (
-            remote_ids and [category_map_ids.get(r) for r in remote_ids] or False
+            remote_ids and [category_map_ids.get(str(r)) for r in remote_ids] or False
         )
 
         # Prepare pricelist
@@ -1301,6 +1301,7 @@ class MigratedHotel(models.Model):
                 service_lines_folio,
                 remote_checkin_partners,
                 res_users_map_ids,
+                rpc_hotel_folio['customer_notes'],
             )
             vals.update({"reservation_ids": reservations_vals})
 
@@ -1323,11 +1324,13 @@ class MigratedHotel(models.Model):
             if remote_ota_id:
                 vals["sale_channel_origin_id"] = self.default_ota_channel.id
                 if remote_ota_id == "Booking.com":
-                    vals["sale_channel_origin_id"] = self.booking_agency.id
+                    vals["agency_id"] = self.booking_agency.id
                 if remote_ota_id == "Expedia":
-                    vals["sale_channel_origin_id"] = self.expedia_agency.id
+                    vals["agency_id"] = self.expedia_agency.id
                 if remote_ota_id == "HotelBeds":
-                    vals["sale_channel_origin_id"] = self.hotelbeds_agency.id
+                    vals["agency_id"] = self.hotelbeds_agency.id
+            else:
+                vals["sale_channel_origin_id"] = self.backend_id.parent_id.backend_type_id.child_id.direct_channel_type_id.id
             binding_vals = {
                 "backend_id": self.backend_id.id,
                 "external_id": binding["external_id"],
@@ -1417,6 +1420,10 @@ class MigratedHotel(models.Model):
                 )
                 if record.id == 1:
                     res_user = self.backend_id.parent_id.user_id
+                    if not res_user:
+                        raise ValidationError(
+                            _("The user of the parent backend is not set.")
+                        )
                 if not res_user:
                     new_partner = (
                         self.env["res.partner"]
@@ -1428,9 +1435,16 @@ class MigratedHotel(models.Model):
                             }
                         )
                     )
+                    context = {
+                        "tracking_disable": True,
+                        "mail_notrack": True,
+                        "mail_create_nolog": True,
+                        "id_no_validate": True,
+                    }
                     res_user = (
                         self.env["res.users"]
                         .sudo()
+                        .with_context(context)
                         .create(
                             {
                                 "partner_id": new_partner.id,
@@ -1462,7 +1476,6 @@ class MigratedHotel(models.Model):
                     res_user.id if res_user else self._context.get("uid", self._uid)
                 )
                 res_users_map_ids.update({record.id: res_users_id})
-
             # prepare res.partner.category ids
             _logger.info("Mapping local with remote 'res.partner.category' ids...")
             remote_ids = noderpc.env["res.partner.category"].search([])
@@ -1610,6 +1623,7 @@ class MigratedHotel(models.Model):
                     "room_lines",
                     "partner_invoice_id",
                     "amount_total",
+                    "customer_notes",
                 ],
             )
             or []
@@ -1944,6 +1958,7 @@ class MigratedHotel(models.Model):
         service_lines,
         remote_checkin_partners,
         res_users_map_ids,
+        customer_notes=False,
     ):
 
         # prepare hotel_room_type related field
@@ -1971,7 +1986,7 @@ class MigratedHotel(models.Model):
 
         # search res_users ids
         remote_id = reservation["create_uid"] and reservation["create_uid"][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
 
         # Prepare pricelist
         remote_id = reservation["pricelist_id"][0]
@@ -2152,6 +2167,7 @@ class MigratedHotel(models.Model):
             "to_send_modification_mail": False,
             "to_send_exit_mail": False,
             "ota_reservation_code": reservation["ota_reservation_id"],
+            "partner_requests": customer_notes,
         }
 
         if len(checkins_cmds) > 0:
@@ -2167,6 +2183,7 @@ class MigratedHotel(models.Model):
         service_lines,
         remote_checkin_partners,
         res_users_map_ids,
+        customer_notes=False,
     ):
         # TODO: OTAs de Booking como Agencias
 
@@ -2226,6 +2243,7 @@ class MigratedHotel(models.Model):
                         res_service_lines,
                         remote_checkin_partners,
                         res_users_map_ids,
+                        customer_notes,
                         # room_type_map_ids,
                         # room_map_ids,
                         # ota_map_ids,
@@ -2298,7 +2316,7 @@ class MigratedHotel(models.Model):
                 "per_day": product.per_day,
                 "name": remote_service["name"],
                 "discount": remote_service["discount"],
-                "channel_type": remote_service["channel_type"] or "door",
+                "sale_channel_origin_id": remote_service["channel_type"],
                 "is_board_service": remote_service["is_board_service"],
                 "service_line_ids": service_lines_cmds,
                 "no_auto_add_lines": True,
@@ -2625,7 +2643,7 @@ class MigratedHotel(models.Model):
         self, payment, remote_journal, res_users_map_ids, journal_id
     ):
         remote_id = payment["create_uid"] and payment["create_uid"][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
         if payment["partner_id"]:
             partner_id = (
                 self.env["migrated.partner"]
@@ -2753,7 +2771,7 @@ class MigratedHotel(models.Model):
         self, payment, res_users_map_ids, remote_journal, date_str, journal, statement
     ):
         remote_id = payment["create_uid"] and payment["create_uid"][0]
-        res_create_uid = remote_id and res_users_map_ids.get(remote_id)
+        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
         if payment["partner_id"]:
             partner_id = (
                 self.env["migrated.partner"]
@@ -2927,7 +2945,7 @@ class MigratedHotel(models.Model):
         remote_id = account_invoice["user_id"] and account_invoice["user_id"][0]
         res_user_id = (
             remote_id
-            and res_users_map_ids.get(remote_id)
+            and res_users_map_ids.get(str(remote_id))
             or self._context.get("uid", self._uid)
         )
 
@@ -3409,7 +3427,7 @@ class MigratedHotel(models.Model):
                         or False
                     )
                     create_uid = (
-                        create_uid and res_users_map_ids.get(create_uid) or self._uid
+                        create_uid and res_users_map_ids.get(str(create_uid)) or self._uid
                     )
                     create_date = (
                         rpc_record["create_date"]
@@ -3490,6 +3508,11 @@ class MigratedHotel(models.Model):
                 )
                 if record.id == 1:
                     res_user = self.backend_id.parent_id.user_id
+                    if not res_user:
+                        raise ValidationError(
+                            _("Debes establecer el usuario en el backend de Wubook")
+                        )
+
                 if not res_user:
                     new_partner = (
                         self.env["res.partner"]
@@ -3501,9 +3524,16 @@ class MigratedHotel(models.Model):
                             }
                         )
                     )
+                    context = {
+                        "tracking_disable": True,
+                        "mail_notrack": True,
+                        "mail_create_nolog": True,
+                        "id_no_validate": True,
+                    }
                     res_user = (
                         self.env["res.users"]
                         .sudo()
+                        .with_context(context)
                         .create(
                             {
                                 "partner_id": new_partner.id,
