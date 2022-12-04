@@ -125,6 +125,13 @@
                                     <field name="count_migrated_payments" force_save="1" />
                                 </group>
                                 <group>
+                                    <button name="action_migrate_payment_returns"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Import All Payments Returns"
+                                        confirm="Import __all__ Payments Returns __after__ Reservations + Services. Do you want to proceed?"/>
+                                </group>
+                                <group>
                                     <button name="action_migrate_invoices"
                                             type="object"
                                             class="oe_highlight"

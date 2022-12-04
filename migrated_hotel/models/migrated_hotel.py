@@ -893,7 +893,7 @@ class MigratedHotel(models.Model):
             #     else:
             #         res_partner_category = self.env['res.partner.category'].create({'name': record.name})
             res_partner_category_id = res_partner_category[0].id
-            category_map_ids.update({record.id: res_partner_category_id})
+            category_map_ids.update({str(record.id): res_partner_category_id})
 
         # prepare partners of interest
         _logger.info("Preparing 'res.partners' of interest...")
@@ -1475,7 +1475,7 @@ class MigratedHotel(models.Model):
                 res_users_id = (
                     res_user.id if res_user else self._context.get("uid", self._uid)
                 )
-                res_users_map_ids.update({record.id: res_users_id})
+                res_users_map_ids.update({str(record.id): res_users_id})
             # prepare res.partner.category ids
             _logger.info("Mapping local with remote 'res.partner.category' ids...")
             remote_ids = noderpc.env["res.partner.category"].search([])
@@ -1494,7 +1494,7 @@ class MigratedHotel(models.Model):
                         [("name", "=", record.name.lower())]
                     )
                 if res_partner_category:
-                    category_map_ids.update({record.id: res_partner_category.id})
+                    category_map_ids.update({str(record.id): res_partner_category.id})
                 # else:
                 #     parent = False
                 #     if record.parent_id:
@@ -2358,21 +2358,43 @@ class MigratedHotel(models.Model):
                 res_users_id = (
                     res_users.id if res_users else self._context.get("uid", self._uid)
                 )
-                res_users_map_ids.update({record.id: res_users_id})
+                res_users_map_ids.update({str(record.id): res_users_id})
             import_datetime = fields.Datetime.now()
-            remote_payment_vals = noderpc.env["account.payment"].search_read(
+            migrated_remote_folios_ids = self.env["pms.folio"].search(
                 [
-                    (
-                        "payment_date",
-                        ">=",
-                        self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT),
-                    ),
-                    (
-                        "payment_date",
-                        "<=",
-                        self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
-                    ),
-                ],
+                    ("remote_id", "!=", False),
+                    ("pms_property_id", "=", self.pms_property_id.id),
+                ]
+            ).ids
+            domain = [
+                '|',
+                ('folio_id', 'in', migrated_remote_folios_ids),
+                '&',
+                (
+                    "payment_date",
+                    ">=",
+                    self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                ),
+                (
+                    "payment_date",
+                    "<=",
+                    self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                ),
+            ]
+            payments_already_migrated_ids = self.env["account.payment"].search([
+                ('remote_id', '!=', False),
+                ('pms_property_id', '=', self.pms_property_id.id),
+                '|',
+                '|',
+                ('partner_type', '!=', 'customer'),
+                ('payment_type', '!=', 'outbound'),
+                ('is_internal_transfer', '=', True),
+            ]).mapped("remote_id")
+            if payments_already_migrated_ids:
+                domain.append(('id', 'not in', payments_already_migrated_ids))
+
+            remote_payment_vals = noderpc.env["account.payment"].search_read(
+                domain,
                 [
                     "payment_type",
                     "partner_type",
@@ -2425,6 +2447,20 @@ class MigratedHotel(models.Model):
             remote_payment_by_journal_vals = sorted(
                 remote_payment_vals, key=journal_func
             )
+            # prepare not imported folios
+            folios_to_import_ids = []
+            for payment in remote_payment_vals:
+                if payment["folio_id"]:
+                    folio = self.env["pms.folio"].search(
+                        [
+                            ("remote_id", "=", payment["folio_id"][0]),
+                            ("pms_property_id", "=", self.pms_property_id.id),
+                        ]
+                    )
+                    if not folio:
+                        folios_to_import_ids.append(payment["folio_id"][0])
+            if folios_to_import_ids:
+                self.action_migrate_folios(folios_to_import_ids)
             migrated_journals = []
             count = 0
             for remote_journal, journal_payments in groupby(
@@ -2452,178 +2488,178 @@ class MigratedHotel(models.Model):
                     .mapped("remote_id")
                 )
                 migrated_journals.extend(remote_journal_ids)
-                if journal.type == "cash":
-                    # compute ending balance
-                    latest_statement = self.env["account.bank.statement"].search(
-                        [("journal_id", "=", journal_id)], limit=1
-                    )
-                    if latest_statement:
-                        balance = latest_statement.balance_end_real
-                    else:
-                        balance = 0
+                # if journal.type == "cash":
+                #     # compute ending balance
+                #     latest_statement = self.env["account.bank.statement"].search(
+                #         [("journal_id", "=", journal_id)], limit=1
+                #     )
+                #     if latest_statement:
+                #         balance = latest_statement.balance_end_real
+                #     else:
+                #         balance = 0
 
-                    journal_payments_tarjet = list(
-                        filter(
-                            lambda x: x["journal_id"][0] in remote_journal_ids,
-                            remote_payment_vals,
-                        )
+                #     journal_payments_tarjet = list(
+                #         filter(
+                #             lambda x: x["journal_id"][0] in remote_journal_ids,
+                #             remote_payment_vals,
+                #         )
+                #     )
+                #     journal_payments_tarjet = sorted(
+                #         journal_payments_tarjet, key=date_func
+                #     )
+                #     for date_str, payments in groupby(
+                #         journal_payments_tarjet, key=date_func
+                #     ):
+                #         date = fields.Datetime.from_string(date_str)
+                #         # Some payment are garbage, so we skip them (know by old dates)
+                #         if date < (
+                #             datetime.datetime.now() - datetime.timedelta(days=2000)
+                #         ):
+                #             continue
+                #         line_vals = []
+                #         st_values = {
+                #             "journal_id": journal_id,
+                #             "user_id": self.env.user.id,
+                #             "pms_property_id": self.pms_property_id.id,
+                #             "name": date_str,
+                #             "balance_start": balance,
+                #             "move_line_ids": line_vals,
+                #             "date": date,
+                #         }
+                #         context_no_mail = {
+                #             "tracking_disable": True,
+                #             "mail_notrack": True,
+                #             "mail_create_nolog": True,
+                #             "company_id": self.pms_property_id.company_id.id,
+                #         }
+                #         statement = (
+                #             self.env["account.bank.statement"]
+                #             .with_context(context_no_mail)
+                #             .sudo()
+                #             .create(st_values)
+                #         )
+                #         _logger.info("NEW STATEMENT: %s", date_str)
+                #         for payment in payments:
+                #             _logger.info("Normal Payments")
+                #             balance += self.create_payment_migration(
+                #                 payment,
+                #                 res_users_map_ids,
+                #                 remote_journal,
+                #                 date_str,
+                #                 journal,
+                #                 statement,
+                #             )
+                #             self.with_company(
+                #                 self.pms_property_id.company_id
+                #             ).create_bank_payment_migration(
+                #                 payment, remote_journal, res_users_map_ids, journal_id
+                #             )
+                #             count += 1
+                #             _logger.info(
+                #                 "(%s/%s) Migrated account.payment with ID (remote): %s",
+                #                 count,
+                #                 total,
+                #                 payment["id"],
+                #             )
+                #         destination_payment_vals = list(
+                #             filter(
+                #                 lambda x: x["payment_type"] == "transfer"
+                #                 and x["payment_date"] == date
+                #                 and x["destination_journal_id"][0] == remote_journal[0],
+                #                 journal_payments_tarjet,
+                #             )
+                #         )
+                #         for pay in destination_payment_vals:
+                #             _logger.info("Destination Journal Payments")
+                #             balance += self.create_payment_migration(
+                #                 pay,
+                #                 res_users_map_ids,
+                #                 remote_journal,
+                #                 date_str,
+                #                 journal,
+                #                 statement,
+                #             )
+                #             self.with_company(
+                #                 self.pms_property_id.company_id
+                #             ).create_bank_payment_migration(
+                #                 payment, remote_journal, res_users_map_ids, journal_id
+                #             )
+                #             count += 1
+                #             _logger.info(
+                #                 "(%s/%s) Migrated account.payment with ID (remote): %s",
+                #                 count,
+                #                 total,
+                #                 payment["id"],
+                #             )
+                #         statement.write(
+                #             {
+                #                 "balance_end_real": balance,
+                #                 "move_line_ids": line_vals,
+                #                 "date_done": fields.Date.from_string(date_str).strftime(
+                #                     DEFAULT_SERVER_DATE_FORMAT
+                #                 ),
+                #             }
+                #         )
+                #         dates = [
+                #             fields.Date.from_string(item["payment_date"])
+                #             for item in journal_payments_tarjet
+                #         ]
+                #         next_statement, previus_statement = self._get_statements(
+                #             statement, dates, journal_id
+                #         )
+                #         self.recursive_statements_post(
+                #             statement, next_statement, previus_statement, dates
+                #         )
+                # elif journal.type == "bank":
+                journal_payments_tarjet = list(
+                    filter(
+                        lambda x: x["journal_id"][0] in remote_journal_ids,
+                        remote_payment_vals,
                     )
-                    journal_payments_tarjet = sorted(
-                        journal_payments_tarjet, key=date_func
-                    )
-                    for date_str, payments in groupby(
-                        journal_payments_tarjet, key=date_func
+                )
+                journal_payments_tarjet = sorted(
+                    journal_payments_tarjet, key=date_func
+                )
+                for payment in journal_payments_tarjet:
+                    # Some payment are garbage, so we skip them (know by old dates)
+                    if fields.Datetime.from_string(payment["payment_date"]) < (
+                        datetime.datetime.now() - datetime.timedelta(days=2000)
                     ):
-                        date = fields.Datetime.from_string(date_str)
-                        # Some payment are garbage, so we skip them (know by old dates)
-                        if date < (
-                            datetime.datetime.now() - datetime.timedelta(days=2000)
-                        ):
-                            continue
-                        line_vals = []
-                        st_values = {
-                            "journal_id": journal_id,
-                            "user_id": self.env.user.id,
-                            "pms_property_id": self.pms_property_id.id,
-                            "name": date_str,
-                            "balance_start": balance,
-                            "move_line_ids": line_vals,
-                            "date": date,
-                        }
-                        context_no_mail = {
-                            "tracking_disable": True,
-                            "mail_notrack": True,
-                            "mail_create_nolog": True,
-                            "company_id": self.pms_property_id.company_id.id,
-                        }
-                        statement = (
-                            self.env["account.bank.statement"]
-                            .with_context(context_no_mail)
-                            .sudo()
-                            .create(st_values)
-                        )
-                        _logger.info("NEW STATEMENT: %s", date_str)
-                        for payment in payments:
-                            _logger.info("Normal Payments")
-                            balance += self.create_payment_migration(
-                                payment,
-                                res_users_map_ids,
-                                remote_journal,
-                                date_str,
-                                journal,
-                                statement,
-                            )
-                            self.with_company(
-                                self.pms_property_id.company_id
-                            ).create_bank_payment_migration(
-                                payment, remote_journal, res_users_map_ids, journal_id
-                            )
-                            count += 1
-                            _logger.info(
-                                "(%s/%s) Migrated account.payment with ID (remote): %s",
-                                count,
-                                total,
-                                payment["id"],
-                            )
-                        destination_payment_vals = list(
-                            filter(
-                                lambda x: x["payment_type"] == "transfer"
-                                and x["payment_date"] == date
-                                and x["destination_journal_id"][0] == remote_journal[0],
-                                journal_payments_tarjet,
-                            )
-                        )
-                        for pay in destination_payment_vals:
-                            _logger.info("Destination Journal Payments")
-                            balance += self.create_payment_migration(
-                                pay,
-                                res_users_map_ids,
-                                remote_journal,
-                                date_str,
-                                journal,
-                                statement,
-                            )
-                            self.with_company(
-                                self.pms_property_id.company_id
-                            ).create_bank_payment_migration(
-                                payment, remote_journal, res_users_map_ids, journal_id
-                            )
-                            count += 1
-                            _logger.info(
-                                "(%s/%s) Migrated account.payment with ID (remote): %s",
-                                count,
-                                total,
-                                payment["id"],
-                            )
-                        statement.write(
-                            {
-                                "balance_end_real": balance,
-                                "move_line_ids": line_vals,
-                                "date_done": fields.Date.from_string(date_str).strftime(
-                                    DEFAULT_SERVER_DATE_FORMAT
-                                ),
-                            }
-                        )
-                        dates = [
-                            fields.Date.from_string(item["payment_date"])
-                            for item in journal_payments_tarjet
-                        ]
-                        next_statement, previus_statement = self._get_statements(
-                            statement, dates, journal_id
-                        )
-                        self.recursive_statements_post(
-                            statement, next_statement, previus_statement, dates
-                        )
-                elif journal.type == "bank":
-                    journal_payments_tarjet = list(
-                        filter(
-                            lambda x: x["journal_id"][0] in remote_journal_ids,
-                            remote_payment_vals,
-                        )
+                        continue
+                    self.with_company(
+                        self.pms_property_id.company_id
+                    ).with_delay().create_bank_payment_migration(
+                        payment, remote_journal, res_users_map_ids, journal_id
                     )
-                    journal_payments_tarjet = sorted(
-                        journal_payments_tarjet, key=date_func
+                    count += 1
+                    _logger.info(
+                        "(%s/%s) Migrated account.payment with ID (remote): %s",
+                        count,
+                        total,
+                        payment["id"],
                     )
-                    for payment in journal_payments_tarjet:
-                        # Some payment are garbage, so we skip them (know by old dates)
-                        if fields.Datetime.from_string(payment["payment_date"]) < (
-                            datetime.datetime.now() - datetime.timedelta(days=2000)
-                        ):
-                            continue
-                        self.with_company(
-                            self.pms_property_id.company_id
-                        ).with_delay().create_bank_payment_migration(
-                            payment, remote_journal, res_users_map_ids, journal_id
-                        )
-                        count += 1
-                        _logger.info(
-                            "(%s/%s) Migrated account.payment with ID (remote): %s",
-                            count,
-                            total,
-                            payment["id"],
-                        )
-                    # Add payments internal transfer with same date and journal like destination journal
-                    destination_payment_vals = list(
-                        filter(
-                            lambda x: x["payment_type"] == "transfer"
-                            and x["destination_journal_id"][0] == remote_journal[0],
-                            journal_payments_tarjet,
-                        )
+                # Add payments internal transfer with same date and journal like destination journal
+                destination_payment_vals = list(
+                    filter(
+                        lambda x: x["payment_type"] == "transfer"
+                        and x["destination_journal_id"][0] == remote_journal[0],
+                        journal_payments_tarjet,
                     )
-                    for pay in destination_payment_vals:
-                        _logger.info("Destination Journal Payments")
-                        self.with_company(
-                            self.pms_property_id.company_id
-                        ).with_delay().create_bank_payment_migration(
-                            payment, remote_journal, res_users_map_ids, journal_id
-                        )
-                        count += 1
-                        _logger.info(
-                            "(%s/%s) Migrated account.payment with ID (remote): %s",
-                            count,
-                            total,
-                            payment["id"],
-                        )
+                )
+                for pay in destination_payment_vals:
+                    _logger.info("Destination Journal Payments")
+                    self.with_company(
+                        self.pms_property_id.company_id
+                    ).with_delay().create_bank_payment_migration(
+                        payment, remote_journal, res_users_map_ids, journal_id
+                    )
+                    count += 1
+                    _logger.info(
+                        "(%s/%s) Migrated account.payment with ID (remote): %s",
+                        count,
+                        total,
+                        payment["id"],
+                    )
         except (ValueError, ValidationError, Exception) as err:
             traceback.print_exc()
             _logger.info("error: {}".format(err))
@@ -2728,114 +2764,114 @@ class MigratedHotel(models.Model):
         pay = self.env["account.payment"].with_context(context_no_mail).create(vals)
         pay.with_context(context_no_mail).action_post()
 
-    def _get_statements(self, statement, dates, journal_id):
-        dates = list(set(dates))
-        current_position = dates.index(statement.date)
-        next_statement = False
-        if current_position < (len(dates) - 1):
-            next_statement = self.env["account.bank.statement"].search(
-                [
-                    ("date", "=", dates[current_position + 1]),
-                    ("journal_id", "=", journal_id),
-                ]
-            )
-            if next_statement:
-                next_statement = next_statement[0]
-        previus_statement = False
-        if current_position > 1:
-            previus_statement = self.env["account.bank.statement"].search(
-                [
-                    ("date", "=", dates[current_position - 1]),
-                    ("journal_id", "=", journal_id),
-                ]
-            )
-            if previus_statement:
-                previus_statement = previus_statement[0]
-        return next_statement, previus_statement
+    # def _get_statements(self, statement, dates, journal_id):
+    #     dates = list(set(dates))
+    #     current_position = dates.index(statement.date)
+    #     next_statement = False
+    #     if current_position < (len(dates) - 1):
+    #         next_statement = self.env["account.bank.statement"].search(
+    #             [
+    #                 ("date", "=", dates[current_position + 1]),
+    #                 ("journal_id", "=", journal_id),
+    #             ]
+    #         )
+    #         if next_statement:
+    #             next_statement = next_statement[0]
+    #     previus_statement = False
+    #     if current_position > 1:
+    #         previus_statement = self.env["account.bank.statement"].search(
+    #             [
+    #                 ("date", "=", dates[current_position - 1]),
+    #                 ("journal_id", "=", journal_id),
+    #             ]
+    #         )
+    #         if previus_statement:
+    #             previus_statement = previus_statement[0]
+    #     return next_statement, previus_statement
 
-    def recursive_statements_post(
-        self, current_statement, next_statement, previus_statement, dates
-    ):
-        current_statement.button_post()
-        # statement.button_validate()
-        if next_statement and next_statement.state == "draft":
-            next_one_statement = self._get_statements(current_statement, dates)[0]
-            self.recursive_statements_post(next_statement, next_one_statement, False)
-        if previus_statement and previus_statement.state == "draft":
-            previus_one_statement = self._get_statements(current_statement, dates)[1]
-            self.recursive_statements_post(
-                previus_statement, False, previus_one_statement
-            )
+    # def recursive_statements_post(
+    #     self, current_statement, next_statement, previus_statement, dates
+    # ):
+    #     current_statement.button_post()
+    #     # statement.button_validate()
+    #     if next_statement and next_statement.state == "draft":
+    #         next_one_statement = self._get_statements(current_statement, dates)[0]
+    #         self.recursive_statements_post(next_statement, next_one_statement, False)
+    #     if previus_statement and previus_statement.state == "draft":
+    #         previus_one_statement = self._get_statements(current_statement, dates)[1]
+    #         self.recursive_statements_post(
+    #             previus_statement, False, previus_one_statement
+    #         )
 
-    def create_payment_migration(
-        self, payment, res_users_map_ids, remote_journal, date_str, journal, statement
-    ):
-        remote_id = payment["create_uid"] and payment["create_uid"][0]
-        res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
-        if payment["partner_id"]:
-            partner_id = (
-                self.env["migrated.partner"]
-                .search(
-                    [
-                        ("remote_id", "=", payment["partner_id"][0]),
-                        ("migrated_hotel_id", "=", self.id),
-                    ]
-                )
-                .partner_id.id
-                or False
-            )
-        else:
-            partner_id = False
-        remote_folio_id = payment["folio_id"] and payment["folio_id"][0]
-        if remote_folio_id:
-            folio_id = (
-                self.env["pms.folio"]
-                .search(
-                    [
-                        ("remote_id", "=", remote_folio_id),
-                        ("pms_property_id", "=", self.pms_property_id.id),
-                    ],
-                    limit=1,
-                )
-                .id
-                or False
-            )
-        else:
-            folio_id = False
-        payment_ref = payment["communication"]
-        if not payment_ref:
-            if payment["folio_id"]:
-                payment_ref = payment["folio_id"][1]
-            else:
-                payment_ref = "Transaccion"
+    # def create_payment_migration(
+    #     self, payment, res_users_map_ids, remote_journal, date_str, journal, statement
+    # ):
+    #     remote_id = payment["create_uid"] and payment["create_uid"][0]
+    #     res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
+    #     if payment["partner_id"]:
+    #         partner_id = (
+    #             self.env["migrated.partner"]
+    #             .search(
+    #                 [
+    #                     ("remote_id", "=", payment["partner_id"][0]),
+    #                     ("migrated_hotel_id", "=", self.id),
+    #                 ]
+    #             )
+    #             .partner_id.id
+    #             or False
+    #         )
+    #     else:
+    #         partner_id = False
+    #     remote_folio_id = payment["folio_id"] and payment["folio_id"][0]
+    #     if remote_folio_id:
+    #         folio_id = (
+    #             self.env["pms.folio"]
+    #             .search(
+    #                 [
+    #                     ("remote_id", "=", remote_folio_id),
+    #                     ("pms_property_id", "=", self.pms_property_id.id),
+    #                 ],
+    #                 limit=1,
+    #             )
+    #             .id
+    #             or False
+    #         )
+    #     else:
+    #         folio_id = False
+    #     payment_ref = payment["communication"]
+    #     if not payment_ref:
+    #         if payment["folio_id"]:
+    #             payment_ref = payment["folio_id"][1]
+    #         else:
+    #             payment_ref = "Transaccion"
 
-        # Check Payment
-        if payment["payment_type"] == "inbound":
-            amount = payment["amount"]
-        elif payment["payment_type"] == "outbound":
-            amount = -payment["amount"]
-        elif payment["payment_type"] == "transfer":
-            if payment["destination_journal_id"][0] == remote_journal[0]:
-                amount = payment["amount"]
-            elif payment["journal_id"][0] == remote_journal[0]:
-                amount = -payment["amount"]
-        vals = {
-            "date": fields.Date.from_string(date_str).strftime(
-                DEFAULT_SERVER_DATE_FORMAT
-            ),
-            "amount": amount,
-            "partner_id": partner_id,
-            "payment_ref": payment_ref,
-            "journal_id": journal.id,
-            "counterpart_account_id": journal.suspense_account_id.id,
-            "statement_id": statement.id,
-            "create_uid": res_create_uid,
-            "remote_id": payment["id"],
-        }
-        if folio_id:
-            vals["folio_ids"] = [(6, 0, [folio_id])]
-        self.env["account.bank.statement.line"].create(vals)
-        return amount
+    #     # Check Payment
+    #     if payment["payment_type"] == "inbound":
+    #         amount = payment["amount"]
+    #     elif payment["payment_type"] == "outbound":
+    #         amount = -payment["amount"]
+    #     elif payment["payment_type"] == "transfer":
+    #         if payment["destination_journal_id"][0] == remote_journal[0]:
+    #             amount = payment["amount"]
+    #         elif payment["journal_id"][0] == remote_journal[0]:
+    #             amount = -payment["amount"]
+    #     vals = {
+    #         "date": fields.Date.from_string(date_str).strftime(
+    #             DEFAULT_SERVER_DATE_FORMAT
+    #         ),
+    #         "amount": amount,
+    #         "partner_id": partner_id,
+    #         "payment_ref": payment_ref,
+    #         "journal_id": journal.id,
+    #         "counterpart_account_id": journal.suspense_account_id.id,
+    #         "statement_id": statement.id,
+    #         "create_uid": res_create_uid,
+    #         "remote_id": payment["id"],
+    #     }
+    #     if folio_id:
+    #         vals["folio_ids"] = [(6, 0, [folio_id])]
+    #     self.env["account.bank.statement.line"].create(vals)
+    #     return amount
 
     def action_migrate_payment_returns(self):
         self.ensure_one()
@@ -2851,9 +2887,36 @@ class MigratedHotel(models.Model):
 
         try:
             _logger.info("Preparing 'payment.return' of interest...")
-            remote_payment_return_ids = noderpc.env["payment.return"].search(
-                [("state", "=", "done")]
-            )
+            migrated_folios_remote_ids = self.env["pms.folio"].search([
+                ("pms_property_id", "=", self.pms_property_id.id),
+                ("remote_id", "!=", False),
+            ]).mapped("remote_id")
+            returns_already_migrated_ids = self.env["account.payment"].search([
+                ("remote_id", "!=", False),
+                ("pms_property_id", "=", self.pms_property_id.id),
+                ("payment_type", "=", "outbound"),
+                ("partner_type", "=", "customer"),
+            ]).mapped("remote_id")
+
+            remote_payment_return_ids = noderpc.env["payment.return"].search([
+                ("state", "=", "done"),
+                ("folio_id", "in", migrated_folios_remote_ids),
+                ("id", "not in", returns_already_migrated_ids),
+            ])
+            # Mapping Users
+            res_users_map_ids = {}
+            remote_ids = noderpc.env["res.users"].search([])
+            remote_records = noderpc.env["res.users"].browse(remote_ids)
+            for record in remote_records:
+                res_users = self.env["res.users"].search(
+                    [
+                        ("login", "=", record.login),
+                    ]
+                )
+                res_users_id = (
+                    res_users.id if res_users else self._context.get("uid", self._uid)
+                )
+                res_users_map_ids.update({str(record.id): res_users_id})
             _logger.info("Migrating 'payment.return'...")
             # disable mail feature to speed-up migration
             context_no_mail = {
@@ -2868,46 +2931,63 @@ class MigratedHotel(models.Model):
                     )
                     remote_payment_return_line = remote_payment_return.line_ids
 
-                    # prepare related payment
+                    # prepare related user create_uid
+                    remote_id = remote_payment_return["create_uid"] and remote_payment_return["create_uid"][0]
+                    res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
                     remote_payment_id = (
                         remote_payment_return_line.move_line_ids.payment_id.id
                     )
-                    account_payment = (
-                        self.env["account.payment"].search(
-                            [("remote_id", "=", remote_payment_id)]
+                    journal_id = (
+                        self.env["migrated.journal"]
+                        .search(
+                            [
+                                ("migrated_hotel_id", "=", self.id),
+                                ("remote_id", "=", remote_payment_return.journal_id.id),
+                            ]
                         )
-                        or None
+                        .account_journal_id.id
                     )
-                    account_move_lines = account_payment.move_line_ids.filtered(
-                        lambda x: (x.account_id.internal_type == "receivable")
-                    )
-                    line_ids_vals = {
-                        "move_line_ids": [
-                            (6, False, [x.id for x in account_move_lines])
-                        ],
-                        "partner_id": account_payment.partner_id.id,
-                        "amount": remote_payment_return_line.amount,
-                        "reference": remote_payment_return_line.reference,
-                    }
+                    if remote_payment_return.folio_id:
+                        folio_id = (
+                            self.env["pms.folio"]
+                            .search(
+                                [
+                                    ("remote_id", "=", remote_payment_return.folio_id.id),
+                                    ("pms_property_id", "=", self.pms_property_id.id),
+                                ],
+                                limit=1,
+                            )
+                            .id
+                            or False
+                        )
+                    else:
+                        folio_id = False
                     vals = {
-                        "name": remote_payment_return.name,
-                        "journal_id": account_payment.journal_id.id,
-                        "date": remote_payment_return.date,
-                        "line_ids": [(0, 0, line_ids_vals)],
+                        "journal_id": journal_id,
+                        "partner_id": remote_payment_return_line.partner_id.id,
+                        "amount": remote_payment_return_line.amount,
+                        "date": fields.Datetime.from_string(remote_payment_return.date),
+                        "ref": remote_payment_return_line.reference,
+                        "payment_type": "outbound",
+                        "partner_type": "customer",
+                        "state": "draft",
+                        "create_uid": res_create_uid,
+                        "remote_id": remote_payment_id,
                     }
-
+                    if folio_id:
+                        vals["folio_ids"] = [(6, 0, [folio_id])]
                     payment_return = (
-                        self.env["payment.return"]
+                        self.env["account.payment"]
                         .with_context(context_no_mail)
                         .create(vals)
                     )
-                    payment_return.action_confirm()
+                    payment_return.with_context(context_no_mail).action_post()
 
                     _logger.info(
                         "User #%s migrated payment.return for account.payment with ID "
                         "[local, remote]: [%s, %s]",
                         self._uid,
-                        account_payment.id,
+                        payment_return.id,
                         remote_payment_id,
                     )
 
@@ -3235,7 +3315,7 @@ class MigratedHotel(models.Model):
                     .id
                     or self._context.get("uid", self._uid)
                 )
-                res_users_map_ids.update({record.id: res_users_id})
+                res_users_map_ids.update({str(record.id): res_users_id})
 
             _logger.info("Preparing 'account.invoice' of interest...")
             import_datetime = fields.Datetime.now()
@@ -3274,6 +3354,7 @@ class MigratedHotel(models.Model):
             # disable mail feature to speed-up migration
             total = len(remote_account_invoice_ids)
             i = 0
+            min_data_invoice_company = self.pms_property_id.company_id.check_min_partner_data_invoice
             self.pms_property_id.company_id.check_min_partner_data_invoice = False
             for remote_account_invoice_id in remote_account_invoice_ids:
                 try:
@@ -3346,7 +3427,7 @@ class MigratedHotel(models.Model):
                         err,
                     )
                     continue
-            self.pms_property_id.company_id.check_min_partner_data_invoice = True
+            self.pms_property_id.company_id.check_min_partner_data_invoice = min_data_invoice_company
             self.last_import_invoices = import_datetime
         except (
             odoorpc.error.RPCError,
@@ -3386,21 +3467,7 @@ class MigratedHotel(models.Model):
         )
         #
         if payment_ids:
-            domain = [
-                ("account_id", "=", migrated_account_invoice.account_id.id),
-                ("payment_id", "in", payment_ids),
-                ("reconciled", "=", False),
-                "|",
-                ("amount_residual", "!=", 0.0),
-                ("amount_residual_currency", "!=", 0.0),
-            ]
-            if migrated_account_invoice.move_type in ("out_invoice", "in_refund"):
-                domain.extend([("credit", ">", 0), ("debit", "=", 0)])
-            else:
-                domain.extend([("credit", "=", 0), ("debit", ">", 0)])
-            lines = self.env["account.move.line"].search(domain)
-            for line in lines:
-                migrated_account_invoice.assign_outstanding_credit(line.id)
+            migrated_account_invoice._autoreconcile_folio_payments()
 
     def _update_special_field_names(
         self, local_model, remote_model, res_users_map_ids, noderpc
@@ -3564,7 +3631,7 @@ class MigratedHotel(models.Model):
                 res_users_id = (
                     res_user.id if res_user else self._context.get("uid", self._uid)
                 )
-                res_users_map_ids.update({record.id: res_users_id})
+                res_users_map_ids.update({str(record.id): res_users_id})
 
             self._update_special_field_names(
                 "pms.folio", "hotel.folio", res_users_map_ids, noderpc
