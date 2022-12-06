@@ -15,8 +15,30 @@
                             string="Update Counts"
                             help="Update Total Migrate Counts"
                     />
+                    <button name="go_to_live"
+                            type="object"
+                            class="oe_highlight"
+                            string="Go to Live!"
+                            help="Set this hotel in production!"
+                            confirm="
+                            Esto prepara el hotel para ser utilizado en producción:
+                            1- Se migrará todos los folios, reservas, checkins, pagos, devoluciones y facturas desde la ultima fecha de migración en adelante.
+                            2- Se actualizara para todos los registros migrados los campos de usuario y fecha de creación
+                            3- Se desactivará el conector en la vieja instancia
+                            4- Se conectara los tipos de habitacion, tarifas y plan de dispo del hotel con Wubook (añadimos el external_id)
+                            5- Habilitará la conexion de wubook con el hotel, y hará el push para activar las notificaciones de Wubook
+                            6- Importará desde Wubook todas las restricciones de disponibilidad y tarifas de los prox. 5 meses
+                            7- Forzará la importación de todos los pagos de booking en las reservas Prepaid.
+                            Los puntos 6 y 7 se hacen mediante Jobs, por lo que pueden no estar listos aún al terminar el proceso.
+                            "/>
+                    />
                 </header>
                 <sheet>
+                    <widget
+                        name="web_ribbon"
+                        title="Live!"
+                        attrs="{'invisible': [('in_live', '=', False)]}"
+                    />
                     <label for="name" class="oe_edit_only"/>
                     <h1>
                         <field name="name" class="oe_inline" />
@@ -38,6 +60,7 @@
                         <field name="odoo_protocol" colspan="2" readonly="1" force_save="1"/>
                         <field name="odoo_port" colspan="2" readonly="1" force_save="1"/>
                         <field name="odoo_version" colspan="2" readonly="1"/>
+                        <field name="in_live" invisible="1"/>
                     </group>
                     <group colspan="4" col="4">
                         <field name="dummy_closure_reason_id" colspan="2" />
@@ -173,6 +196,8 @@
                                     name="wubook_journal_id"
                                     domain="[('type', '=', 'bank'),('company_id', '=', company_id),('pms_property_ids', 'in', pms_property_id)]"
                                 />
+                                <field name="wubook_parity_pricelist_id" />
+                                <field name="wubook_restriccion_plan_id" />
                                 <field name="backend_id" colspan="2"/>
                             </group>
                             <button
@@ -358,6 +383,17 @@
                             </group>
                             <field name="log_ids"/>
                         </page>
+                        <page string="Extra Tools">
+                            <group>
+                                <field name="folio_remote_name" />
+                                <button name="action_migrate_folio"
+                                        type="object"
+                                        class="oe_highlight"
+                                        string="Force import unique Folio"
+                                        confirm="This function will import a unique folio, Do you want to proceed?"
+                                        attrs="{'invisible':[('folio_remote_name','=',False)]}"/>
+                            </group>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -368,7 +404,7 @@
         <field name="name">migrated_hotel_views_tree</field>
         <field name="model">migrated.hotel</field>
         <field name="arch" type="xml">
-            <tree string="Remote Nodes">
+            <tree string="Remote Nodes" decoration-success="in_live">
                 <field name="pms_property_id"/>
                 <field name="last_import_pricelists" />
                 <field name="last_import_products" />
@@ -377,6 +413,7 @@
                 <field name="last_import_folios"/>
                 <field name="last_import_payments"/>
                 <field name="last_import_invoices"/>
+                <field name="in_live" invisible="1"/>
             </tree>
         </field>
     </record>

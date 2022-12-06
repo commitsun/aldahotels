@@ -7,6 +7,8 @@ import logging
 import traceback
 import urllib.error
 from itertools import groupby
+from dateutil.relativedelta import relativedelta
+
 
 import odoorpc.odoo
 
@@ -157,7 +159,14 @@ class MigratedHotel(models.Model):
         string="Wubook Journal",
         copy=False,
     )
-
+    wubook_parity_pricelist_id = fields.Many2one(
+        "product.pricelist",
+        string="Wubook Parity Pricelist",
+    )
+    wubook_restriccion_plan_id = fields.Many2one(
+        "pms.availability.plan",
+        string="Wubook Restriction Plan",
+    )
     dummy_closure_reason_id = fields.Many2one(
         string="Default Clousure Reasen", comodel_name="room.closure.reason"
     )
@@ -357,6 +366,13 @@ class MigratedHotel(models.Model):
     last_import_products = fields.Datetime("Updated Products", copy=False)
     last_import_board_services = fields.Datetime("Updated BoardServices", copy=False)
 
+    in_live = fields.Boolean(
+        "In Live",
+        compute="_compute_in_live",
+    )
+
+    folio_remote_name = fields.Char("Folio Remote Name", copy=False)
+
     @api.depends("count_tarjet_partners", "count_migrated_partners")
     def _compute_complete_partners(self):
         for record in self:
@@ -494,6 +510,13 @@ class MigratedHotel(models.Model):
                 record.complete_channels = True
             else:
                 record.complete_channels = False
+
+    def _compute_in_live(self):
+        for record in self:
+            if record.backend_id and not record.backend_id.parent_id.export_disabled:
+                record.in_live = True
+            else:
+                record.in_live = False
 
     def count_remote_date(self):
         if (
@@ -1379,7 +1402,7 @@ class MigratedHotel(models.Model):
 
         return vals
 
-    def action_migrate_folios(self, remote_folio_ids=False):
+    def action_migrate_folio(self):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -1392,6 +1415,49 @@ class MigratedHotel(models.Model):
             raise ValidationError(err)
 
         try:
+            remote_name = self.folio_remote_name
+            folio_remote_id = noderpc.env["hotel.folio"].search(
+                [("name", "=", remote_name)]
+            )
+            if not folio_remote_id:
+                raise ValidationError(
+                    _("There is no folio with name '%s'") % remote_name
+                )
+            else:
+                self.action_migrate_folios(remote_folio_ids=[folio_remote_id[0]])
+        except (
+            odoorpc.error.RPCError,
+            odoorpc.error.InternalError,
+            urllib.error.URLError,
+        ) as err:
+            raise ValidationError(err)
+        else:
+            noderpc.logout()
+
+    def action_migrate_folios(self, remote_folio_ids=False, final=False):
+        self.ensure_one()
+        try:
+            noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
+            noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
+        except (
+            odoorpc.error.RPCError,
+            odoorpc.error.InternalError,
+            urllib.error.URLError,
+        ) as err:
+            raise ValidationError(err)
+
+        try:
+            # 0- Review pms_property_ids config
+            _logger.info("Reviewing pms_property_ids config")
+            for pricelist in self.env["migrated.pricelist"].search([("migrated_hotel_id", "=", self.id)]).mapped("pms_pricelist_id"):
+                if pricelist.pms_property_ids and self.pms_property_id not in pricelist.pms_property_ids:
+                    pricelist.pms_property_ids = [(4, self.pms_property_id.id)]
+            for product in self.env["migrated.product"].search([("migrated_hotel_id", "=", self.id)]).mapped("product_id"):
+                if product.pms_property_ids and self.pms_property_id not in product.pms_property_ids:
+                    product.pms_property_ids = [(4, self.pms_property_id.id)]
+            for room_type in self.env["migrated.room.type"].search([("migrated_hotel_id", "=", self.id)]).mapped("pms_room_type_id"):
+                if room_type.pms_property_ids and self.pms_property_id not in room_type.pms_property_ids:
+                    room_type.pms_property_ids = [(4, self.pms_property_id.id)]
             # prepare res.users ids
             _logger.info("Mapping local with remote 'res.users' ids...")
             remote_ids = noderpc.env["res.users"].search(
@@ -1509,22 +1575,35 @@ class MigratedHotel(models.Model):
             _logger.info("Preparing 'hotel.folio' of interest...")
             import_datetime = fields.Datetime.now()
             if not remote_folio_ids:
-                remote_hotel_reservation_ids = noderpc.env["hotel.reservation"].search(
-                    [
-                        (
-                            "checkout",
-                            ">=",
-                            self.migration_date_from.strftime(
-                                DEFAULT_SERVER_DATE_FORMAT
+                if not final:
+                    remote_hotel_reservation_ids = noderpc.env["hotel.reservation"].search(
+                        [
+                            (
+                                "checkout",
+                                ">=",
+                                self.migration_date_from.strftime(
+                                    DEFAULT_SERVER_DATE_FORMAT
+                                ),
                             ),
-                        ),
-                        (
-                            "checkout",
-                            "<=",
-                            self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
-                        ),
-                    ]
-                )
+                            (
+                                "checkout",
+                                "<=",
+                                self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                            ),
+                        ]
+                    )
+                else:
+                    remote_hotel_reservation_ids = noderpc.env["hotel.reservation"].search(
+                        [
+                            (
+                                "checkout",
+                                ">=",
+                                self.migration_date_to.strftime(
+                                    DEFAULT_SERVER_DATE_FORMAT
+                                ),
+                            ),
+                        ]
+                    )
                 remote_hotel_reservations = (
                     noderpc.env["hotel.reservation"].search_read(
                         [
@@ -1551,15 +1630,21 @@ class MigratedHotel(models.Model):
                         ("service_ids", "!=", False),
                     ]
                 )
-
-                # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
-                for sublist in self.chunks(remote_hotel_folio_ids, 500):
+                if not final:
+                    # PARTIR POR paquetes de 500?? y  recuperar el ultimo ID del paquete
+                    for sublist in self.chunks(remote_hotel_folio_ids, 500):
+                        self.with_company(
+                            self.pms_property_id.company_id
+                        ).with_delay().folio_batch(
+                            sublist, category_map_ids, res_users_map_ids,
+                        )
+                    self.last_import_folios = import_datetime
+                else:
                     self.with_company(
                         self.pms_property_id.company_id
-                    ).with_delay().folio_batch(
-                        sublist, category_map_ids, res_users_map_ids
+                    ).folio_batch(
+                        remote_hotel_folio_ids, category_map_ids, res_users_map_ids,
                     )
-                self.last_import_folios = import_datetime
             else:
                 self.with_company(self.pms_property_id.company_id).folio_batch(
                     remote_folio_ids,
@@ -2331,7 +2416,7 @@ class MigratedHotel(models.Model):
 
     # PAYMENTS ---------------------------------------------------------------------------------------------------------------------------
 
-    def action_migrate_payments(self):
+    def action_migrate_payments(self, final=False):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -2366,21 +2451,32 @@ class MigratedHotel(models.Model):
                     ("pms_property_id", "=", self.pms_property_id.id),
                 ]
             ).ids
-            domain = [
-                '|',
-                ('folio_id', 'in', migrated_remote_folios_ids),
-                '&',
-                (
-                    "payment_date",
-                    ">=",
-                    self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT),
-                ),
-                (
-                    "payment_date",
-                    "<=",
-                    self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
-                ),
-            ]
+            if not final:
+                domain = [
+                    '|',
+                    ('folio_id', 'in', migrated_remote_folios_ids),
+                    '&',
+                    (
+                        "payment_date",
+                        ">=",
+                        self.migration_date_from.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                    ),
+                    (
+                        "payment_date",
+                        "<=",
+                        self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                    ),
+                ]
+            else:
+                domain = [
+                    '|',
+                    ('folio_id', 'in', migrated_remote_folios_ids),
+                    (
+                        "payment_date",
+                        ">=",
+                        self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                    ),
+                ]
             payments_already_migrated_ids = self.env["account.payment"].search([
                 ('remote_id', '!=', False),
                 ('pms_property_id', '=', self.pms_property_id.id),
@@ -3286,7 +3382,7 @@ class MigratedHotel(models.Model):
 
         return vals
 
-    def action_migrate_invoices(self, remote_invoice_ids=False):
+    def action_migrate_invoices(self, remote_invoice_ids=False, final=False):
         self.ensure_one()
         try:
             noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
@@ -3320,24 +3416,39 @@ class MigratedHotel(models.Model):
             _logger.info("Preparing 'account.invoice' of interest...")
             import_datetime = fields.Datetime.now()
             if not remote_invoice_ids:
-                remote_account_invoice_ids = noderpc.env["account.invoice"].search(
-                    [
-                        ("number", "not in", [False]),
-                        (
-                            "date_invoice",
-                            ">=",
-                            self.migration_date_from.strftime(
-                                DEFAULT_SERVER_DATE_FORMAT
+                if not final:
+                    remote_account_invoice_ids = noderpc.env["account.invoice"].search(
+                        [
+                            ("number", "not in", [False]),
+                            (
+                                "date_invoice",
+                                ">=",
+                                self.migration_date_from.strftime(
+                                    DEFAULT_SERVER_DATE_FORMAT
+                                ),
                             ),
-                        ),
-                        (
-                            "date_invoice",
-                            "<=",
-                            self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
-                        ),
-                    ],
-                    order="id ASC",  # ensure refunded invoices are retrieved after the normal invoice
-                )
+                            (
+                                "date_invoice",
+                                "<=",
+                                self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
+                            ),
+                        ],
+                        order="id ASC",  # ensure refunded invoices are retrieved after the normal invoice
+                    )
+                else:
+                    remote_account_invoice_ids = noderpc.env["account.invoice"].search(
+                        [
+                            ("number", "not in", [False]),
+                            (
+                                "date_invoice",
+                                ">=",
+                                self.migration_date_to.strftime(
+                                    DEFAULT_SERVER_DATE_FORMAT
+                                ),
+                            ),
+                        ],
+                        order="id ASC",  # ensure refunded invoices are retrieved after the normal invoice
+                    )
             else:
                 remote_account_invoice_ids = noderpc.env["account.invoice"].search(
                     [
@@ -4346,9 +4457,7 @@ class MigratedHotel(models.Model):
                     [
                         ("pms_board_service_id", "=", board_service_id),
                         ("pms_room_type_id", "=", room_type_id),
-                        "|",
-                        ("pms_property_ids", "=", False),
-                        ("pms_property_ids", "in", self.pms_property_id.id),
+                        ("pms_property_id", "=", self.pms_property_id.id),
                     ]
                 )
                 if record.id not in board_service_room_type_migrated_ids:
@@ -4440,6 +4549,7 @@ class MigratedHotel(models.Model):
                                 "pms_room_type_id": room_type_id,
                                 "board_service_line_ids": line_vals,
                                 "pms_board_service_id": board_service_id,
+                                "pms_property_id": self.pms_property_id.id,
                             }
                         )
                         count += 1
@@ -4558,15 +4668,15 @@ class MigratedHotel(models.Model):
     def import_channel_types(self):
         _logger.info("Creating remote channel types...")
         remote_channels = [
-            ("door", "Door"),
+            ("door", "Puerta"),
             ("mail", "Mail"),
-            ("phone", "Phone"),
+            ("phone", "Telefono"),
             ("call", "Call Center"),
-            ("web", "Web"),
+            ("web", "Website"),
             ("agency", "Agencia"),
-            ("operator", "Tour operador"),
+            ("operator", "Touroperador"),
             ("virtualdoor", "Virtual Door"),
-            ("detour", "Detour"),
+            ("detour", "Desvío"),
         ]
         for channel in remote_channels:
             match_record = self.env["pms.sale.channel"].search(
@@ -4595,18 +4705,6 @@ class MigratedHotel(models.Model):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(l), n):
             yield l[i : i + n]
-
-    def pre_production(self):
-        return
-        # revisar company y pms_property_ids en tarifas
-        # revisar company y pms_property_ids en productos
-        # revisar company y pms_property_ids en tipos de habitación
-        # revisar company y pms_property_ids en board services
-        # revisar company y pms_property_ids en diarios
-        # actualizar ultimos registros desde fecha de target
-        # actualizar campos especiales (creado en, creado por...)
-        # crear bindings para tarifas, room_types, plan de dipo (0), board services??
-        # wubook: desactivar el check de export disabled
 
     def _get_folio_note(self, remote_hotel_folio):
         note = "<p>Migrated from: <b>" + self.odoo_host + "</b>: </p>"
@@ -4709,3 +4807,190 @@ class MigratedHotel(models.Model):
             for past_year in range(min(lines.mapped("date")).year, limit_date.year):
                 year_lines = lines.filtered(lambda l: l.date.year == past_year)
                 sum(year_lines.balance)
+
+    def go_to_live(self):
+        try:
+            noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
+            noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
+        except (
+            odoorpc.error.RPCError,
+            odoorpc.error.InternalError,
+            urllib.error.URLError,
+        ) as err:
+            raise ValidationError(err)
+        try:
+            if self.migration_date_to - fields.Date.today() > datetime.timedelta(days=10):
+                raise ValidationError(
+                    _("Migration date to must be less than 10 days from today by security reasons")
+                )
+            if not self.wubook_parity_pricelist_id or not self.wubook_restriccion_plan_id:
+                raise ValidationError(_("You must set a parity pricelist and a restriction plan in Wubook Tab"))
+            if not self.backend_id.backend_journal_ota_ids:
+                _logger.info("No OTA journals configured. Creating default ones.")
+                booking_journal = self.env["account.journal"].search([
+                    ("pms_property_ids", "in", self.pms_property_id.id),
+                    ("name", "ilike", "Booking"),
+                    ("type", "=", "bank"),
+                ])
+                booking_agency = self.env["res.partner"].search([
+                    ("vat", "=", "NL805734958B01"),
+                    ("is_agency", "=", True),
+                ])
+                if booking_journal and booking_agency:
+                    self.backend_id.backend_journal_ota_ids = [(0, 0, {
+                        "journal_id": booking_journal.id,
+                        "agency_id": booking_agency.id,
+                        "backend_id": self.backend_id.id,
+                        "pms_property_id": self.pms_property_id.id,
+                    })]
+                else:
+                    raise ValidationError(_("There are no OTA journals configured."))
+
+            # 0- Review pms_property_ids config
+            _logger.info("Reviewing pms_property_ids config")
+            for pricelist in self.env["migrated.pricelist"].search([("migrated_hotel_id", "=", self.id)]).mapped("pms_pricelist_id"):
+                if pricelist.pms_property_ids and self.pms_property_id not in pricelist.pms_property_ids:
+                    pricelist.pms_property_ids = [(4, self.pms_property_id.id)]
+            for product in self.env["migrated.product"].search([("migrated_hotel_id", "=", self.id)]).mapped("product_id"):
+                if product.pms_property_ids and self.pms_property_id not in product.pms_property_ids:
+                    product.pms_property_ids = [(4, self.pms_property_id.id)]
+            for room_type in self.env["migrated.room.type"].search([("migrated_hotel_id", "=", self.id)]).mapped("pms_room_type_id"):
+                if room_type.pms_property_ids and self.pms_property_id not in room_type.pms_property_ids:
+                    room_type.pms_property_ids = [(4, self.pms_property_id.id)]
+
+            _logger.info("Migrating data from V11 to V14")
+            # 1- Import all rest of data: 1-folios, 2-payments, 3-returns, 4-invoices
+            _logger.info("Importing folios")
+            self.action_migrate_folios(final=True)
+            _logger.info("Importing payments")
+            self.action_migrate_payments(final=True)
+            _logger.info("Importing returns")
+            self.action_migrate_payment_returns()
+            _logger.info("Importing invoices")
+            self.action_migrate_invoices(final=True)
+
+            # 2- Update special fields
+            _logger.info("Updating special fields (create_uid, and create_date")
+            self.action_update_special_field_names()
+
+            # 3- Disabled Wubook channel and Crons in V11
+            _logger.info("Disabling Wubook channel and Crons in V11")
+            Backend = noderpc.env["channel.backend"]
+            remote_backend_id = noderpc.env["channel.backend"].search([])
+            remote_backend = Backend.browse(remote_backend_id)
+            remote_backend.username = "DISABLED"
+            remote_backend.server = "DISABLED"
+            Crons = noderpc.env["ir.cron"]
+            remote_cron_ids = noderpc.env["ir.cron"].search([])
+            remote_crons = Crons.browse(remote_cron_ids)
+            for remote_cron in remote_crons:
+                remote_cron.active = False
+
+            # 4- Create binding ids in room_types, pricelists, availability_plans
+            _logger.info("Creating binding ids in room_types")
+            room_types = self.env["pms.room.type"].search([
+                ("pms_property_ids", "in", self.pms_property_id.id),
+            ])
+            for room_type in room_types:
+                if not room_type.channel_wubook_bind_ids.filtered(lambda b: b.backend_id == self.backend_id):
+                    remote_id = self.env["migrated.room.type"].search([
+                        ("pms_room_type_id", "=", room_type.id),
+                        ("migrated_hotel_id", "=", self.id),
+                    ]).remote_id
+                    remote = noderpc.env["channel.hotel.room.type"].search_read(
+                        [("odoo_id", "=", remote_id)], ["external_id"]
+                    )
+                    if remote:
+                        room_type.channel_wubook_bind_ids = [(0, 0, {
+                            "backend_id": self.backend_id.id,
+                            "external_id": int(remote[0]["external_id"]),
+                        })]
+            _logger.info("Creating binding ids in pricelist")
+            pricelists = self.env["product.pricelist"].search([
+                '|',
+                ("pms_property_ids", "=", False),
+                ("pms_property_ids", "in", self.pms_property_id.id),
+            ])
+            for pricelist in pricelists:
+                if not pricelist.channel_wubook_bind_ids.filtered(lambda b: b.backend_id == self.backend_id):
+                    remote = self.env["migrated.pricelist"].search([
+                        ("pms_pricelist_id", "=", pricelist.id),
+                        ("migrated_hotel_id", "=", self.id),
+                    ])
+                    if remote:
+                        remote_id = remote[0].remote_id
+                        remote = noderpc.env["channel.product.pricelist"].search_read(
+                            [("odoo_id", "=", remote_id)], ["external_id"]
+                        )
+                        if remote:
+                            pricelist.channel_wubook_bind_ids = [(0, 0, {
+                                "backend_id": self.backend_id.id,
+                                "external_id": int(remote[0]["external_id"]),
+                            })]
+                        if pricelist == self.wubook_parity_pricelist_id:
+                            self.backend_id.pricelist_external_id = int(remote[0]["external_id"])
+                    else:
+                        _logger.warning("Pricelist %s not found in V11" % pricelist.name)
+                else:
+                    _logger.info("Pricelist %s already connected with Wubook" % pricelist.name)
+
+            _logger.info("Creating binding ids in availability_plans")
+            availability_plan = self.wubook_restriccion_plan_id
+            if availability_plan and not availability_plan.channel_wubook_bind_ids.filtered(lambda b: b.backend_id == self.backend_id):
+                availability_plan.channel_wubook_bind_ids = [(0, 0, {
+                    "backend_id": self.backend_id.id,
+                    "external_id": -1,
+                })]
+
+            _logger.info("Configuring Wubook channel in V14")
+            # 5- Create wubook token, active push and export_disabled = False in channel local
+            self.backend_id.parent_id.export_disabled = False
+            self.backend_id.generate_security_key()
+            self.backend_id.set_push_url()
+
+            # 6- Import Wubook availability plan rules
+            _logger.info("Importing Wubook availability plan rules")
+            self.backend_id.plan_date_from = fields.Date.today()
+            self.backend_id.plan_date_to = fields.Date.today() + relativedelta(months=5)
+            self.backend_id.plan_room_type_ids = [(6, 0, room_types.filtered(
+                lambda r: r.channel_wubook_bind_ids.filtered(lambda b: b.backend_id == self.backend_id)
+            ).ids)]
+            self.backend_id.plan_ids = [(6, 0, self.wubook_restriccion_plan_id.ids)]
+            self.backend_id.import_availability_plans()
+
+            # 7- Import Wubook pricelists items
+            _logger.info("Importing Wubook pricelists items")
+            pricelists = self.env["product.pricelist"].search([
+                ('pricelist_type', '=', 'daily'),
+                '|',
+                ("pms_property_ids", "=", False),
+                ("pms_property_ids", "in", self.pms_property_id.id),
+            ])
+            pricelists = pricelists.filtered(lambda p: p.channel_wubook_bind_ids.filtered(lambda b: b.backend_id == self.backend_id))
+            if pricelists:
+                self.backend_id.pricelist_date_from = fields.Date.today()
+                self.backend_id.pricelist_date_to = fields.Date.today() + relativedelta(months=5)
+                self.backend_id.pricelist_room_type_ids = [(6, 0, room_types.filtered(
+                    lambda r: r.channel_wubook_bind_ids.filtered(lambda b: b.backend_id == self.backend_id)
+                ).ids)]
+                self.backend_id.pricelist_ids = [(6, 0, pricelists.ids)]
+                self.backend_id.import_pricelists()
+            else:
+                _logger.warning("No pricelists to import items")
+
+            # 7- Force import booking payments
+            _logger.info("Force import booking payments")
+            prepaid_folios = self.env["pms.folio"].search([
+                ("internal_comment", "ilike", "PRE-PAID"),
+                ("agency_id.name", "ilike", "booking"),
+                ("pms_property_id", "=", self.pms_property_id.id),
+            ])
+            for folio in prepaid_folios:
+                self.backend_id.folio_reservation_code = folio.channel_wubook_bind_ids.external_id
+                self.backend_id.import_folios()
+
+        except Exception as err:
+            raise ValidationError(err)
+
+
+
