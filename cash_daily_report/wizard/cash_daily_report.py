@@ -101,6 +101,8 @@ class CashDailyReportWizard(models.TransientModel):
             ('pms_property_id', "=", self.pms_property_id.id),
             ('date', '>=', self.date_start),
             ('date', '<=', self.date_end),
+            ('state', '=', 'posted'),
+            ('allowed_pms_payments', '=', True),
         ])
         offset = 1
         total_account_payment_amount = 0.0
