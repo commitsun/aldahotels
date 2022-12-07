@@ -3521,6 +3521,7 @@ class MigratedHotel(models.Model):
                         self.create_migration_invoice(
                             vals, rpc_account_invoice["payment_ids"]
                         )
+                        self.env.cr.commit()
                 except (ValueError, ValidationError, Exception) as err:
                     migrated_log = self.env["migrated.log"].create(
                         {
@@ -4421,6 +4422,12 @@ class MigratedHotel(models.Model):
         ) as err:
             raise ValidationError(err)
         try:
+            for board in self.env["migrated.board.service"].search([("migrated_hotel_id", "=", self.id)]).mapped("board_service_id"):
+                if board.pms_property_ids and self.pms_property_id not in board.pms_property_ids:
+                    board.pms_property_ids = [(4, self.pms_property_id.id)]
+            for product in self.env["migrated.product"].search([("migrated_hotel_id", "=", self.id)]).mapped("product_id"):
+                if product.pms_property_ids and self.pms_property_id not in product.pms_property_ids:
+                    product.pms_property_ids = [(4, self.pms_property_id.id)]
             _logger.info("Importing Remote Board Services Room types...")
             import_datetime = fields.Datetime.now()
             remote_ids = noderpc.env["hotel.board.service.room.type"].search([])
@@ -4540,7 +4547,7 @@ class MigratedHotel(models.Model):
                                     0,
                                     {
                                         "product_id": product_id,
-                                        "amount": record.amount,
+                                        "amount": line.amount,
                                     },
                                 )
                             )
