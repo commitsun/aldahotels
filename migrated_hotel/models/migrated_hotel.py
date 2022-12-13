@@ -2577,7 +2577,7 @@ class MigratedHotel(models.Model):
                 if not journal_id:
                     _logger.info("Journal No MAPPED: %s", remote_journal[1])
                     continue
-                journal = self.env["account.journal"].browse(journal_id)
+                self.env["account.journal"].browse(journal_id)
                 remote_journal_ids = (
                     self.env["migrated.journal"]
                     .search([("account_journal_id", "=", journal_id)])
@@ -3058,9 +3058,19 @@ class MigratedHotel(models.Model):
                         )
                     else:
                         folio_id = False
+                    partner_id = (
+                        self.env["migrated.partner"]
+                        .search(
+                            [
+                                ("migrated_hotel_id", "=", self.id),
+                                ("remote_id", "=", remote_payment_return_line.partner_id.id),
+                            ]
+                        )
+                        .partner_id.id
+                    )
                     vals = {
                         "journal_id": journal_id,
-                        "partner_id": remote_payment_return_line.partner_id.id,
+                        "partner_id": partner_id,
                         "amount": remote_payment_return_line.amount,
                         "date": fields.Datetime.from_string(remote_payment_return.date),
                         "ref": remote_payment_return_line.reference,
@@ -3469,16 +3479,24 @@ class MigratedHotel(models.Model):
             self.pms_property_id.company_id.check_min_partner_data_invoice = False
             for remote_account_invoice_id in remote_account_invoice_ids:
                 try:
+                    invoice_journal_ids = self.env["account.journal"].search(
+                        [
+                            ("type", "=", "sale"),
+                            ("company_id", "=", self.pms_property_id.company_id.id),
+                            ("pms_property_ids", "in", self.pms_property_id.id),
+                        ]
+                    ).ids
                     migrated_account_invoice = (
                         self.env["account.move"].search(
                             [
                                 ("remote_id", "=", remote_account_invoice_id),
                                 ("pms_property_id", "=", self.pms_property_id.id),
+                                ("journal_id", "in", invoice_journal_ids),
                             ]
                         )
                         or None
                     )
-                    if not migrated_account_invoice:
+                    if not migrated_account_invoice or all(not move.is_invoice() for move in migrated_account_invoice):
                         i += 1
                         _logger.info(str(i) + " of " + str(total) + " migration")
                         _logger.info(
@@ -4990,6 +5008,7 @@ class MigratedHotel(models.Model):
             prepaid_folios = self.env["pms.folio"].search([
                 ("internal_comment", "ilike", "PRE-PAID"),
                 ("agency_id.name", "ilike", "booking"),
+                ("payment_state", "=", "not_paid"),
                 ("pms_property_id", "=", self.pms_property_id.id),
             ])
             for folio in prepaid_folios:
