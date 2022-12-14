@@ -15,24 +15,149 @@
                             string="Update Counts"
                             help="Update Total Migrate Counts"
                     />
-                    <button name="go_to_live"
+                    <button name="step1_create_bindings"
                             type="object"
                             class="oe_highlight"
-                            string="Go to Live!"
-                            help="Set this hotel in production!"
-                            confirm="
-                            Esto prepara el hotel para ser utilizado en producción:
-                            1- Se migrará todos los folios, reservas, checkins, pagos, devoluciones y facturas desde la ultima fecha de migración en adelante.
-                            2- Se actualizara para todos los registros migrados los campos de usuario y fecha de creación
-                            3- Se desactivará el conector en la vieja instancia
-                            4- Se conectara los tipos de habitacion, tarifas y plan de dispo del hotel con Wubook (añadimos el external_id)
-                            5- Habilitará la conexion de wubook con el hotel, y hará el push para activar las notificaciones de Wubook
-                            6- Importará desde Wubook todas las restricciones de disponibilidad y tarifas de los prox. 5 meses
-                            7- Forzará la importación de todos los pagos de booking en las reservas Prepaid.
-                            Los puntos 6 y 7 se hacen mediante Jobs, por lo que pueden no estar listos aún al terminar el proceso.
-                            "/>
+                            string="Create Bindings"
+                            help="1 - Create all bindings!"
+                            confirm="Se conectara los tipos de habitacion, tarifas y plan de dispo del hotel con Wubook (añadimos el external_id)"
+                            attrs="{'invisible': [('next_step', '!=', '1')]}"
                     />
+                    <button name="step2_import_rule_and_prices"
+                            type="object"
+                            class="oe_highlight"
+                            string="2 - Import Restrictions and Prices"
+                            help="Import all restrictions and Prices!"
+                            confirm="Importará desde V11 todas las restricciones de disponibilidad y tarifas de hoy en futuro"
+                            attrs="{'invisible': [('next_step', '!=', '2')]}"
+                    />
+                    <button name="step3_import_last_folio"
+                            type="object"
+                            class="oe_highlight"
+                            string="3 - Import Folios"
+                            help="Import all payments!"
+                            confirm="Importación de todos los Folios desde la fecha indicada en Migration date to.
+                            Este trabajo se hace mediante jobs, podrás ver un mensaje en este mismo formulario indicarndo el estado de la importación.
+                            Cuando termine, se habilitará el botón de importación de pagos."
+                            attrs="{'invisible': [('next_step', '!=', '3')]}"
+                    />
+                    <button name="step4_import_last_payments"
+                            type="object"
+                            class="oe_highlight"
+                            string="4 - Import Payments"
+                            help="Import all payments!"
+                            confirm="Importación de todos los pagos de V11 desde la fecha indicada en Migration date to.
+                            Este trabajo se hace mediante jobs, podrás ver un mensaje en este mismo formulario indicarndo el estado de la importación.
+                            Cuando termine, se habilitará el botón de importación de devoluciones."
+                            attrs="{'invisible': ['|',('next_step', '!=', '4'),('complete_folios','=',False)]}"
+                    />
+                    <button name="step5_import_last_returns"
+                            type="object"
+                            class="oe_highlight"
+                            string="5- Import Returns"
+                            help="Import all returns!"
+                            confirm="Importación de todas las devoluciones de V11 desde la fecha indicada en Migration date to.
+                            Este trabajo se hace mediante jobs, podrás ver un mensaje en este mismo formulario indicarndo el estado de la importación.
+                            Cuando termine, se habilitará el botón de importación de facturas."
+                            attrs="{'invisible': ['|',('next_step', '!=', '5'),('complete_payments','=',False)]}"
+                    />
+                    <button name="step6_import_last_invoices"
+                            type="object"
+                            class="oe_highlight"
+                            string="6 - Import Invoices"
+                            help="Import all invoices!"
+                            confirm="Importación de todas las facturas de V11 desde la fecha indicada en Migration date to.
+                            Este trabajo se hace mediante jobs, podrás ver un mensaje en este mismo formulario indicarndo el estado de la importación.
+                            Cuando termine, se habilitará el botón de actualización de campos especiales."
+                            attrs="{'invisible': ['|',('next_step', '!=', '6'),('complete_returns','=',False)]}"
+                    />
+                    <button name="step7_update_special_field_names"
+                            type="object"
+                            class="oe_highlight"
+                            string="7 - Update Special Fields"
+                            help="Update Special Fields"
+                            confirm="Actualización de campos especiales (Usuario y Fecha de Creación) en todos los registros migrados."
+                            attrs="{'invisible': ['|',('next_step', '!=', '7'),('complete_invoices','=',False)]}"
+                    />
+                    <button name="step8_go_to_live"
+                            type="object"
+                            class="oe_highlight"
+                            string="8 - Go to Live!"
+                            help="Set this hotel in production!"
+                            confirm="Esto prepara el hotel para ser utilizado en producción:
+                            1- Se desactivará el conector en la vieja instancia
+                            2- Habilitará la conexion de wubook con el hotel, y hará el push para activar las notificaciones de Wubook
+                            3- Forzará la importación de todos los pagos de booking en las reservas Prepaid: en lotes de 30 reservas a la hora,
+                            para evitar saturar el servidor de Wubook."
+                            attrs="{'invisible': [('next_step', '!=', '8')]}"
+                    />
+                    <field name="next_step" invisible="1"/>
+                    <field name="complete_folios" invisible="1"/>
+                    <field name="complete_payments" invisible="1"/>
+                    <field name="complete_invoices" invisible="1"/>
+                    <field name="complete_returns" invisible="1"/>
                 </header>
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    style="margin-bottom:0px;"
+                    attrs="{'invisible': [('next_step','!=','0')]}"
+                >
+                    El Hotel se encuentra sin estar completamente configurado. Mapea Wubook, productos, habitaciones, tarifas board services
+                    y diarios contables, para poder continuar con la migración.
+                </div>
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    style="margin-bottom:0px;"
+                    attrs="{'invisible': ['|', ('next_step','!=','4'),('complete_folios','=',True)]}"
+                >
+                    Existen jobs activos de migración de folios. No se puede continuar con la migración hasta que no se complete la migración de folios.
+                    Actualiza la página para ver el estado de la migración, puedes revisarlos en el menú de Jobs. Cuando todos los jobs esten completados,
+                    se habilitará el siguiente paso.
+                    Total: <field name="count_total_job_folios" />
+                    Faltan por completar: <field name="count_pending_job_folios" />
+                    Fallaron: <field name="count_failed_job_folios" />
+                </div>
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    style="margin-bottom:0px;"
+                    attrs="{'invisible': ['|', ('next_step','!=','5'),('complete_payments','=',True)]}"
+                >
+                    Existen jobs activos de migración de pagos. No se puede continuar con la migración hasta que no se complete la migración de pagos.
+                    Actualiza la página para ver el estado de la migración, puedes revisarlos en el menú de Jobs. Cuando todos los jobs esten completados,
+                    se habilitará el siguiente paso.
+                    Total: <field name="count_total_job_payments" />
+                    Faltan por completar: <field name="count_pending_job_payments" />
+                    Fallaron: <field name="count_failed_job_payments" />
+                </div>
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    style="margin-bottom:0px;"
+                    attrs="{'invisible': ['|', ('next_step','!=','6'),('complete_returns','=',True)]}"
+                >
+                    Existen jobs activos de migración de devoluciones. No se puede continuar con la migración hasta que no se complete la migración de devoluciones.
+                    Actualiza la página para ver el estado de la migración, puedes revisarlos en el menú de Jobs. Cuando todos los jobs esten completados,
+                    se habilitará el siguiente paso.
+                    Total: <field name="count_total_job_returns" />
+                    Faltan por completar: <field name="count_pending_job_returns" />
+                    Fallaron: <field name="count_failed_job_returns" />
+                </div>
+                <div
+                    class="alert alert-warning"
+                    role="alert"
+                    style="margin-bottom:0px;"
+                    attrs="{'invisible': ['|', ('next_step','!=','7'),('complete_invoices','=',True)]}"
+                >
+                    Existen jobs activos de migración de facturas. No se puede continuar con la migración hasta que no se complete la migración de facturas.
+                    Actualiza la página para ver el estado de la migración, puedes revisarlos en el menú de Jobs. Cuando todos los jobs esten completados,
+                    se habilitará el siguiente paso.
+                    Total: <field name="count_total_job_invoices" />
+                    Faltan por completar: <field name="count_pending_job_invoices" />
+                    Fallaron: <field name="count_failed_job_invoices" />
+                </div>
                 <sheet>
                     <widget
                         name="web_ribbon"
@@ -86,10 +211,12 @@
                                     <field name="count_total_products" force_save="1" />
                                     <field name="count_tarjet_products" force_save="1" />
                                     <field name="count_migrated_products" force_save="1" />
+                                    <field name="complete_products"/>
                                 </group>
                                 <group>
                                     <field name="count_total_pricelists" force_save="1"/>
                                     <field name="count_migrated_pricelists" force_save="1" />
+                                    <field name="complete_pricelists"/>
                                 </group>
                                 <group>
                                     <field name="count_total_room_types" force_save="1" />
@@ -98,14 +225,17 @@
                                 <group>
                                     <field name="count_total_rooms" force_save="1" />
                                     <field name="count_migrated_rooms" force_save="1" />
+                                    <field name="complete_rooms"/>
                                 </group>
                                 <group>
                                     <field name="count_total_board_services" force_save="1" />
                                     <field name="count_migrated_board_services" force_save="1" />
+                                    <field name="complete_boards"/>
                                 </group>
                                 <group>
                                     <field name="count_total_journals" force_save="1" />
                                     <field name="count_migrated_journals" force_save="1" />
+                                    <field name="complete_journals"/>
                                 </group>
                             </group>
                             <group col="5" string="Record Data Migration">
@@ -385,6 +515,8 @@
                         </page>
                         <page string="Extra Tools">
                             <group>
+                                <field name="step" />
+                                <field name="next_step" />
                                 <field name="folio_remote_name" />
                                 <button name="action_migrate_folio"
                                         type="object"
