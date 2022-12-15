@@ -5299,9 +5299,9 @@ class MigratedHotel(models.Model):
 
             _logger.info("Configuring Wubook channel in V14")
             # 5- Create wubook token, active push and export_disabled = False in channel local
-            #self.backend_id.parent_id.export_disabled = False
+            self.backend_id.parent_id.export_disabled = False
             self.backend_id.generate_security_key()
-            #self.backend_id.set_push_url()
+            self.backend_id.set_push_url()
 
             # 6 - Active check_chronology in journals
             invoice_journals = self.env["account.journal"].search(
@@ -5313,7 +5313,17 @@ class MigratedHotel(models.Model):
             )
             invoice_journals.check_chronology = True
 
-            # 7- Force import booking payments
+            # 7- confirmar folios en borrador
+
+            folios = self.env["pms.folio"].search([
+                ("pms_property_id", "=", self.pms_property_id.id),
+                ("state", "=", "draft"),
+                ("reservation_ids.state", "not in", ["draft", "cancel"]),
+            ])
+            folios.state = "confirm"
+            self.env.cr.commit()
+
+            # 8- Force import booking payments
             _logger.info("Force import booking payments")
             prepaid_folios = self.env["pms.folio"].search([
                 ("internal_comment", "ilike", "PRE-PAID"),
@@ -5321,6 +5331,8 @@ class MigratedHotel(models.Model):
                 ("payment_state", "=", "not_paid"),
                 ("pms_property_id", "=", self.pms_property_id.id),
             ])
+
+
             # We need import max 60 by hour to avoid wubook rate limit
             count = 0
             for folio in prepaid_folios:
