@@ -3012,20 +3012,26 @@ class MigratedHotel(models.Model):
 
         try:
             _logger.info("Preparing 'payment.return' of interest...")
-            migrated_folios_remote_ids = self.env["pms.folio"].search([
-                ("pms_property_id", "=", self.pms_property_id.id),
-                ("remote_id", "!=", False),
+            migrated_payments_remote_ids = self.env["account.payment"].search([
+                ('remote_id', '!=', False),
+                ('pms_property_id', '=', self.pms_property_id.id),
+                '|',
+                '|',
+                ('partner_type', '!=', 'customer'),
+                ('payment_type', '!=', 'outbound'),
+                ('is_internal_transfer', '=', True),
             ]).mapped("remote_id")
             returns_already_migrated_ids = self.env["account.payment"].search([
                 ("remote_id", "!=", False),
                 ("pms_property_id", "=", self.pms_property_id.id),
                 ("payment_type", "=", "outbound"),
                 ("partner_type", "=", "customer"),
+                ("is_internal_transfer", "=", False),
             ]).mapped("remote_id")
 
             remote_payment_return_ids = noderpc.env["payment.return"].search([
                 ("state", "=", "done"),
-                ("folio_id", "in", migrated_folios_remote_ids),
+                ("line_ids.move_line_ids.payment_id", "in", migrated_payments_remote_ids),
                 ("id", "not in", returns_already_migrated_ids),
             ])
             # Mapping Users
@@ -3043,6 +3049,7 @@ class MigratedHotel(models.Model):
                 )
                 res_users_map_ids.update({str(record.id): res_users_id})
             _logger.info("Migrating 'payment.return'...")
+            _logger.info("Total 'payment.return' to migrate: %s" % len(remote_payment_return_ids))
             # disable mail feature to speed-up migration
             context_no_mail = {
                 "tracking_disable": True,
@@ -3058,9 +3065,6 @@ class MigratedHotel(models.Model):
                 # prepare related user create_uid
                 remote_id = remote_payment_return["create_uid"] and remote_payment_return["create_uid"][0]
                 res_create_uid = remote_id and res_users_map_ids.get(str(remote_id))
-                remote_payment_id = (
-                    remote_payment_return_line.move_line_ids.payment_id.id
-                )
                 journal_id = (
                     self.env["migrated.journal"]
                     .search(
@@ -3071,12 +3075,21 @@ class MigratedHotel(models.Model):
                     )
                     .account_journal_id.id
                 )
-                if remote_payment_return.folio_id:
+                payment = self.env["account.payment"].search([
+                    ("remote_id", "=", remote_payment_return_line.move_line_ids.payment_id.id),
+                    ("pms_property_id", "=", self.pms_property_id.id),
+                    '|',
+                    '|',
+                    ('partner_type', '!=', 'customer'),
+                    ('payment_type', '!=', 'outbound'),
+                    ('is_internal_transfer', '=', True),
+                ])
+                if payment and payment.folio_ids:
                     folio_id = (
                         self.env["pms.folio"]
                         .search(
                             [
-                                ("remote_id", "=", remote_payment_return.folio_id.id),
+                                ("remote_id", "=", payment.folio_ids[0].id),
                                 ("pms_property_id", "=", self.pms_property_id.id),
                             ],
                             limit=1,
@@ -3106,7 +3119,7 @@ class MigratedHotel(models.Model):
                     "partner_type": "customer",
                     "state": "draft",
                     "create_uid": res_create_uid,
-                    "remote_id": remote_payment_id,
+                    "remote_id": payment_return_id,
                 }
                 if folio_id:
                     vals["folio_ids"] = [(6, 0, [folio_id])]
@@ -3505,7 +3518,7 @@ class MigratedHotel(models.Model):
                         )
                         or None
                     )
-                    if not migrated_account_invoice or all(not move.is_invoice() for move in migrated_account_invoice):
+                    if not migrated_account_invoice or any(not move.is_invoice() for move in migrated_account_invoice):
                         i += 1
                         _logger.info(str(i) + " of " + str(total) + " migration")
                         _logger.info(
