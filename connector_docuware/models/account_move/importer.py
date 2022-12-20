@@ -196,6 +196,7 @@ class DocuwareMapper(Component):
         for line in previous_invoice.invoice_line_ids:
             new_line_data = line.copy_data(
                 default={
+                    "asset_id": False,
                     "price_unit": 0.0,
                     "pms_property_id": values.get("pms_property_id"),
                 }
