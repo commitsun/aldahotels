@@ -580,7 +580,9 @@ class MigratedHotel(models.Model):
             self.count_total_room_types = noderpc.env["hotel.room.type"].search_count(
                 ["|", ("active", "=", True), ("active", "=", False)]
             )
-            self.count_total_rooms = noderpc.env["hotel.room"].search_count([])
+            self.count_total_rooms = noderpc.env["hotel.room"].search_count(
+                ["|", ("active", "=", True), ("active", "=", False)]
+            )
             self.count_total_board_services = noderpc.env[
                 "hotel.board.service.room.type"
             ].search_count([])
@@ -1131,16 +1133,37 @@ class MigratedHotel(models.Model):
                     "valid_from": rpc_res_partner["document_expedition_date"],
                 }
         if not migrated_res_partner and rpc_res_partner["vat"]:
-            migrated_res_partner = self.env["res.partner"].search(
-                [
-                    ("vat", "=", rpc_res_partner["vat"]),
-                ]
-            )
+            country_id = False
+            remote_id = rpc_res_partner["country_id"] and rpc_res_partner["country_id"][0]
+            if remote_id:
+                country_id = remote_id and country_map_ids.get(remote_id) or None
+            elif rpc_res_partner["code_ine_id"] and rpc_res_partner["code_ine_id"][0]:
+                ine_code = next(
+                    item
+                    for item in ine_codes
+                    if item["id"] == rpc_res_partner["code_ine_id"][0]
+                )["code"]
+                if "ES" in ine_code:
+                    country_id = self.env["res.country"].search([("code", "=", "ES")]).id
+                else:
+                    country_id = (
+                        self.env["res.country"].search([("code_alpha3", "=", ine_code)]).id
+                    )
+            if country_id and rpc_res_partner["vat"]:
+                migrated_res_partner = self._get_partner_vat(country_id=country_id, vat=rpc_res_partner["vat"])
         if migrated_res_partner:
             _logger.info(
                 "User #%s found with identity document: [%s]",
                 rpc_res_partner["id"],
                 rpc_res_partner["document_number"],
+            )
+            PartnersMigrated.create(
+                {
+                    "date_time": fields.Datetime.now(),
+                    "migrated_hotel_id": self.id,
+                    "remote_id": rpc_res_partner["id"],
+                    "partner_id": migrated_res_partner.id,
+                }
             )
         elif document_data or rpc_res_partner["vat"] and (is_company or is_ota):
             vals = self._prepare_partner_remote_data(
@@ -3193,12 +3216,10 @@ class MigratedHotel(models.Model):
         )
         if not res_partner:
             remote_partner = noderpc.env["res.partner"].browse(remote_id)
-            if remote_partner.vat:
-                res_partner = self.env["res.partner"].search(
-                    [
-                        ("vat", "=", remote_partner.vat),
-                    ]
-                )
+            country_id = remote_partner.country_id
+            remote_id = remote_partner.country_id
+            if country_id and remote_partner.vat:
+                res_partner = self._get_partner_vat(country_id=country_id, vat=remote_partner.vat)
             _logger.info(
                 "search vat res_partner: %s",
                 res_partner.name if res_partner else "Not Found",
@@ -3221,8 +3242,16 @@ class MigratedHotel(models.Model):
                                 "mobile": remote_partner.mobile,
                                 "email": remote_partner.email,
                                 "remote_id": remote_partner.id,
+                                "country_id": remote_partner.country_id,
                             }
                         )
+                    )
+                    self.env["migrated.partner"].create(
+                        {
+                            "partner_id": res_partner.id,
+                            "remote_id": remote_partner.id,
+                            "migrated_hotel_id": self.id,
+                        }
                     )
                     _logger.info(
                         "create res_partner: %s",
@@ -3241,6 +3270,14 @@ class MigratedHotel(models.Model):
                         "Remote partner with ID remote: [%s] not found", remote_id
                     )
                     return False
+            else:
+                self.env["migrated.partner"].create(
+                    {
+                        "partner_id": res_partner.id,
+                        "remote_id": remote_partner.id,
+                        "migrated_hotel_id": self.id,
+                    }
+                )
         # take into account merged partners are not active
         # if not res_partner_id:
         #     res_partner_id = self.env['res.partner'].search([
@@ -5088,6 +5125,13 @@ class MigratedHotel(models.Model):
                     "external_id": -1,
                 })]
             self.step = 1
+
+            _logger.info("Creating binding in property")
+            self.pms_property_id.channel_wubook_bind_ids = [(0, 0, {
+                "backend_id": self.backend_id.id,
+                "external_id": self.wubook_hotel_id,
+            })]
+
         except Exception as err:
             raise ValidationError(err)
 
@@ -5353,8 +5397,41 @@ class MigratedHotel(models.Model):
                 eta_time = datetime.datetime.now() + datetime.timedelta(hours=int(count / 50))
                 self.env["channel.wubook.pms.folio"].with_delay(
                     eta=eta_time, priority=5
-                ).import_record(self.backend_id, folio_reservation_code)
+                ).import_record(folio.channel_wubook_bind_ids[0].backend_id, folio_reservation_code)
             self.step = 8
 
         except Exception as err:
             raise ValidationError(err)
+
+    def _get_partner_vat(self, country_id, vat):
+        _eu_country_vat = {
+            'GR': 'EL'
+        }
+        Partner = self.env["res.partner"].with_context(active_test=False).sudo()
+        europe = self.env.ref("base.europe")
+        if not europe:
+            europe = self.env["res.country.group"].search(
+                [("name", "=", "Europe")], limit=1
+            )
+        country = self.env["res.country"].browse(country_id)
+        partner_country_code = country.code
+        vat_country, vat_number = Partner._split_vat(vat)
+        if europe and country.id in europe.country_ids.ids:
+            vat_country = _eu_country_vat.get(vat_country, vat_country).upper()
+        vat_with_code = (
+            vat
+            if partner_country_code.upper() == vat_country.upper()
+            else partner_country_code.upper() + vat
+        )
+        vat_without_code = (
+            vat
+            if partner_country_code.upper() != vat_country.upper()
+            else vat_number
+        )
+        domain = [
+            "|",
+            ("vat", "=", vat_with_code),
+            ("vat", "=", vat_without_code),
+        ]
+        repeat_partner = Partner.search(domain, limit=1)
+        return repeat_partner
