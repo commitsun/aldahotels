@@ -182,12 +182,12 @@ class KellysWizard(models.TransientModel):
         worksheet.write("E1", _("Salida"), xls_cell_format_header)
         worksheet.write("F1", _("Asignado"), xls_cell_format_header)
 
-        worksheet.set_column("A:A", 30)
+        worksheet.set_column("A:A", 10)
         worksheet.set_column("B:B", 10)
-        worksheet.set_column("C:C", 40)
+        worksheet.set_column("C:C", 20)
         worksheet.set_column("D:D", 15)
         worksheet.set_column("E:E", 15)
-        worksheet.set_column("F:F", 30)
+        worksheet.set_column("F:F", 10)
 
         rooms = self.env["kellysrooms"].search(
             [("id", "in", self.habitaciones.ids)], order=self.order
