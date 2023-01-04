@@ -4,10 +4,10 @@
 import datetime
 import json
 import logging
+import uuid
 import traceback
 import urllib.error
 from itertools import groupby
-from dateutil.relativedelta import relativedelta
 
 
 import odoorpc.odoo
@@ -1973,7 +1973,7 @@ class MigratedHotel(models.Model):
                     folio_remote_bindings,
                 )
             else:
-                self.with_company(self.pms_property_id.company_id).migration_folio(
+                self.with_company(self.pms_property_id.company_id).with_delay().migration_folio(
                     remote_hotel_folio,
                     res_users_map_ids,
                     category_map_ids,
@@ -2605,7 +2605,7 @@ class MigratedHotel(models.Model):
                             ("pms_property_id", "=", self.pms_property_id.id),
                         ]
                     )
-                    if not folio:
+                    if not folio and payment["folio_id"][0] not in folios_to_import_ids:
                         folios_to_import_ids.append(payment["folio_id"][0])
             if folios_to_import_ids:
                 self.action_migrate_folios(folios_to_import_ids)
@@ -2636,129 +2636,6 @@ class MigratedHotel(models.Model):
                     .mapped("remote_id")
                 )
                 migrated_journals.extend(remote_journal_ids)
-                # if journal.type == "cash":
-                #     # compute ending balance
-                #     latest_statement = self.env["account.bank.statement"].search(
-                #         [("journal_id", "=", journal_id)], limit=1
-                #     )
-                #     if latest_statement:
-                #         balance = latest_statement.balance_end_real
-                #     else:
-                #         balance = 0
-
-                #     journal_payments_tarjet = list(
-                #         filter(
-                #             lambda x: x["journal_id"][0] in remote_journal_ids,
-                #             remote_payment_vals,
-                #         )
-                #     )
-                #     journal_payments_tarjet = sorted(
-                #         journal_payments_tarjet, key=date_func
-                #     )
-                #     for date_str, payments in groupby(
-                #         journal_payments_tarjet, key=date_func
-                #     ):
-                #         date = fields.Datetime.from_string(date_str)
-                #         # Some payment are garbage, so we skip them (know by old dates)
-                #         if date < (
-                #             datetime.datetime.now() - datetime.timedelta(days=2000)
-                #         ):
-                #             continue
-                #         line_vals = []
-                #         st_values = {
-                #             "journal_id": journal_id,
-                #             "user_id": self.env.user.id,
-                #             "pms_property_id": self.pms_property_id.id,
-                #             "name": date_str,
-                #             "balance_start": balance,
-                #             "move_line_ids": line_vals,
-                #             "date": date,
-                #         }
-                #         context_no_mail = {
-                #             "tracking_disable": True,
-                #             "mail_notrack": True,
-                #             "mail_create_nolog": True,
-                #             "company_id": self.pms_property_id.company_id.id,
-                #         }
-                #         statement = (
-                #             self.env["account.bank.statement"]
-                #             .with_context(context_no_mail)
-                #             .sudo()
-                #             .create(st_values)
-                #         )
-                #         _logger.info("NEW STATEMENT: %s", date_str)
-                #         for payment in payments:
-                #             _logger.info("Normal Payments")
-                #             balance += self.create_payment_migration(
-                #                 payment,
-                #                 res_users_map_ids,
-                #                 remote_journal,
-                #                 date_str,
-                #                 journal,
-                #                 statement,
-                #             )
-                #             self.with_company(
-                #                 self.pms_property_id.company_id
-                #             ).create_bank_payment_migration(
-                #                 payment, remote_journal, res_users_map_ids, journal_id
-                #             )
-                #             count += 1
-                #             _logger.info(
-                #                 "(%s/%s) Migrated account.payment with ID (remote): %s",
-                #                 count,
-                #                 total,
-                #                 payment["id"],
-                #             )
-                #         destination_payment_vals = list(
-                #             filter(
-                #                 lambda x: x["payment_type"] == "transfer"
-                #                 and x["payment_date"] == date
-                #                 and x["destination_journal_id"][0] == remote_journal[0],
-                #                 journal_payments_tarjet,
-                #             )
-                #         )
-                #         for pay in destination_payment_vals:
-                #             _logger.info("Destination Journal Payments")
-                #             balance += self.create_payment_migration(
-                #                 pay,
-                #                 res_users_map_ids,
-                #                 remote_journal,
-                #                 date_str,
-                #                 journal,
-                #                 statement,
-                #             )
-                #             self.with_company(
-                #                 self.pms_property_id.company_id
-                #             ).create_bank_payment_migration(
-                #                 payment, remote_journal, res_users_map_ids, journal_id
-                #             )
-                #             count += 1
-                #             _logger.info(
-                #                 "(%s/%s) Migrated account.payment with ID (remote): %s",
-                #                 count,
-                #                 total,
-                #                 payment["id"],
-                #             )
-                #         statement.write(
-                #             {
-                #                 "balance_end_real": balance,
-                #                 "move_line_ids": line_vals,
-                #                 "date_done": fields.Date.from_string(date_str).strftime(
-                #                     DEFAULT_SERVER_DATE_FORMAT
-                #                 ),
-                #             }
-                #         )
-                #         dates = [
-                #             fields.Date.from_string(item["payment_date"])
-                #             for item in journal_payments_tarjet
-                #         ]
-                #         next_statement, previus_statement = self._get_statements(
-                #             statement, dates, journal_id
-                #         )
-                #         self.recursive_statements_post(
-                #             statement, next_statement, previus_statement, dates
-                #         )
-                # elif journal.type == "bank":
                 journal_payments_tarjet = list(
                     filter(
                         lambda x: x["journal_id"][0] in remote_journal_ids,
@@ -3216,8 +3093,7 @@ class MigratedHotel(models.Model):
         )
         if not res_partner:
             remote_partner = noderpc.env["res.partner"].browse(remote_id)
-            country_id = remote_partner.country_id
-            remote_id = remote_partner.country_id
+            country_id = remote_partner.country_id.id if remote_partner.country_id else False
             if country_id and remote_partner.vat:
                 res_partner = self._get_partner_vat(country_id=country_id, vat=remote_partner.vat)
             _logger.info(
@@ -3242,7 +3118,7 @@ class MigratedHotel(models.Model):
                                 "mobile": remote_partner.mobile,
                                 "email": remote_partner.email,
                                 "remote_id": remote_partner.id,
-                                "country_id": remote_partner.country_id,
+                                "country_id": country_id,
                             }
                         )
                     )
@@ -3446,6 +3322,11 @@ class MigratedHotel(models.Model):
             "invoice_user_id": res_user_id,
             "pms_property_id": self.pms_property_id.id,
         }
+        if account_invoice["date_invoice"] < "2023-01-01":
+            vals["fiscal_position_id"] = self.env["account.fiscal.position"].search([
+                ("company_id", "=", self.company_id.id),
+                ("sii_active", "=", False),
+            ])
 
         return vals
 
@@ -3482,6 +3363,16 @@ class MigratedHotel(models.Model):
 
             _logger.info("Preparing 'account.invoice' of interest...")
             import_datetime = fields.Datetime.now()
+            migrated_account_invoice_ids = (
+                self.env["account.move"].search(
+                    [
+                        ("remote_id", "!=", False),
+                        ("pms_property_id", "=", self.pms_property_id.id),
+                        ("move_type", "in", ["out_invoice", "out_refund"]),
+                    ]
+                )
+                or None
+            ).mapped("remote_id")
             if not remote_invoice_ids:
                 if not final:
                     remote_account_invoice_ids = noderpc.env["account.invoice"].search(
@@ -3499,6 +3390,7 @@ class MigratedHotel(models.Model):
                                 "<=",
                                 self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
                             ),
+                            ("id", "not in", migrated_account_invoice_ids),
                         ],
                         order="id ASC",  # ensure refunded invoices are retrieved after the normal invoice
                     )
@@ -3513,6 +3405,7 @@ class MigratedHotel(models.Model):
                                     DEFAULT_SERVER_DATE_FORMAT
                                 ),
                             ),
+                            ("id", "not in", migrated_account_invoice_ids),
                         ],
                         order="id ASC",  # ensure refunded invoices are retrieved after the normal invoice
                     )
@@ -3520,10 +3413,10 @@ class MigratedHotel(models.Model):
                 remote_account_invoice_ids = noderpc.env["account.invoice"].search(
                     [
                         ("id", "in", remote_invoice_ids),
+                        ("id", "not in", migrated_account_invoice_ids),
                     ],
                     order="id ASC",  # ensure refunded invoices are retrieved after the normal invoice
                 )
-
             _logger.info("Migrating 'account.invoice'...")
             _logger.info(
                 "Total of 'account.invoice' to migrate: %s"
@@ -3533,7 +3426,6 @@ class MigratedHotel(models.Model):
             total = len(remote_account_invoice_ids)
             i = 0
             min_data_invoice_company = self.pms_property_id.company_id.check_min_partner_data_invoice
-            self.pms_property_id.company_id.check_min_partner_data_invoice = False
             invoice_journals = self.env["account.journal"].search(
                 [
                     ("type", "=", "sale"),
@@ -3541,63 +3433,50 @@ class MigratedHotel(models.Model):
                     ("pms_property_ids", "in", self.pms_property_id.id),
                 ]
             )
-            invoice_journals.check_chronology = True
-            invoice_journal_ids = invoice_journals.ids
+            invoice_journals.check_chronology = False
+            self.pms_property_id.company_id.check_min_partner_data_invoice = False
             for remote_account_invoice_id in remote_account_invoice_ids:
                 try:
-                    migrated_account_invoice = (
-                        self.env["account.move"].search(
-                            [
-                                ("remote_id", "=", remote_account_invoice_id),
-                                ("pms_property_id", "=", self.pms_property_id.id),
-                                ("journal_id", "in", invoice_journal_ids),
-                            ]
-                        )
-                        or None
+                    i += 1
+                    _logger.info(str(i) + " of " + str(total) + " migration")
+                    _logger.info(
+                        "User #%s started migration of account.invoice with remote ID: [%s]",
+                        self._uid,
+                        remote_account_invoice_id,
                     )
-                    if not migrated_account_invoice or any(not move.is_invoice() for move in migrated_account_invoice):
-                        i += 1
-                        _logger.info(str(i) + " of " + str(total) + " migration")
-                        _logger.info(
-                            "User #%s started migration of account.invoice with remote ID: [%s]",
-                            self._uid,
-                            remote_account_invoice_id,
-                        )
-                        rpc_account_invoice = noderpc.env[
-                            "account.invoice"
-                        ].search_read(
-                            [("id", "=", remote_account_invoice_id)],
-                            [
-                                "user_id",
-                                "partner_id",
-                                "refund_invoice_id",
-                                "invoice_line_ids",
-                                "id",
-                                "number",
-                                "origin",
-                                "date_invoice",
-                                "type",
-                                "payment_ids",
-                                "journal_id",
-                                "folio_ids",
-                            ],
-                        )[
-                            0
-                        ]
-
-                        if rpc_account_invoice["number"].strip() == "":
-                            continue
-
-                        vals = self._prepare_invoice_remote_data(
-                            rpc_account_invoice,
-                            res_users_map_ids,
-                            noderpc,
-                        )
-                        if not vals:
-                            continue
-                        self.with_delay().create_migration_invoice(
-                            vals, rpc_account_invoice["payment_ids"]
-                        )
+                    rpc_account_invoice = noderpc.env[
+                        "account.invoice"
+                    ].search_read(
+                        [("id", "=", remote_account_invoice_id)],
+                        [
+                            "user_id",
+                            "partner_id",
+                            "refund_invoice_id",
+                            "invoice_line_ids",
+                            "id",
+                            "number",
+                            "origin",
+                            "date_invoice",
+                            "type",
+                            "payment_ids",
+                            "journal_id",
+                            "folio_ids",
+                        ],
+                    )[
+                        0
+                    ]
+                    if rpc_account_invoice["number"].strip() == "":
+                        continue
+                    vals = self._prepare_invoice_remote_data(
+                        rpc_account_invoice,
+                        res_users_map_ids,
+                        noderpc,
+                    )
+                    if not vals:
+                        continue
+                    self.with_delay().create_migration_invoice(
+                        vals, rpc_account_invoice["payment_ids"]
+                    )
                 except (ValueError, ValidationError, Exception) as err:
                     migrated_log = self.env["migrated.log"].create(
                         {
@@ -5129,7 +5008,7 @@ class MigratedHotel(models.Model):
             _logger.info("Creating binding in property")
             self.pms_property_id.channel_wubook_bind_ids = [(0, 0, {
                 "backend_id": self.backend_id.id,
-                "external_id": self.wubook_hotel_id,
+                "external_id": uuid.uuid4().hex,
             })]
 
         except Exception as err:
@@ -5430,8 +5309,8 @@ class MigratedHotel(models.Model):
         )
         domain = [
             "|",
-            ("vat", "=", vat_with_code),
-            ("vat", "=", vat_without_code),
+            ("vat", "ilike", vat_with_code),
+            ("vat", "ilike", vat_without_code),
         ]
         repeat_partner = Partner.search(domain, limit=1)
         return repeat_partner
