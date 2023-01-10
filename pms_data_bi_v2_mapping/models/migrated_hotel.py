@@ -24,7 +24,7 @@ import urllib.error
 
 import odoorpc.odoo
 
-from odoo import fields, models
+from odoo import fields, models, api
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -48,6 +48,25 @@ class MigratedHotel(models.Model):
         string="Json to export", readonly=True
     )
     json_to_export_outs_v2_data = fields.Text(string="Json to export", readonly=True)
+
+    @api.model
+    def cron_update_v2_mop_fields(self):
+        for migrated in self.search([]).filtered(lambda x: x.in_live):
+            try:
+                noderpc = odoorpc.ODOO(migrated.odoo_host, migrated.odoo_protocol, migrated.odoo_port)
+                noderpc.login(migrated.odoo_db, migrated.odoo_user, migrated.odoo_password)
+            except (
+                odoorpc.error.RPCError,
+                odoorpc.error.InternalError,
+                urllib.error.URLError,
+            ) as err:
+                raise ValidationError(err)
+            company = noderpc.env["res.company"].search([])
+            if company:
+                company = noderpc.env["res.company"].browse(company[0])
+                company.json_reservations_v3_data = migrated.json_to_export_reservations_v2_data
+                company.json_outs_v3_data = migrated.json_to_export_outs_v2_data
+            noderpc.logout()
 
     def export_reservations_data_mapping_v2(self):
         """
