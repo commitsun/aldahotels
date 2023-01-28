@@ -1649,6 +1649,7 @@ class MigratedHotel(models.Model):
                                 "<=",
                                 self.migration_date_to.strftime(DEFAULT_SERVER_DATE_FORMAT),
                             ),
+                            ("is_automatic_blocked", "=", False),
                         ]
                     )
                 else:
@@ -2159,7 +2160,6 @@ class MigratedHotel(models.Model):
                 )
                 .partner_id.id
             )
-
             state = hotel_checkin["state"]
             if state == "booking":
                 state = "onboard"
@@ -3363,16 +3363,20 @@ class MigratedHotel(models.Model):
 
             _logger.info("Preparing 'account.invoice' of interest...")
             import_datetime = fields.Datetime.now()
-            migrated_account_invoice_ids = (
+            migrated_account_invoices = (
                 self.env["account.move"].search(
                     [
                         ("remote_id", "!=", False),
                         ("pms_property_id", "=", self.pms_property_id.id),
                         ("move_type", "in", ["out_invoice", "out_refund"]),
                     ]
-                )
-                or None
-            ).mapped("remote_id")
+                ).ids
+                or []
+            )
+            if migrated_account_invoices:
+                migrated_account_invoice_ids = migrated_account_invoices.mapped("remote_id")
+            else:
+                migrated_account_invoice_ids = []
             if not remote_invoice_ids:
                 if not final:
                     remote_account_invoice_ids = noderpc.env["account.invoice"].search(
@@ -3533,7 +3537,7 @@ class MigratedHotel(models.Model):
             or None
         )
         #
-        if payment_ids:
+        if payment_ids and migrated_account_invoice.payment_state == "not_paid":
             migrated_account_invoice._autoreconcile_folio_payments()
 
     def _update_special_field_names(
@@ -4059,13 +4063,46 @@ class MigratedHotel(models.Model):
             total_records = len(remote_records)
             count = 0
             for record in remote_records:
-                room_clean_name = [
-                    int(item) for item in record.name.split() if item.isdigit()
-                ]
-                room_clean_name = (
-                    str(room_clean_name[0]) if len(room_clean_name) == 1 else False
-                )
-                # TODO: Habitaciones compartidas tienen el mismo room_clean_name!!
+                if record.shared_room_id:
+                    room_clean_name = record.name
+                    # if record.shared_room_id.equivalent_room_id.id not in room_migrated_ids:
+                    #     new_room = self.env["pms.room"].create(
+                    #         {
+                    #             "name": record.shared_room_id.equivalent_room_id.name,
+                    #             "pms_property_id": self.pms_property_id.id,
+                    #             "capacity": record.shared_room_id.equivalent_room_id.capacity,
+                    #             "room_type_id": self.env["migrated.room.type"].search(
+                    #                 [
+                    #                     ("migrated_hotel_id", "=", self.id),
+                    #                     ("remote_id", "=", record.shared_room_id.equivalent_room_id.room_type_id.id),
+                    #                 ]
+                    #             ).pms_room_type_id.id,
+                    #             "extra_beds_allowed": record.shared_room_id.equivalent_room_id.extra_beds_allowed,
+                    #             "sequence": record.shared_room_id.equivalent_room_id.sequence,
+                    #             "active": record.shared_room_id.equivalent_room_id.active,
+                    #             "in_ine": record.shared_room_id.equivalent_room_id.in_ine,
+                    #         }
+                    #     )
+                    #     self.migrated_room_ids = [
+                    #         (
+                    #             0,
+                    #             0,
+                    #             {
+                    #                 "remote_id": record.shared_room_id.equivalent_room_id.id,
+                    #                 "remote_name": record.shared_room_id.equivalent_room_id.name,
+                    #                 "last_sync": import_datetime,
+                    #                 "migrated_hotel_id": self.id,
+                    #                 "pms_room_id": new_room.id,
+                    #             },
+                    #         )
+                    #     ]
+                else:
+                    room_clean_name = [
+                        int(item) for item in record.name.split() if item.isdigit()
+                    ]
+                    room_clean_name = (
+                        str(room_clean_name[0]) if len(room_clean_name) == 1 else False
+                    )
                 match_record = self.env["pms.room"].search(
                     [
                         ("pms_property_id", "=", self.pms_property_id.id),
@@ -4109,9 +4146,14 @@ class MigratedHotel(models.Model):
                             raise UserError(
                                 _(
                                     "Room type dont found in v14 mapping: %s",
-                                    record.room_type.name,
+                                    record.room_type_id.name,
                                 )
                             )
+                        # parent_id = False
+                        # if record.shared_room_id and record.shared_room_id.equivalent_room_id:
+                        #     parent_id = self.migrated_room_ids.filtered(
+                        #         lambda r: r.remote_id == record.shared_room_id.equivalent_room_id.id
+                        #     ).pms_room_id.id
                         new_room = self.env["pms.room"].create(
                             {
                                 "name": room_clean_name or record.name,
@@ -4122,6 +4164,7 @@ class MigratedHotel(models.Model):
                                 "in_ine": record.in_ine,
                                 "pms_property_id": self.pms_property_id.id,
                                 "active": record.active,
+                                # "parent_id": parent_id,
                             }
                         )
                         count += 1
@@ -5314,3 +5357,4 @@ class MigratedHotel(models.Model):
         ]
         repeat_partner = Partner.search(domain, limit=1)
         return repeat_partner
+
