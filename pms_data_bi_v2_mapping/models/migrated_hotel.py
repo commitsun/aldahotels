@@ -24,7 +24,7 @@ import urllib.error
 
 import odoorpc.odoo
 
-from odoo import fields, models, api
+from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -53,8 +53,12 @@ class MigratedHotel(models.Model):
     def cron_update_v2_mop_fields(self):
         for migrated in self.search([]).filtered(lambda x: x.in_live):
             try:
-                noderpc = odoorpc.ODOO(migrated.odoo_host, migrated.odoo_protocol, migrated.odoo_port)
-                noderpc.login(migrated.odoo_db, migrated.odoo_user, migrated.odoo_password)
+                noderpc = odoorpc.ODOO(
+                    migrated.odoo_host, migrated.odoo_protocol, migrated.odoo_port
+                )
+                noderpc.login(
+                    migrated.odoo_db, migrated.odoo_user, migrated.odoo_password
+                )
             except (
                 odoorpc.error.RPCError,
                 odoorpc.error.InternalError,
@@ -64,7 +68,9 @@ class MigratedHotel(models.Model):
             company = noderpc.env["res.company"].search([])
             if company:
                 company = noderpc.env["res.company"].browse(company[0])
-                company.json_reservations_v3_data = migrated.json_to_export_reservations_v2_data
+                company.json_reservations_v3_data = (
+                    migrated.json_to_export_reservations_v2_data
+                )
                 company.json_outs_v3_data = migrated.json_to_export_outs_v2_data
             noderpc.logout()
 
@@ -151,16 +157,17 @@ class MigratedHotel(models.Model):
         )
 
     def get_mapping_pricelists(self, pricelist_id):
-        return (
-            self.env["migrated.pricelist"]
-            .search(
-                [
-                    ("migrated_hotel_id", "=", self.id),
-                    ("pms_pricelist_id", "=", pricelist_id),
-                ]
-            )[0]
-            .remote_id
+        pricelist = self.env["migrated.pricelist"].search(
+            [
+                ("migrated_hotel_id", "=", self.id),
+                ("pms_pricelist_id", "=", pricelist_id),
+            ]
         )
+        if pricelist:
+            return pricelist[0].remote_id
+        else:
+            # Create pricelist in remote node
+            self._create_remote_pricelist(pricelist_id)
 
     def get_mapping_channels(self, channel_id):
         return (
@@ -257,3 +264,20 @@ class MigratedHotel(models.Model):
         else:
             respuesta = "Error: " + str(len(hotel))
         return respuesta
+
+    def _create_remote_pricelist(self, pricelist_id):
+        noderpc = odoorpc.ODOO(self.odoo_host, self.odoo_protocol, self.odoo_port)
+        noderpc.login(self.odoo_db, self.odoo_user, self.odoo_password)
+        pricelist = self.env["product.pricelist"].browse(pricelist_id)
+        pricelist_vals = {
+            "name": pricelist.name,
+        }
+        remote_pricelist = noderpc.env["product.pricelist"].create(pricelist_vals)
+        self.env["migrated.pricelist"].create(
+            {
+                "migrated_hotel_id": self.id,
+                "pms_pricelist_id": pricelist_id,
+                "remote_id": remote_pricelist,
+            }
+        )
+        return remote_pricelist
