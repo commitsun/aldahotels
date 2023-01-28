@@ -3,7 +3,7 @@
     <data noupdate="True">
         <record id="alda_exit_email" model="mail.template">
             <field name="name">Alda Exit Email</field>
-            <field name="model_id" ref="pms.model_pms_checkin_partner" />
+            <field name="model_id" ref="pms.model_pms_folio" />
             <field
                 name="subject"
             >Gracias por reservar en ${object.pms_property_id.name}</field>
