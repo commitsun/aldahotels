@@ -157,9 +157,8 @@ class DataBi(models.Model):
     @api.model
     def export_all(self, hotels, limit_ago):
         line_res = self.env["pms.reservation.line"].search(
-            [("pms_property_id", "in", hotels.ids),
-             ("date", ">=", limit_ago)],
-            order="id"
+            [("pms_property_id", "in", hotels.ids), ("date", ">=", limit_ago)],
+            order="id",
         )
         dic_reservas = self.data_bi_reservas(
             hotels,
@@ -189,9 +188,8 @@ class DataBi(models.Model):
     def export_one(self, hotels, limit_ago, archivo):
         if (archivo == 0) or (archivo == 10) or (archivo == 6):
             line_res = self.env["pms.reservation.line"].search(
-                [("pms_property_id", "in", hotels.ids),
-                 ("date", ">=", limit_ago)],
-                order="id"
+                [("pms_property_id", "in", hotels.ids), ("date", ">=", limit_ago)],
+                order="id",
             )
             dic_reservas = self.data_bi_reservas(
                 hotels,
@@ -702,8 +700,12 @@ class DataBi(models.Model):
                     dic_budget.append(
                         {
                             "ID_Hotel": prop.id,
-                            "Fecha": (str(budget.year) + "-" +
-                                      str(budget.month).zfill(2) + "-01"),
+                            "Fecha": (
+                                str(budget.year)
+                                + "-"
+                                + str(budget.month).zfill(2)
+                                + "-01"
+                            ),
                             # 'ID_Tarifa': 0,
                             # 'ID_Canal': 0,
                             # 'ID_Pais': 0,
@@ -798,7 +800,9 @@ class DataBi(models.Model):
                     {
                         "ID_Hotel": prop.id,
                         "ID_Cliente": linea.id,
-                        "Descripción": linea.data_bi_ref if linea.data_bi_ref else linea.name,
+                        "Descripción": linea.data_bi_ref
+                        if linea.data_bi_ref
+                        else linea.name,
                     }
                 )
         return dic_clientes
@@ -854,8 +858,10 @@ class DataBi(models.Model):
         # Diccionario con Bloqueos [10]
         dic_bloqueos = []
         lines = lines.filtered(
-            lambda n: ((n.reservation_id.reservation_type != "normal")
-                       and (n.reservation_id.state != "cancelled"))
+            lambda n: (
+                (n.reservation_id.reservation_type != "normal")
+                and (n.reservation_id.state != "cancelled")
+            )
         )
         # _logger.info("DataBi: Calculating %s Bloqued", str(len(lines)))
         for line in lines:
@@ -892,8 +898,10 @@ class DataBi(models.Model):
 
         for prop in hotels:
             lineas = lines.filtered(
-                lambda n: ((n.pms_property_id.id == prop.id)
-                           and (n.reservation_id.reservation_type == "normal"))
+                lambda n: (
+                    (n.pms_property_id.id == prop.id)
+                    and (n.reservation_id.reservation_type == "normal")
+                )
                 # and (n.price > 0)
             )
             # _logger.info(
@@ -978,7 +986,7 @@ class DataBi(models.Model):
                     }
                 )
 
-                if linea.reservation_id.state == "cancelled":
+                if linea.reservation_id.state == "cancel":
                     dic_reservas[-1][
                         "FechaCancelacion"
                     ] = linea.reservation_id.write_date.strftime("%Y-%m-%d")

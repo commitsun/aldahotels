@@ -48,10 +48,15 @@ class MigratedHotel(models.Model):
         string="Json to export", readonly=True
     )
     json_to_export_outs_v2_data = fields.Text(string="Json to export", readonly=True)
+    log_error = fields.Text(string="Log error", readonly=True)
 
     @api.model
-    def cron_update_v2_mop_fields(self):
-        for migrated in self.search([]).filtered(lambda x: x.in_live):
+    def cron_update_v2_mop_fields(self, pms_property_id=False):
+        if not pms_property_id:
+            properties = self.search([]).filtered(lambda x: x.in_live)
+        else:
+            properties = self.search([("id", "=", pms_property_id)])
+        for migrated in properties:
             try:
                 noderpc = odoorpc.ODOO(
                     migrated.odoo_host, migrated.odoo_protocol, migrated.odoo_port
@@ -64,20 +69,37 @@ class MigratedHotel(models.Model):
                 odoorpc.error.InternalError,
                 urllib.error.URLError,
             ) as err:
-                raise ValidationError(err)
-            company = noderpc.env["res.company"].search([])
-            if company:
-                company = noderpc.env["res.company"].browse(company[0])
-                company.json_reservations_v3_data = (
-                    migrated.json_to_export_reservations_v2_data
-                )
-                company.json_outs_v3_data = migrated.json_to_export_outs_v2_data
-            noderpc.logout()
+                _logger.info("Error connecting to node %s" % migrated.name)
+                _logger.error(err)
+                migrated.log_error = str(err)
+                continue
+            try:
+                migrated.export_reservations_data_mapping_v2()
+                company = noderpc.env["res.company"].search([])
+                if company:
+                    company = noderpc.env["res.company"].browse(company[0])
+                    company.write(
+                        {
+                            "json_reservations_v3_data": migrated.json_to_export_reservations_v2_data,
+                            "json_outs_v3_data": migrated.json_to_export_outs_v2_data,
+                        }
+                    )
+                noderpc.logout()
+            except (
+                odoorpc.error.RPCError,
+                odoorpc.error.InternalError,
+                urllib.error.URLError,
+            ) as err:
+                _logger.info("Error connecting to node %s" % migrated.name)
+                _logger.error(err)
+                migrated.log_error = str(err)
+                continue
 
     def export_reservations_data_mapping_v2(self):
         """
         Mapping strcuture data V14 to V11 version
         """
+        self.ensure_one()
         json_data = self.env["data_bi"].export_reservations_data(
             [self.pms_property_id.id]
         )
@@ -88,58 +110,70 @@ class MigratedHotel(models.Model):
         i = 0
         mapping_reservas = []
         for reserva_vals in json_reservas:
-            mapping_res = {}
-            reserva = self.env["pms.reservation"].browse(reserva_vals["ID_Reserva"])
-            mapping_res["ID_Reserva"] = reserva.remote_id or (reserva.id * 100000)
-            mapping_res["ID_Hotel"] = 1
-            mapping_res["ID_EstadoReserva"] = mapping_estados[
-                reserva_vals["ID_EstadoReserva"]
-            ]
-            mapping_res["ID_Segmento"] = (
-                mapping_categories.get(reserva_vals["ID_Segmento"]) or 1
-            )
-            mapping_res["ID_Cliente"] = self.get_mapping_partners(
-                reserva_vals["ID_Cliente"]
-            )
-            mapping_res["ID_Canal"] = self.get_mapping_channels(
-                reserva_vals["ID_Canal"]
-            )
-            mapping_res["ID_TipoHabitacion"] = self.get_mapping_room_type(
-                reserva_vals["ID_TipoHabitacion"]
-            )
-            mapping_res["ID_HabitacionDuerme"] = self.get_mapping_room_type(
-                reserva_vals["ID_HabitacionDuerme"]
-            )
-            mapping_res["ID_Regimen"] = self.get_mapping_regimen(
-                reserva_vals["ID_Regimen"]
-            )
-            mapping_res["ID_Tarifa"] = self.get_mapping_pricelists(
-                reserva_vals["ID_Tarifa"]
-            )
-            mapping_res["ID_Pais"] = reserva_vals["ID_Pais"]
-            mapping_res["ID_Room"] = self.get_mapping_rooms(reserva_vals["ID_Room"])
-            mapping_res["ID_Folio"] = reserva.folio_id.remote_id or (
-                reserva.folio_id.id * 100000
-            )
-            mapping_reservas.append(mapping_res)
-            i += 1
-            _logger.info("%s/%s", i, total)
+            try:
+                mapping_res = {}
+                for key, value in reserva_vals.items():
+                    mapping_res[key] = value
+                reserva = self.env["pms.reservation"].browse(reserva_vals["ID_Reserva"])
+                mapping_res["ID_Reserva"] = reserva.remote_id or (reserva.id * 100000)
+                mapping_res["ID_Hotel"] = 1
+                mapping_res["ID_EstadoReserva"] = mapping_estados[
+                    reserva_vals["ID_EstadoReserva"]
+                ]
+                mapping_res["ID_Segmento"] = (
+                    mapping_categories.get(reserva_vals["ID_Segmento"]) or 1
+                )
+                mapping_res["ID_Cliente"] = self.get_mapping_partners(
+                    reserva_vals["ID_Cliente"], reserva_vals["ID_Canal"]
+                )
+                mapping_res["ID_Canal"] = self.get_mapping_channels(
+                    reserva_vals["ID_Canal"]
+                )
+                mapping_res["ID_TipoHabitacion"] = self.get_mapping_room_type(
+                    reserva_vals["ID_TipoHabitacion"]
+                )
+                mapping_res["ID_HabitacionDuerme"] = self.get_mapping_room_type(
+                    reserva_vals["ID_HabitacionDuerme"]
+                )
+                mapping_res["ID_Regimen"] = self.get_mapping_regimen(
+                    reserva_vals["ID_Regimen"]
+                )
+                mapping_res["ID_Tarifa"] = self.get_mapping_pricelists(
+                    reserva_vals["ID_Tarifa"]
+                )
+                mapping_res["ID_Pais"] = reserva_vals["ID_Pais"]
+                mapping_res["ID_Room"] = self.get_mapping_rooms(reserva_vals["ID_Room"])
+                mapping_res["ID_Folio"] = reserva.folio_id.remote_id or (
+                    reserva.folio_id.id * 100000
+                )
+                mapping_reservas.append(mapping_res)
+                i += 1
+                _logger.info("%s/%s", i, total)
+            except Exception as e:
+                _logger.error(e)
+                continue
 
-        json_bloqueos = json.loads(json_data)[0][0].get("Bloqueos")
+        json_bloqueos = json.loads(json_data)[3][0].get("Bloqueos")
         mapping_bloqueos = []
         if json_bloqueos:
             total = len(json_bloqueos)
             i = 0
             for bloqueo_vals in json_bloqueos:
-                mapping_blo = {}
-                mapping_blo["ID_Hotel"] = 1
-                mapping_blo["ID_Tipo_Habitacion"] = self.get_mapping_room_type(
-                    bloqueo_vals["ID_Tipo_Habitacion"]
-                )
-                mapping_blo["ID_Motivo_bloqueo"] = 1
-                mapping_bloqueos.append(mapping_blo)
-                i += 1
-                _logger.info("%s/%s", i, total)
+                try:
+                    mapping_blo = {}
+                    for key, value in bloqueo_vals.items():
+                        mapping_blo[key] = value
+                    mapping_blo["ID_Hotel"] = 1
+                    mapping_blo["ID_Tipo_Habitacion"] = self.get_mapping_room_type(
+                        bloqueo_vals["ID_Tipo_Habitacion"]
+                    )
+                    mapping_blo["ID_Motivo_bloqueo"] = 1
+                    mapping_bloqueos.append(mapping_blo)
+                    i += 1
+                    _logger.info("%s/%s", i, total)
+                except Exception as e:
+                    _logger.error(e)
+                    continue
 
         self.json_to_export_reservations_v2_data = json.dumps(mapping_reservas)
         self.json_to_export_outs_v2_data = json.dumps(mapping_bloqueos)
@@ -170,34 +204,30 @@ class MigratedHotel(models.Model):
             self._create_remote_pricelist(pricelist_id)
 
     def get_mapping_channels(self, channel_id):
-        return (
-            self.env["migrated.channel.type"]
-            .search(
-                [
-                    ("migrated_hotel_id", "=", self.id),
-                    ("channel_type_id", "=", channel_id),
-                ]
-            )
-            .remote_name
+        channel = self.env["migrated.channel.type"].search(
+            [
+                ("migrated_hotel_id", "=", self.id),
+                ("channel_type_id", "=", channel_id),
+            ]
         )
+        if channel:
+            return channel[0].remote_name
+        return False
 
-    def get_mapping_partners(self, partner_id):
-        return (
-            self.env["migrated.partner"]
-            .search(
-                [("migrated_hotel_id", "=", self.id), ("partner_id", "=", partner_id)]
-            )
-            .remote_id
-        )
+    def get_mapping_partners(self, partner_id, channel_id):
+        agency = self.env["res.partner"].browse(partner_id)
+        if agency:
+            return agency.data_bi_ref if agency.data_bi_ref else agency.name
+        return self.get_mapping_channels(channel_id)
 
     def get_mapping_rooms(self, room_id):
-        return (
-            self.env["migrated.room"]
-            .search(
-                [("migrated_hotel_id", "=", self.id), ("pms_room_id", "=", room_id)]
-            )
-            .remote_id
+        room = self.env["migrated.room"].search(
+            [("migrated_hotel_id", "=", self.id), ("pms_room_id", "=", room_id)]
         )
+        if room:
+            return room[0].remote_id
+        else:
+            False
 
     def get_mapping_regimen(self, board_service_room_type_id):
         board_service_id = (
@@ -205,16 +235,15 @@ class MigratedHotel(models.Model):
             .browse(board_service_room_type_id)
             .pms_board_service_id.id
         )
-        return (
-            self.env["migrated.board.service"]
-            .search(
-                [
-                    ("migrated_hotel_id", "=", self.id),
-                    ("board_service_id", "=", board_service_id),
-                ]
-            )
-            .remote_id
+        board = self.env["migrated.board.service"].search(
+            [
+                ("migrated_hotel_id", "=", self.id),
+                ("board_service_id", "=", board_service_id),
+            ]
         )
+        if board:
+            return board[0].remote_id
+        return False
 
     def get_dict_categories(self):
         try:

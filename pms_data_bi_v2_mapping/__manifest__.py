@@ -11,7 +11,10 @@
     "website": "https://github.com/OsoTranquilo/aldahotels.git",
     "depends": ["pms", "pms_l10n_es", "pms_data_bi", "migrated_hotel"],
     "category": "Generic Modules/Property Management System",
-    "data": ["views/migrated_hotel_views.xml"],
+    "data": [
+        "views/migrated_hotel_views.xml",
+        "data/ir_cron.xml",
+    ],
     "demo": [],
     "installable": True,
     "auto_install": False,
