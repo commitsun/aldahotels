@@ -21,6 +21,7 @@
         "views/pms_property_views.xml",
         "views/product_pricelist_views.xml",
         "views/precheckin_portal_templates.xml",
+        "views/account_payment_views.xml",
     ],
     "installable": True,
 }
