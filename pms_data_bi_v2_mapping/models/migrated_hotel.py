@@ -55,7 +55,7 @@ class MigratedHotel(models.Model):
         if not pms_property_id:
             properties = self.search([]).filtered(lambda x: x.in_live)
         else:
-            properties = self.search([("id", "=", pms_property_id)])
+            properties = self.search([("pms_property_id", "=", pms_property_id)])
         for migrated in properties:
             try:
                 noderpc = odoorpc.ODOO(
