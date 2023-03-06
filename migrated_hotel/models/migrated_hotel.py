@@ -3370,7 +3370,7 @@ class MigratedHotel(models.Model):
                         ("pms_property_id", "=", self.pms_property_id.id),
                         ("move_type", "in", ["out_invoice", "out_refund"]),
                     ]
-                ).ids
+                )
                 or []
             )
             if migrated_account_invoices:
