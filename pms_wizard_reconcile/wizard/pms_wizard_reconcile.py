@@ -1,13 +1,11 @@
 # Copyright 2020 Commitsun.
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-import io
 import base64
-import pandas as pd
-from contextlib import closing
+import io
 
-from odoo import fields, models, api
-from odoo.tools import float_round, float_compare
+from odoo import api, fields, models
+from odoo.tools import float_compare, float_round, pycompat
 
 
 class PmsWizardReconcile(models.TransientModel):
@@ -33,7 +31,7 @@ class PmsWizardReconcile(models.TransientModel):
 
     move_types = fields.Selection(
         string="Move types",
-        selection=[("payment", "Payment"), ("invoice", "Invoice"), ('all', 'All')],
+        selection=[("payment", "Payment"), ("invoice", "Invoice"), ("all", "All")],
         default="payment",
     )
 
@@ -58,10 +56,7 @@ class PmsWizardReconcile(models.TransientModel):
         required=True,
     )
 
-    folio_ids = fields.Many2many(
-        string="folios not found",
-        comodel_name="pms.folio"
-    )
+    folio_ids = fields.Many2many(string="folios not found", comodel_name="pms.folio")
 
     file_total = fields.Float(
         string="Total in File",
@@ -74,14 +69,10 @@ class PmsWizardReconcile(models.TransientModel):
     )
 
     target_total = fields.Monetary(
-        string="Target total",
-        compute="_compute_target_total"
+        string="Target total", compute="_compute_target_total"
     )
 
-    residual = fields.Monetary(
-        string="Residual",
-        compute="_compute_residual"
-    )
+    residual = fields.Monetary(string="Residual", compute="_compute_residual")
 
     csv_not_found = fields.Char(
         string="transactions not found",
@@ -94,7 +85,7 @@ class PmsWizardReconcile(models.TransientModel):
     count_payments_found = fields.Integer(
         string="Count Payments Found",
         readonly=True,
-        compute="_compute_count_payments_found"
+        compute="_compute_count_payments_found",
     )
     journal_id = fields.Many2one(
         string="Journal",
@@ -125,7 +116,7 @@ class PmsWizardReconcile(models.TransientModel):
         compute="_compute_check_not_found_lines_csv",
     )
 
-    @api.depends('csv_not_found', 'folio_ids')
+    @api.depends("csv_not_found", "folio_ids")
     def _compute_check_not_found_lines_csv(self):
         if self.csv_not_found or self.folio_ids:
             self.check_not_found_lines_csv = True
@@ -157,8 +148,7 @@ class PmsWizardReconcile(models.TransientModel):
     def _compute_residual(self):
         for record in self:
             record.residual = float_round(
-                record.target_total - record.origin_statement_line_id.amount,
-                2
+                record.target_total - record.origin_statement_line_id.amount, 2
             )
 
     def search_move_line_ids(self):
@@ -167,7 +157,7 @@ class PmsWizardReconcile(models.TransientModel):
             ("account_id.reconcile", "=", True),
             ("move_id.state", "=", "posted"),
         ]
-        if self.move_types != 'all':
+        if self.move_types != "all":
             journal_types = ["sale"] if self.move_types == "invoice" else ["bank"]
             domain.append(("journal_id.type", "in", journal_types))
         if self.filter_by_date and self.filter_from and self.filter_to:
@@ -197,48 +187,69 @@ class PmsWizardReconcile(models.TransientModel):
 
     @api.model
     def get_and_parse_csv(self, file):
-        with closing(io.BytesIO(self._read_csv(file))) as binary_file:
-            data = pd.read_csv(binary_file)
-            data = data.to_dict('records')
-            lines = self.env["account.move.line"]
-            self.count_csv_transactions = 0
-            self.file_total = 0
-            for pay in data:
-                self.count_csv_transactions += 1
-                self.file_total += pay['Importe']
-                line = False
-                line = self.env["account.move.line"].search([
-                    ("ref", "ilike", pay["Número de referencia"]),
-                    ("balance", "=", float(pay["Importe"])),
-                ])
-                if line:
-                    lines += line
+        csv_data = base64.b64decode(self.file)
+        csv_data = csv_data.decode("utf-8").encode("utf-8")
+        reader = pycompat.csv_reader(
+            io.BytesIO(csv_data),
+            # delimiter=str(self.csv_delimiter),
+            # quotechar=str(self.csv_quotechar)
+        )
+        lines = self.env["account.move.line"]
+        self.count_csv_transactions = 0
+        self.file_total = 0
+        next(reader)
+        for pay in reader:
+            self.count_csv_transactions += 1
+            self.file_total += float(pay[7])
+            line = False
+            line = self.env["account.move.line"].search(
+                [
+                    ("ref", "ilike", pay[1]),
+                    ("balance", "=", float(pay[7])),
+                ]
+            )
+            if line:
+                lines += line
+            else:
+                mens = str(pay[1])
+                folio = self.env["pms.folio"].search(
+                    [("external_reference", "=", str(pay[1]))]
+                )
+                if folio:
+                    self.folio_ids = [(4, folio.id)]
                 else:
-                    mens = str(pay["Número de referencia"])
-                    folio = self.env["pms.folio"].search([("external_reference", "=", pay["Número de referencia"])])
-                    if folio:
-                        self.folio_ids = [(4, folio.id)]
-                    else:
-                        mens += "(not found)"
-                        self.csv_not_found = mens if not self.csv_not_found else self.csv_not_found + ", " + mens
-        if float_compare(
-            self.file_total,
-            self.origin_statement_line_id.amount,
-            precision_rounding=2,
-        ) != 0:
+                    mens += "(not found)"
+                    self.csv_not_found = (
+                        mens
+                        if not self.csv_not_found
+                        else self.csv_not_found + ", " + mens
+                    )
+        if (
+            float_compare(
+                self.file_total,
+                self.origin_statement_line_id.amount,
+                precision_rounding=2,
+            )
+            != 0
+        ):
             self.incongruence_file = True
         return lines
 
     def matching_button(self):
         self.ensure_one()
-        domain = [('account_internal_type', 'in', ('receivable', 'pay   able', 'other')), ('reconciled', '=', False)]
-        statement_move_line = self.origin_statement_line_id.move_id.line_ids.filtered_domain(
-            domain
+        domain = [
+            ("account_internal_type", "in", ("receivable", "pay   able", "other")),
+            ("reconciled", "=", False),
+        ]
+        statement_move_line = (
+            self.origin_statement_line_id.move_id.line_ids.filtered_domain(domain)
         )
         statement_move_line.account_id = self.move_line_ids.account_id
         lines_to_reconcile = statement_move_line + self.move_line_ids
         lines_to_reconcile.reconcile()
-        action = self.env.ref('account.action_bank_statement_tree').sudo().read()[0]
-        action['views'] = [(self.env.ref('account.view_bank_statement_form').id, 'form')]
-        action['res_id'] = self.origin_statement_line_id.statement_id.id
+        action = self.env.ref("account.action_bank_statement_tree").sudo().read()[0]
+        action["views"] = [
+            (self.env.ref("account.view_bank_statement_form").id, "form")
+        ]
+        action["res_id"] = self.origin_statement_line_id.statement_id.id
         return action

@@ -16,6 +16,5 @@
         "wizard/pms_wizard_reconcile_views.xml",
         "views/account_bank_statement_views.xml",
     ],
-    "external_dependencies": {"python": ["pandas"]},
     "installable": True,
 }
