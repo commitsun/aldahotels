@@ -215,9 +215,12 @@ class MigratedHotel(models.Model):
         return False
 
     def get_mapping_partners(self, partner_id, channel_id):
-        agency = self.env["res.partner"].browse(partner_id)
-        if agency:
-            return agency.data_bi_ref if agency.data_bi_ref else agency.name
+        if partner_id and partner_id != channel_id:
+            agency = self.env["res.partner"].search(
+                [("id", "=", partner_id), ("is_agency", "=", True)]
+            )
+            if agency:
+                return agency.data_bi_ref if agency.data_bi_ref else agency.name
         return self.get_mapping_channels(channel_id)
 
     def get_mapping_rooms(self, room_id):
