@@ -200,12 +200,12 @@ class PmsWizardReconcile(models.TransientModel):
         next(reader)
         for pay in reader:
             self.count_csv_transactions += 1
-            self.file_total += float(pay[7])
+            self.file_total += float(pay[8])
             line = False
             line = self.env["account.move.line"].search(
                 [
                     ("ref", "ilike", pay[1]),
-                    ("balance", "=", float(pay[7])),
+                    ("balance", "=", float(pay[8])),
                 ]
             )
             if line:
