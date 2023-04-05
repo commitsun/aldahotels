@@ -49,6 +49,7 @@ class MigratedHotel(models.Model):
     )
     json_to_export_outs_v2_data = fields.Text(string="Json to export", readonly=True)
     log_error = fields.Text(string="Log error", readonly=True)
+    str_errors = fields.Text(string="Str error", readonly=True)
 
     @api.model
     def cron_update_v2_mop_fields(self, pms_property_id=False):
@@ -109,6 +110,7 @@ class MigratedHotel(models.Model):
         _logger.info("Total de reservas a exportar: %s", total)
         i = 0
         mapping_reservas = []
+        errors = []
         for reserva_vals in json_reservas:
             try:
                 mapping_res = {}
@@ -150,9 +152,12 @@ class MigratedHotel(models.Model):
                 i += 1
                 _logger.info("%s/%s", i, total)
             except Exception as e:
+                errors.append({
+                    "id": mapping_res["ID_Reserva"],
+                    "error": str(e)
+                })
                 _logger.error(e)
                 continue
-
         json_bloqueos = json.loads(json_data)[3][0].get("Bloqueos")
         mapping_bloqueos = []
         if json_bloqueos:
@@ -172,14 +177,21 @@ class MigratedHotel(models.Model):
                     i += 1
                     _logger.info("%s/%s", i, total)
                 except Exception as e:
+                    errors.append({
+                        "id": bloqueo_vals["ID_Bloqueo"],
+                        "error": str(e)
+                    })
                     _logger.error(e)
                     continue
+        if errors:
+            # Send mail to dario@roomdoo.com with de reservation id and error
+            self.str_errors = ", ".join([str(error["id"]) + ": " + str(error["error"]) for error in errors])
 
         self.json_to_export_reservations_v2_data = json.dumps(mapping_reservas)
         self.json_to_export_outs_v2_data = json.dumps(mapping_bloqueos)
 
     def get_mapping_room_type(self, room_type_id):
-        return (
+        remote_id = (
             self.env["migrated.room.type"]
             .search(
                 [
@@ -189,6 +201,12 @@ class MigratedHotel(models.Model):
             )
             .remote_id
         )
+        if remote_id:
+            return remote_id
+        else:
+            return self.env["migrated.room.type"].search(
+                [("migrated_hotel_id", "=", self.id)], limit=1
+            ).remote_id
 
     def get_mapping_pricelists(self, pricelist_id):
         pricelist = self.env["migrated.pricelist"].search(
@@ -200,8 +218,9 @@ class MigratedHotel(models.Model):
         if pricelist:
             return pricelist[0].remote_id
         else:
-            # Create pricelist in remote node
-            self._create_remote_pricelist(pricelist_id)
+            return self.env["migrated.pricelist"].search(
+                [("migrated_hotel_id", "=", self.id)], limit=1
+            ).remote_id
 
     def get_mapping_channels(self, channel_id):
         channel = self.env["migrated.channel.type"].search(
@@ -212,7 +231,8 @@ class MigratedHotel(models.Model):
         )
         if channel:
             return channel[0].remote_name
-        return False
+        else:
+            return "mail"
 
     def get_mapping_partners(self, partner_id, channel_id):
         if partner_id and partner_id != channel_id:
@@ -230,7 +250,9 @@ class MigratedHotel(models.Model):
         if room:
             return room[0].remote_id
         else:
-            False
+            return self.env["migrated.room"].search(
+                [("migrated_hotel_id", "=", self.id)], limit=1
+            ).remote_id
 
     def get_mapping_regimen(self, board_service_room_type_id):
         board_service_id = (

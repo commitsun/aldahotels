@@ -17,6 +17,7 @@
                         <field name="json_to_export_reservations_v2_data" />
                         <field name="json_to_export_outs_v2_data" />
                         <field name="log_error" />
+                        <field name="str_errors" />
                     </group>
                 </page>
 	        </xpath>
