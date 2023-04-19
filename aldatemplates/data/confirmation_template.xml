@@ -524,6 +524,7 @@ img {
                                                                                             <br
                                                                                             />
                                                                                             % for reservation in object.reservation_ids:
+                                                                                            % if reservation.state != "cancel":
                                                                                             <strong
                                                                                             >
                                                                                                 ${reservation['room_type_id']['name']}
@@ -550,7 +551,7 @@ img {
                                                                                             />
 
                                                                                             % endfor
-
+                                                                                            % endif
                                                                                             <br
                                                                                             />
                                                                                             % if object.pricelist_id.pricelist_email_text
