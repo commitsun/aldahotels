@@ -58,6 +58,12 @@ class ResPartner(models.Model):
         partner_exists = self.search([
             ('vat', '=', partner['vat'])
         ])
+        if not partner_exists and partner['country_id']:
+            country_code = self.env['res.country'].browse(partner['country_id']).code
+            vat = country_code + partner['vat']
+            partner_exists = self.search([
+                ('vat', '=', vat)
+            ])
         if not partner['id'] and partner_exists:
             partner['id'] = partner_exists.id
         return super(ResPartner, self).create_from_ui(partner)
