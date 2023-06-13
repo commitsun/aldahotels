@@ -22,6 +22,7 @@
         "views/product_pricelist_views.xml",
         "views/precheckin_portal_templates.xml",
         "views/account_payment_views.xml",
+        "views/report_templates.xml"
     ],
     "installable": True,
 }
