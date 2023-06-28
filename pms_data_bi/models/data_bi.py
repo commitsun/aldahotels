@@ -683,7 +683,7 @@ class DataBi(models.Model):
                             "ID_Hotel": prop.id,
                             "ID_Tipo_Habitacion": room["id"],
                             "Descripción": room["name"],
-                            "Estancias": room.get_capacity(prop.id),
+                            "Estancias": room[0].get_room_type_capacity(prop[0]),
                         }
                     )
         return dic_tipo_habitacion
