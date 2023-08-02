@@ -1,7 +1,7 @@
 ##############################################################################
 #
 #    Odoo, Open Source Management Solution
-#    Copyright (C) 2018 -2021 Alda Hotels <informatica@aldahotels.com>
+#    Copyright (C) 2018 -2023 Alda Hotels <informatica@aldahotels.com>
 #                       Jose Luis Algara <osotranquilo@gmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -18,8 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+import ftplib
 import json
 import logging
+import tempfile
 from datetime import date, datetime, timedelta
 
 from odoo import api, models
@@ -62,10 +64,10 @@ class DataBi(models.Model):
         dic_hotel = []
         hotel = False
         propertys = self.env["pms.property"].search([])
-        for property in propertys:
-            dic_hotel.append({"ID_Hotel": property.id, "Descripción": property.name})
-            if property.id == default_property:
-                hotel = property
+        for prop in propertys:
+            dic_hotel.append({"ID_Hotel": prop.id, "Descripción": prop.name})
+            if prop.id == default_property:
+                hotel = prop
         response.append({"Hotel": dic_hotel})
         if not hotel:
             hotel = propertys[0]
@@ -1025,8 +1027,59 @@ class DataBi(models.Model):
         return response
 
     @api.model
-    def data_bi_get_capacidad(self, property, rtype):
+    def data_bi_get_capacidad(self, prop, rtype):
         rooms = self.env["pms.room"].search(
-            [("pms_property_id", "=", property), ("room_type_id", "=", rtype)]
+            [("pms_property_id", "=", prop), ("room_type_id", "=", rtype)]
         )
         return len(rooms)
+
+    @api.model
+    def data_bi_ftp_general(self):
+        ''' send DataBI general data to ftp server '''
+        _logger.info("Exporting FTP general DataBI")
+        self.data_bi_ftp_write(self.export_general_data(), 'general_data_v3')
+        return
+
+    @api.model
+    def data_bi_ftp(self, default_property=[0], fechafoto=False):
+        ''' send DataBI from all property to ftp server
+            default_property is a list of propertys ids
+            example: default_property = [1,4,5]
+            for all not set or default_property = [0]
+        '''
+        _logger.info("Exporting FTP data DataBI")
+        propertys = self.env["pms.property"].search([])
+        for prop in propertys:
+            if (prop.id in default_property) or default_property == [0]:
+                self.data_bi_ftp_one(prop, fechafoto)
+        return
+
+    @api.model
+    def data_bi_ftp_one(self, prop, fechafoto):
+        ''' send 1 DataBI to ftp server '''
+        data = json.dumps(self.export_all(prop, self.calc_date_limit(fechafoto)), ensure_ascii=False)
+        filename = str(prop.id) + "-" + (prop.pms_property_code if prop.pms_property_code else "") + "_" + prop.name
+        _logger.info('Send to ftp ' + filename)
+        self.data_bi_ftp_write(data, filename)
+        return
+
+    @api.model
+    def data_bi_ftp_write(self, data, file):
+        if not self.env.user.valid_ftp_bi:
+            _logger.error("FTP data not validated in user")
+            _logger.error(self.env.user.name)
+            return
+        try:
+            with ftplib.FTP(host=self.env.user.url_ftp_bi,
+                            user=self.env.user.user_ftp_bi,
+                            passwd=self.env.user.pass_ftp_bi) as ftp:
+                tfile = tempfile.NamedTemporaryFile('w+b')
+                tfile.write(bytes(data, 'utf-8'))
+                tfile.flush()
+                tfile.seek(0)
+                ftpResponseMessage = ftp.storbinary('STOR ' + file + '.json', tfile)
+                _logger.warning(ftpResponseMessage)
+                ftp.close()
+                tfile.close()
+        except ftplib.all_errors as e:
+            _logger.error("%s" % e)
