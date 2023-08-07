@@ -84,7 +84,7 @@ class SessionController(http.Controller):
     @http.route(
         "/close_pos_session/<int:config_id>", type="json", auth="public", csrf=False,
     )
-    def portal_open_pos_session(self, config_id="", access_token=None, **kw):
+    def portal_close_pos_session(self, config_id="", access_token=None, **kw):
         try:
             config_id = request.env["pos.config"].sudo().browse(config_id)
             if not config_id:

@@ -35,7 +35,13 @@ class PosSession(models.Model):
         res = super(PosSession, self.with_context(ctx).sudo()).create(values)
         if ctx.get('cash_register_id', False):
             cash_register_id = self.env['account.bank.statement'].browse(ctx['cash_register_id'])
-            statement_ids = res.statement_ids.ids + cash_register_id.ids
+            # replace the current statement_ids with the one from the controller
+            original_statement = res.statement_ids
+            res.statement_ids.pos_session_id = None
+            original_statement.unlink()
+            statement_ids = cash_register_id.ids
+            # IMPORTANT: The journal_id of the statement_ids must be the same as the payment_methods journal_id.
+            # Otherwise it will not be possible to close the session.
             if cash_register_id:
                 res.update({
                     'statement_ids': [(6, 0, statement_ids)],
