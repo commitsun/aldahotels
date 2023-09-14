@@ -17,6 +17,24 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from . import models
-from . import controllers
-from . import wizard
+
+from datetime import datetime
+from uuid import uuid4
+import pytz
+
+from odoo import api, fields, models, tools, _
+from odoo.exceptions import ValidationError, UserError
+
+
+class PurchaseOrder(models.Model):
+    _inherit = 'purchase.order'
+
+    property_id = fields.Many2one('pms.property', string='Property')
+
+    @api.model
+    def create(self, values):
+        property_id = values.get('property_id', False)
+        wharehouse_id = self.env['pms.property'].browse(property_id).wharehouse_id.id if property_id else False
+        if wharehouse_id:
+            values['picking_type_id'] = self.env['stock.picking.type'].search([('warehouse_id', '=', wharehouse_id), ('code', '=', 'incoming')]).id
+        return super().create(values)

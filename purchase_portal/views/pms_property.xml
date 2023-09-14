@@ -7,6 +7,10 @@
         <field name="arch" type="xml">
             <notebook position="inside">
                 <page string="Purchase Portal" name="purchase_portal">
+                    <group>
+                        <field name="seller_id"/>
+                        <field name="wharehouse_id"/>
+                    </group>
                     <field name="product_ids" widget="many2many"/>
                 </page>
             </notebook>

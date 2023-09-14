@@ -13,6 +13,7 @@ publicWidget.registry.PurchaseRequestPortal = publicWidget.Widget.extend({
         "click a.purchase_delete_line": "_onDeleteLine",
         "change select.purchase_select": "_onChangeSelect",
         "click button.request_validation": "_onValidation",
+        "click button.restart_validation": "_onRestarValidation",
     },
 
     //--------------------------------------------------------------------------
@@ -135,6 +136,28 @@ publicWidget.registry.PurchaseRequestPortal = publicWidget.Widget.extend({
 
         this._rpc({
             route: "/purchase_request_validation",
+            params: {
+                'purchase_request': purchase_request,
+            },
+        }).then(function (new_data) {
+            try {
+                let json_data = JSON.parse(new_data);
+                if ("error" in json_data && json_data["error"]) {
+                    $("#edit_errors")[0].innerHTML = "<div class='alert alert-danger' role='alert'>"+json_data["message"]+"</div>";
+                } else {
+                    window.location.reload();
+                }
+            } catch (e) {
+                $("#edit_errors").empty();
+            }
+        });
+    },
+
+    _onRestarValidation: function (ev) {
+        let purchase_request = $(ev.currentTarget).attr("data-purchase_request");
+
+        this._rpc({
+            route: "/purchase_request_restart_validation",
             params: {
                 'purchase_request': purchase_request,
             },

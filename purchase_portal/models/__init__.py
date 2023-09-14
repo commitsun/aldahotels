@@ -24,3 +24,5 @@ from . import pos_order
 from . import purchase_request
 from . import pms_property
 from . import product_product
+from . import purchase_order
+from . import stock_picking

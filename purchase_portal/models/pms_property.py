@@ -31,3 +31,16 @@ class PMSProperty(models.Model):
         column1="product_id",
         column2="property_id",
     )
+    seller_id = fields.Many2one(
+        'res.partner', 'Vendor',
+        help="Vendor allowed in this property."
+    )
+    wharehouse_id = fields.Many2one('stock.warehouse', 'Warehouse')
+
+    @api.onchange("seller_id")
+    def onchange_seller_id(self):
+        if self.seller_id:
+            seller_products = self.env['product.supplierinfo'].search([('name', '=', self.seller_id.id)])
+            seller_product_product = seller_products.mapped('product_tmpl_id.product_variant_ids')
+            seller_product_product += seller_products.mapped('product_id')
+            self.product_ids = seller_product_product.ids

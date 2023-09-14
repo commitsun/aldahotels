@@ -119,13 +119,19 @@ class PurchaseRequestJsonMethods(http.Controller):
             )
         
         try:
-            request_line = request.env['purchase.request.line'].create({
+            product_info = request.env['product.supplierinfo'].search([
+                ('name', '=', purchase_request.property_id.seller_id.id), '|', ('product_id', '=', int(product_id)), ('product_tmpl_id.product_variant_ids', '=', int(product_id))]
+            )
+            request_line = request.env['purchase.request.line'].with_context(portal=True).create({
                 'request_id': purchase_request.id,
                 'product_id': int(product_id),
                 'product_qty': float(qty),
-            })
-            request_line.onchange_product_id()
-            request_line.write({
+                'estimated_cost': (product_info.price * float(qty)) if product_info else 0,
+            })          
+
+            # portal=False to avoid onchange_product_id to be raise error
+            request_line.with_context(portal=False).onchange_product_id()
+            request_line.with_context(portal=True).write({
                 'product_qty': float(qty),
             })
         except Exception as e:
@@ -179,7 +185,7 @@ class PurchaseRequestJsonMethods(http.Controller):
             if float(qty) == 0.0:
                 line_id.unlink()
             else:
-                line_id.write({
+                line_id.with_context(portal=True).write({
                     'product_qty': float(qty),
                 })
         except Exception as e:
@@ -276,6 +282,50 @@ class PurchaseRequestJsonMethods(http.Controller):
         
         try:
             purchase_request.request_validation()
+        except Exception as e:
+            return json.dumps(
+                {
+                    "error": True,
+                    "message": str(e),
+                }
+            )
+        return json.dumps(
+                {
+                    "error": False,
+                    "message": "OK",
+                }
+            )
+
+    @http.route(
+        ["/purchase_request_restart_validation"],
+        type="json",
+        auth="public",
+        methods=["POST"],
+        website=True,
+    )
+    def purchase_request_restart_validation(self, **kw):
+        lang = get_lang(request.env).code
+        purchase_request = kw.get('purchase_request', False)
+        
+        if not purchase_request:
+            return json.dumps(
+                {
+                    "error": True,
+                    "message": "No purchase_request",
+                }
+            )
+        
+        purchase_request = request.env['purchase.request'].browse(int(purchase_request))
+        if not purchase_request:
+            return json.dumps(
+                {
+                    "error": True,
+                    "message": "No purchase_request",
+                }
+            )
+        
+        try:
+            purchase_request.restart_validation()
         except Exception as e:
             return json.dumps(
                 {

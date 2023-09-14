@@ -33,6 +33,12 @@ class PortalAccount(CustomerPortal):
             purchase_request_count = request.env['purchase.request'].search_count(self._get_purchase_requests_domain()) \
                 if request.env['purchase.request'].check_access_rights('read', raise_exception=False) else 0
             values['purchase_request_count'] = purchase_request_count
+        
+        # stock.picking
+        if 'stock_picking_count' in counters:
+            stock_picking_count = request.env['stock.picking'].search_count(self._get_stock_pickings_domain()) \
+                if request.env['stock.picking'].check_access_rights('read', raise_exception=False) else 0
+            values['stock_picking_count'] = stock_picking_count
         return values
 
     # ------------------------------------------------------------
@@ -142,3 +148,84 @@ class PortalAccount(CustomerPortal):
         values['allowed_property_ids'] = request.env['pms.property'].browse(allowed_pms_property_ids) if allowed_pms_property_ids else False
 
         return request.render("purchase_portal.portal_new_purchase_request_page", values)
+
+    # ------------------------------------------------------------
+    # My stock pickings
+    # ------------------------------------------------------------
+
+    def _stock_picking_get_page_view_values(self, stock_picking, access_token, **kwargs):
+        values = {
+            'page_name': 'stock_picking',
+            'stock_picking': stock_picking,
+        }
+        return self._get_page_view_values(stock_picking, access_token, values, 'my_stock_picking_history', False, **kwargs)
+
+    def _get_stock_pickings_domain(self):
+        return [('picking_type_id.code', '=', 'incoming')]
+
+    @http.route(['/my/stock_pickings', '/my/stock_pickings/page/<int:page>'], type='http', auth="user", website=True)
+    def portal_my_stock_pickings(self, page=1, date_begin=None, date_end=None, sortby=None, filterby=None, **kw):
+        values = self._prepare_portal_layout_values()
+        StockPicking = request.env['stock.picking']
+
+        domain = self._get_stock_pickings_domain()
+
+        searchbar_sortings = {
+            'date': {'label': _('Date'), 'order': 'scheduled_date desc'},
+            'name': {'label': _('Reference'), 'order': 'name desc'},
+            'origin': {'label': _('Origin'), 'order': 'origin desc'},
+            'state': {'label': _('Status'), 'order': 'state'},
+        }
+        # default sort by order
+        if not sortby:
+            sortby = 'date'
+        order = searchbar_sortings[sortby]['order']
+
+        searchbar_filters = {
+            'all': {'label': _('All'), 'domain': []},
+        }
+        # default filter by value
+        if not filterby:
+            filterby = 'all'
+        domain += searchbar_filters[filterby]['domain']
+
+        if date_begin and date_end:
+            domain += [('scheduled_date', '>', date_begin), ('scheduled_date', '<=', date_end)]
+
+        # count for pager
+        stock_picking_count = StockPicking.search_count(domain)
+        # pager
+        pager = portal_pager(
+            url="/my/stock_pickings",
+            url_args={'date_begin': date_begin, 'date_end': date_end, 'sortby': sortby},
+            total=stock_picking_count,
+            page=page,
+            step=self._items_per_page
+        )
+        # content according to pager and archive selected
+        stock_pickings = StockPicking.search(domain, order=order, limit=self._items_per_page, offset=pager['offset'])
+        request.session['my_stock_picking_history'] = stock_pickings.ids[:100]
+
+        values.update({
+            'date': date_begin,
+            'stock_pickings': stock_pickings,
+            'page_name': 'stock_picking',
+            'pager': pager,
+            'default_url': '/my/stock_pickings',
+            'searchbar_sortings': searchbar_sortings,
+            'sortby': sortby,
+            'searchbar_filters': OrderedDict(sorted(searchbar_filters.items())),
+            'filterby':filterby,
+        })
+        return request.render("purchase_portal.portal_my_stock_pickings", values)
+
+    @http.route(['/my/stock_pickings/<int:stock_picking>'], type='http', auth="public", website=True)
+    def portal_my_stock_pickings_detail(self, stock_picking, access_token=None, report_type=None, download=False, **kw):
+        try:
+            stock_picking_sudo = self._document_check_access('stock.picking', stock_picking, access_token)
+        except (AccessError, MissingError):
+            return request.redirect('/my')
+
+        values = self._stock_picking_get_page_view_values(stock_picking_sudo, access_token, **kw)
+
+        return request.render("purchase_portal.portal_stock_picking_page", values)

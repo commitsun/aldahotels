@@ -17,6 +17,19 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from . import models
-from . import controllers
-from . import wizard
+
+from datetime import datetime
+from uuid import uuid4
+import pytz
+
+from odoo import api, fields, models, tools, _
+from odoo.exceptions import ValidationError, UserError
+
+
+class StockPicking(models.Model):
+    _name = 'stock.picking'
+    _inherit = ['stock.picking', 'portal.mixin']
+
+    def get_portal_url(self):
+        res = super(StockPicking, self).get_portal_url()
+        return '/my/stock_pickings/%s' % (self.id) + res

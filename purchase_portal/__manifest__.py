@@ -35,8 +35,12 @@
     "data": [
         'templates/assets.xml',
         'templates/purchase_request.xml',
+        'templates/stock_picking.xml',
         'views/pms_property.xml',
         'views/product_product.xml',
+        'views/purchase_request.xml',
+        'views/purchase_order.xml',
+        'wizard/purchase_request_line_make_purchase_order.xml',
     ],
     "assets": {
         "web.assets_frontend": [],

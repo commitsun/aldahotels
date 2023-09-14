@@ -38,3 +38,36 @@ class PurchaseRequest(models.Model):
         if self.is_editable:
             portal_link = '/my/new_purchase_request/%s' % (self.id) + res
         return portal_link
+
+
+class PurchaseRequestLine(models.Model):
+    _inherit = 'purchase.request.line'
+
+    property_id = fields.Many2one('pms.property', related="request_id.property_id", string='Property', store=True)
+
+    @api.model
+    def create(self, values):
+        ctx = self.env.context.copy()
+        portal = ctx.get('portal', False)
+        if portal:
+            request_id = values.get('request_id', False)
+            product_id = values.get('product_id', False)
+            product_qty = values.get('product_qty', False)
+            
+            request = self.env['purchase.request'].browse(request_id)
+            product = self.env['product.product'].browse(product_id)
+            min_qty = product.seller_ids.filtered(lambda x: x.name.id == request.property_id.seller_id.id).min_qty
+
+            if product_qty < min_qty:
+                raise UserError(_('The minimum quantity for this product is %s' % min_qty))
+        return super().create(values)
+    
+    def write(self, vals):
+        ctx = self.env.context.copy()
+        portal = ctx.get('portal', False)
+        product_qty = vals.get('product_qty', False)
+        if portal and product_qty:
+            min_qty = self.product_id.seller_ids.filtered(lambda x: x.name.id == self.request_id.property_id.seller_id.id).min_qty
+            if product_qty < min_qty:
+                raise UserError(_('The minimum quantity for this product is %s' % min_qty))
+        return super().write(vals)
