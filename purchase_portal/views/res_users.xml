@@ -5,21 +5,13 @@
         <field name="model">res.users</field>
         <field name="inherit_id" ref="base.view_users_form" />
         <field name="arch" type="xml">
-            <xpath expr="//page[@name='references']" position="inside">
-                <group>
-                    <group string="Token Access" name="token_access">
-                        <field name="portal_access_token" />
-                        <field name="portal_access_token_expire" />
-                        <button
-                            name="create_portal_token_access"
-                            string="Creare or renew portal token"
-                            type="object"
-                            default_focus="1"
-                            class="oe_highlight"
-                        />
+            <notebook position="inside">
+                <page string="Purchase Portal" name="purchase_portal">
+                    <group>
+                        <field name="banned_product_ids"/>
                     </group>
-                </group>
-            </xpath>
+                </page>
+            </notebook>
         </field>
     </record>
 </odoo>

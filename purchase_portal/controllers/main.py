@@ -139,6 +139,9 @@ class PortalAccount(CustomerPortal):
                 purchase_request_sudo = self._document_check_access('purchase.request', purchase_request, access_token)
             except (AccessError, MissingError):
                 return request.redirect('/my')
+            
+            if purchase_request_sudo.state not in ["to_approve", "draft"] or purchase_request_sudo.review_ids.filtered(lambda r: r.status == 'approved'):
+                return request.redirect('/my/purchase_requests/%s' % purchase_request_sudo.id)
 
             values = self._purchase_request_get_page_view_values(purchase_request_sudo, access_token, **kw)
         

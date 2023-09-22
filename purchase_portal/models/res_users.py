@@ -28,6 +28,7 @@ class ResUsers(models.Model):
 
     portal_access_token = fields.Char()
     portal_access_token_expire = fields.Datetime()
+    banned_product_ids = fields.Many2many('product.product', string='User banned products')
 
     def create_portal_token_access(self):
         for user in self:

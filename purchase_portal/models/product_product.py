@@ -31,3 +31,11 @@ class ProductProduct(models.Model):
         column1="property_id",
         column2="product_id",
     )
+
+    def get_supplier_stock(self, purchase_request):
+        self.ensure_one()
+        supplier_stock = 0.0
+        seller = self.seller_ids.filtered(lambda x: x.name.id in purchase_request.property_id.seller_ids.ids).sorted(key=lambda r: r.price)[0]
+        if seller:
+            supplier_stock = seller.supplier_stock
+        return supplier_stock

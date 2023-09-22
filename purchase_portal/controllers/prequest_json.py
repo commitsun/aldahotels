@@ -79,6 +79,15 @@ class PurchaseRequestJsonMethods(http.Controller):
         if category_id and category_id != 'all':
             product_ids = product_ids.filtered(lambda x: x.categ_id.id == int(category_id))
         
+        print("product_ids : {}".format(product_ids))
+
+        print("request.env.user.banned_product_ids : {}".format(request.env.user.banned_product_ids))
+        
+        if request.env.user.banned_product_ids:
+            product_ids = product_ids - request.env.user.banned_product_ids
+        
+        print("product_ids : {}".format(product_ids))
+        
         values = {
             "product_ids": product_ids,
             "purchase_request": purchase_request,
@@ -110,7 +119,7 @@ class PurchaseRequestJsonMethods(http.Controller):
             )
         
         purchase_request = request.env['purchase.request'].browse(int(purchase_request))
-        if not purchase_request or not purchase_request.is_editable:
+        if not purchase_request or not purchase_request.state in ["to_approve", "draft"]:
             return json.dumps(
                 {
                     "error": True,
@@ -120,7 +129,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         
         try:
             product_info = request.env['product.supplierinfo'].search([
-                ('name', '=', purchase_request.property_id.seller_id.id), '|', ('product_id', '=', int(product_id)), ('product_tmpl_id.product_variant_ids', '=', int(product_id))]
+                ('name', 'in', purchase_request.property_id.seller_ids.ids), '|', ('product_id', '=', int(product_id)), ('product_tmpl_id.product_variant_ids', '=', int(product_id))], order='price asc', limit=1
             )
             request_line = request.env['purchase.request.line'].with_context(portal=True).create({
                 'request_id': purchase_request.id,
@@ -131,7 +140,7 @@ class PurchaseRequestJsonMethods(http.Controller):
 
             # portal=False to avoid onchange_product_id to be raise error
             request_line.with_context(portal=False).onchange_product_id()
-            request_line.with_context(portal=True).write({
+            request_line.with_context(portal=True, no_msg=True).write({
                 'product_qty': float(qty),
             })
         except Exception as e:

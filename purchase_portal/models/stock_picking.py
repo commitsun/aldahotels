@@ -21,6 +21,8 @@
 from datetime import datetime
 from uuid import uuid4
 import pytz
+from lxml import etree
+from lxml.html import builder as html
 
 from odoo import api, fields, models, tools, _
 from odoo.exceptions import ValidationError, UserError
@@ -33,3 +35,17 @@ class StockPicking(models.Model):
     def get_portal_url(self):
         res = super(StockPicking, self).get_portal_url()
         return '/my/stock_pickings/%s' % (self.id) + res
+
+    def _create_backorder(self):
+        res = super(StockPicking, self)._create_backorder()
+        if self.env.context.get('backorder_message', False):
+            text = self.env.context.get('backorder_message', False)
+            lines = ""
+            for line in res.move_lines:
+                lines+= ("Product: <b>{}</b>, quantity: <b>{}</b><br/>".format(line.product_id.display_name, line.product_qty))
+            message = _("Hi {}, <br/>".format(res.partner_id.name)) + text + lines
+
+            res.message_post(
+                body=message, subtype_id=self.env.ref("mail.mt_comment").id
+            )
+        return res

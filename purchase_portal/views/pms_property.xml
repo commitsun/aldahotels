@@ -8,7 +8,7 @@
             <notebook position="inside">
                 <page string="Purchase Portal" name="purchase_portal">
                     <group>
-                        <field name="seller_id"/>
+                        <field name="seller_ids" widget="many2many"/>
                         <field name="wharehouse_id"/>
                     </group>
                     <field name="product_ids" widget="many2many"/>

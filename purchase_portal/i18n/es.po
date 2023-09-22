@@ -1,0 +1,564 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* purchase_portal
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 14.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-09-19 08:17+0000\n"
+"PO-Revision-Date: 2023-09-19 08:17+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid ". <b>Reviewed date:</b>"
+msgstr ". <b>Fecha de revisión:</b>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "<b>Comment:</b>"
+msgstr "<b>Comentario:</b>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "<b>Reviewer:</b>"
+msgstr "<b>Revisor:</b>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "<b>Status:</b>"
+msgstr "<b>Estado:</b>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_menu_purchase_request
+msgid "<em>Draft purchase request</em>"
+msgstr "<em>Borrador solicitud de compra</em>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_menu_stock_picking
+msgid "<em>Draft stock picking</em>"
+msgstr "<em>Borrador albarán</em>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid "<i class=\"fa fa-fw fa-comments\"/><b>Send message</b>"
+msgstr "<i class=\"fa fa-fw fa-comments\"/><b>Enviar mensaje</b>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "<option value=\"all\">All categories</option>"
+msgstr "<option value=\"all\">Todas las categorías</option>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid ""
+"<span class=\"badge badge-pill badge-info\"><i class=\"fa fa-fw fa-clock-o\""
+" aria-label=\"Draft\" title=\"Draft\" role=\"img\"/><span class=\"d-none "
+"d-md-inline\"> Draft</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-info\"><i class=\"fa fa-fw fa-clock-o\""
+" aria-label=\"Borrador\" title=\"Borrador\" role=\"img\"/><span class=\"d-none "
+"d-md-inline\"> Borrador</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Approved\" title=\"Approved\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Approved</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Aprobado\" title=\"Aprobado\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Aprobado</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Assigned\" title=\"Assigned\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Assigned</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Asignado\" title=\"Asignado\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Asignado</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Confirmed\" title=\"Confirmed\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Confirmed</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Confirmado\" title=\"Confirmado\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Confirmado</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Done\" title=\"Done\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Done</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Hecho\" title=\"Hecho\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Hecho</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"To approve\" title=\"To approve\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> To approve</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Para aprobar\" title=\"Para aprobar\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Para aprobar</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"Waiting\" title=\"Waiting\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Waiting</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-success\"><i class=\"fa fa-fw fa-"
+"check\" aria-label=\"En espera\" title=\"En espera\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> En espera</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid ""
+"<span class=\"badge badge-pill badge-warning\"><i class=\"fa fa-fw fa-"
+"remove\" aria-label=\"Cancel\" title=\"Cancel\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Cancel</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-warning\"><i class=\"fa fa-fw fa-"
+"remove\" aria-label=\"Cancelado\" title=\"Cancelado\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Cancelado</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid ""
+"<span class=\"badge badge-pill badge-warning\"><i class=\"fa fa-fw fa-"
+"remove\" aria-label=\"Rejected\" title=\"Rejected\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Rejected</span></span>"
+msgstr ""
+"<span class=\"badge badge-pill badge-warning\"><i class=\"fa fa-fw fa-"
+"remove\" aria-label=\"Rechazado\" title=\"Rechazado\" role=\"img\"/><span "
+"class=\"d-none d-md-inline\"> Rechazado</span></span>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid ""
+"<strong class=\"text-muted\">\n"
+"                                    Assigned to\n"
+"                                </strong>"
+msgstr ""
+"<strong class=\"text-muted\">\n"
+"                                    Asignado a\n"
+"                                </strong>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid ""
+"<strong class=\"text-muted\">\n"
+"                                    Receive from\n"
+"                                </strong>"
+msgstr ""
+"<strong class=\"text-muted\">\n"
+"                                    Recibir de\n"
+"                                </strong>"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+msgid ""
+"<strong class=\"text-muted\">\n"
+"                                    Requested by\n"
+"                                </strong>"
+msgstr ""
+"<strong class=\"text-muted\">\n"
+"                                    Solicitado por\n"
+"                                </strong>"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__access_warning
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__access_warning
+msgid "Access warning"
+msgstr ""
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.purchase_request_product_table
+msgid "Add"
+msgstr "Añadir"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/controllers/main.py:0
+#: code:addons/purchase_portal/controllers/main.py:0
+#, python-format
+msgid "All"
+msgstr "Todos"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_room_type__purchase_property_ids
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_room_type__purchase_property_ids
+#: model:ir.model.fields,field_description:purchase_portal.field_product_product__purchase_property_ids
+msgid "Allowed in properties"
+msgstr "Permitido en propiedades"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__product_ids
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__product_ids
+msgid "Allowed products"
+msgstr "Productos permitidos"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "Category"
+msgstr "Categoría"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid "Contact"
+msgstr "Contacto"
+
+#. module: purchase_portal
+#: model:ir.model.fields,help:purchase_portal.field_purchase_request__access_url
+#: model:ir.model.fields,help:purchase_portal.field_stock_picking__access_url
+msgid "Customer Portal URL"
+msgstr "URL portal cliente"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/controllers/main.py:0
+#: code:addons/purchase_portal/controllers/main.py:0
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+#, python-format
+msgid "Date"
+msgstr "Fecha"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_config__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_order__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_session__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_product_product__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_order__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_res_users__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__display_name
+msgid "Display Name"
+msgstr "Nombre"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid "Done"
+msgstr "Hecho"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid "Draft purchase request"
+msgstr "Borrador solicitud de compra"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid "Draft stock picking"
+msgstr "Borrador albarán"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid "History"
+msgstr "Historial"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__id
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_config__id
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_order__id
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_session__id
+#: model:ir.model.fields,field_description:purchase_portal.field_product_product__id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_order__id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line__id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order__id
+#: model:ir.model.fields,field_description:purchase_portal.field_res_users__id
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__id
+msgid "ID"
+msgstr "Identificación"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_config____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_order____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_session____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_product_product____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_order____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_res_users____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking____last_update
+msgid "Last Modified on"
+msgstr "Última modificación en"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/models/pos_order.py:0
+#, python-format
+msgid "NO PUEDES CREAR SESIONES DE RESCATE"
+msgstr ""
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "New purchase request"
+msgstr "Nueva solicitud de compra"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_purchase_request
+msgid "New purchase request"
+msgstr "Nueva solicitud de compra"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/controllers/main.py:0
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+#, python-format
+msgid "Origin"
+msgstr "Origen"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_pos_config
+msgid "Point of Sale Configuration"
+msgstr "Configuración del TPV"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_pos_order
+msgid "Point of Sale Orders"
+msgstr "Pedidos del TPV"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_pos_session
+msgid "Point of Sale Session"
+msgstr "Sesión TPV"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_res_users__portal_access_token
+msgid "Portal Access Token"
+msgstr "Token de acceso al portal"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_res_users__portal_access_token_expire
+msgid "Portal Access Token Expire"
+msgstr "Expiración del token"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__access_url
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__access_url
+msgid "Portal Access URL"
+msgstr "URL acceso portal"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_product_product
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.purchase_request_details_table
+#: model_terms:ir.ui.view,arch_db:purchase_portal.purchase_request_product_table
+msgid "Product"
+msgstr "Producto"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid "Products"
+msgstr "Productos"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_pms_property
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_order__property_id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__property_id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line__property_id
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order__property_id
+#: model_terms:ir.ui.view,arch_db:purchase_portal.purchase_request_line_search
+msgid "Property"
+msgstr "Hotel"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_purchase_order
+msgid "Purchase Order"
+msgstr "Pedido de compra"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.pms_property_views_form
+#: model_terms:ir.ui.view,arch_db:purchase_portal.product_normal_form_view
+msgid "Purchase Portal"
+msgstr "Portal de compras"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_purchase_request
+msgid "Purchase Request"
+msgstr "Solicitud de Compra"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_purchase_request_line
+msgid "Purchase Request Line"
+msgstr "Línea de solicitud de compra"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_purchase_request_line_make_purchase_order
+msgid "Purchase Request Line Make Purchase Order"
+msgstr ""
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid "Purchase request #"
+msgstr "Solicitud de compra #"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_menu_purchase_request
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_purchase_request
+msgid "Purchase requests"
+msgstr "Solicitudes de compra"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_stock_picking_page
+msgid "Quantity"
+msgstr "Cantidad"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/controllers/main.py:0
+#: code:addons/purchase_portal/controllers/main.py:0
+#, python-format
+msgid "Reference"
+msgstr "Referencia"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "Request validation"
+msgstr "Solicitar validación"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "Restart validation"
+msgstr "Reiniciar validación"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
+msgid "Search..."
+msgstr "Buscar..."
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__access_token
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__access_token
+msgid "Security Token"
+msgstr "Token de seguridad"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_config__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_order__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_pos_session__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_product_product__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_order__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_res_users__smart_search
+#: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__smart_search
+msgid "Smart Search"
+msgstr "Búsqueda inteligente"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/controllers/main.py:0
+#: code:addons/purchase_portal/controllers/main.py:0
+#, python-format
+msgid "Status"
+msgstr "Estado"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid "Stock picking #"
+msgstr "Albarán #"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_menu_stock_picking
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_stock_picking
+msgid "Stock pickings"
+msgstr "Albaranes"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/models/purchase_request.py:0
+#: code:addons/purchase_portal/models/purchase_request.py:0
+#, python-format
+msgid "The minimum quantity for this product is %s"
+msgstr "La cantidad mínima para este producto es %s"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid ""
+"There are currently no purchase_requests and payments for your account."
+msgstr ""
+"No existen pagos o solicitudes de compra para tu cuenta."
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid "There are currently no stock_pickings and payments for your account."
+msgstr "No existen pagos o solicitudes de compra para tu cuenta."
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_stock_picking
+msgid "Transfer"
+msgstr "Albarán"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_res_users
+msgid "Users"
+msgstr "Usuarios"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__seller_id
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__seller_id
+msgid "Vendor"
+msgstr "Proveedor"
+
+#. module: purchase_portal
+#: model:ir.model.fields,help:purchase_portal.field_channel_wubook_pms_property_availability__seller_id
+#: model:ir.model.fields,help:purchase_portal.field_pms_property__seller_id
+msgid "Vendor allowed in this property."
+msgstr "Proveedor permitido en esta propiedad"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__wharehouse_id
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__wharehouse_id
+msgid "Warehouse"
+msgstr "Almacén"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/wizard/purchase_request_line_make_purchase_order.py:0
+#, python-format
+msgid "You can't select lines from different properties"
+msgstr "No puedes seleccionar líneas de diferentes propiedades"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_purchase_requests
+msgid "purchase_requests"
+msgstr ""
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
+msgid "stock_pickings"
+msgstr ""

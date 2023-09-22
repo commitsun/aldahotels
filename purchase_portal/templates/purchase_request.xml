@@ -7,7 +7,7 @@
             </li>
             <li t-if="purchase_request" class="breadcrumb-item active">
                 <t t-esc="purchase_request.name" t-if="purchase_request.name != '/'"/>
-                <t t-else=""><em>Draft purchase_request</em></t>
+                <t t-else=""><em>Draft purchase request</em></t>
             </li>
         </xpath>
     </template>
@@ -21,7 +21,7 @@
             </t>
         </xpath>
         <xpath expr="//div[hasclass('o_portal_docs')]" position="after">
-            <a class="btn btn-radius btn-primary btn-pms_pwa mt-4" t-attf-href="/my/new_purchase_request?{{ keep_query() }}">New purchase_request</a>
+            <a class="btn btn-radius btn-primary btn-pms_pwa mt-4" t-attf-href="/my/new_purchase_request?{{ keep_query() }}">New purchase request</a>
         </xpath>
     </template>
 
@@ -78,6 +78,16 @@
     </template>
 
     <template id="portal_purchase_request_page" name="purchase_request Portal Template" inherit_id="portal.portal_sidebar" primary="True">
+        <xpath expr="//div[hasclass('o_portal_sidebar')]" position="before">
+            <div t-if="purchase_request and purchase_request.review_ids">
+                <t t-foreach="purchase_request.review_ids" t-as="review">
+                    <div t-att-class="'alert alert-warning' if review.status == 'pending' else 'alert alert-danger' if review.status == 'rejected' else 'alert alert-success' if review.status == 'approved' else 'alert alert-info'">
+                        <p><b>Status:</b> <span t-field="review.status"/>. <span t-if="review.status != 'pending'"><b>Reviewer:</b> <span t-field="review.done_by"/>. <b>Reviewed date:</b> <span t-field="review.reviewed_date"/>.</span></p>
+                        <p t-if="review.has_comment"><b>Comment:</b> <span t-field="review.comment"/></p>
+                    </div>
+                </t>
+            </div>
+        </xpath>
         <xpath expr="//div[hasclass('o_portal_sidebar')]" position="inside">
             <div class="row mt16 o_portal_purchase_request_sidebar">
                 <!-- Sidebar -->
@@ -243,6 +253,7 @@
                                                 <th>Product</th>
                                                 <th>Category</th>
                                                 <th class="text-right">Quantity</th>
+                                                <th class="text-right">Estimated stock</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -263,7 +274,7 @@
     </template>
 
     <template id="purchase_request_product_table" name="Purchase request product table">
-        <t t-foreach="product_ids" t-as="product">
+        <t t-foreach="product_ids.filtered(lambda x: x.id not in user_id.banned_product_ids.ids)" t-as="product">
             <tr>
                 <td>
                     <img t-att-src="'/web/image/product.product/%s/image_128' % product.id" alt="Product" class="d-none d-lg-inline"/>
@@ -274,6 +285,9 @@
                 </td>
                 <td class="text-right">
                     <input class="form-control input_mx_70" name="product_qty" type="number" value="1"/>
+                </td>
+                <td class="text-right">
+                    <span t-esc="product.get_supplier_stock(purchase_request)"/>
                 </td>
                 <td class="text-right">
                     <button class="btn btn-primary request_add_to_cart" t-att-data-purchase_request="purchase_request.id" t-att-data-product_id="product.id">Add</button>

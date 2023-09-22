@@ -17,13 +17,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from . import res_users
-from . import pos_config
-from . import pos_session
-from . import pos_order
-from . import purchase_request
-from . import pms_property
-from . import product_product
-from . import purchase_order
-from . import stock_picking
-from . import product_supplierinfo
+from odoo import fields, models, api, _
+from odoo.exceptions import AccessDenied
+
+
+class ProductSupplierinfo(models.Model):
+    _inherit = 'product.supplierinfo'
+    
+    supplier_stock = fields.Float('Supplier stock')

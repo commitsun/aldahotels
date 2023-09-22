@@ -17,13 +17,29 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from . import res_users
-from . import pos_config
-from . import pos_session
-from . import pos_order
-from . import purchase_request
-from . import pms_property
-from . import product_product
-from . import purchase_order
-from . import stock_picking
-from . import product_supplierinfo
+
+from datetime import datetime
+
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
+
+
+class StockBackorderConfirmation(models.TransientModel):
+    _inherit = "stock.backorder.confirmation"
+
+    @api.model
+    def default_get(self, fields):
+        res = super(StockBackorderConfirmation, self).default_get(fields)
+        res['backorder_message'] = _("The following products didn't arrive:")
+        return res
+
+    send_mail_to_seller = fields.Boolean('Mail to seller', default=False)
+    backorder_message = fields.Html('Mail to seller content', help='A line will be added for each product not received')
+
+    def process(self):
+        ctx = self.env.context.copy()
+        if self.send_mail_to_seller:
+            ctx['backorder_message'] = self.backorder_message
+        res = super(StockBackorderConfirmation, self.with_context(ctx)).process()
+        return True
+

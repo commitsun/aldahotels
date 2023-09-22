@@ -7,7 +7,7 @@
             </li>
             <li t-if="stock_picking" class="breadcrumb-item active">
                 <t t-esc="stock_picking.name" t-if="stock_picking.name != '/'"/>
-                <t t-else=""><em>Draft stock_picking</em></t>
+                <t t-else=""><em>Draft stock picking</em></t>
             </li>
         </xpath>
     </template>

@@ -9,6 +9,10 @@
                 <group>
                     <field name="property_id" readonly="1"/>
                 </group>
+                <group attrs="{'invisible': [('multiple_suppliers', '!=', True)]}">
+                    <field name="multiple_suppliers" readonly="1"/>
+                    <small>There are multiple suppliers. More than one purchase order will be created.</small>
+                </group>
             </xpath>
         </field>
     </record>
