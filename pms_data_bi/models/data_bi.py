@@ -1061,11 +1061,10 @@ class DataBi(models.Model):
             self.export_all(prop, self.calc_date_limit(fechafoto)), ensure_ascii=False
         )
         filename = (
-            str(prop.id)
+            "BI"
+            + str(prop.id)
             + "-"
-            + (prop.pms_property_code if prop.pms_property_code else "")
-            + "_"
-            + prop.name
+            + (prop.pms_property_code if prop.pms_property_code else "00")
         )
         _logger.info("Send to ftp " + filename)
         self.data_bi_ftp_write(data, filename)
