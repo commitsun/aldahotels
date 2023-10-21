@@ -182,7 +182,7 @@ class DataBi(models.Model):
             {"Segmentos": self.data_bi_segment(hotels)},
             {"Clientes": self.data_bi_client(hotels)},
             {"Estado Reservas": self.data_bi_estados(hotels)},
-            {"Nombre Habitaciones": self.data_bi_rooms(hotels, True)},
+            {"Nombre Habitaciones": self.data_bi_rooms(hotels)},
         ]
         return dic_export
 
@@ -228,7 +228,7 @@ class DataBi(models.Model):
         elif archivo == 14:
             dic_export.append({"Estado Reservas": self.data_bi_estados(hotels)})
         elif archivo == 15:
-            dic_export.append({"Nombre Habitaciones": self.data_bi_rooms(hotels, True)})
+            dic_export.append({"Nombre Habitaciones": self.data_bi_rooms(hotels)})
         return dic_export
 
     @api.model
@@ -236,31 +236,20 @@ class DataBi(models.Model):
         # Diccionario con las tarifas [1]
         dic_tarifa = []
         if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
+            hotels = self.env["pms.property"].sudo().search([])
 
-        for prop in hotels:
-            tarifas = self.env["product.pricelist"].search_read(
-                [
-                    "|",
-                    ("active", "=", False),
-                    ("active", "=", True),
-                    "|",
-                    ("pms_property_ids", "in", prop.id),
-                    ("pms_property_ids", "=", False),
-                ],
-                ["name"],
+        tarifas = self.env["product.pricelist"].sudo().search(
+            ["|", ("active", "=", False), ("active", "=", True),]).filtered(
+            lambda r: not r.pms_property_ids or any(
+                [p.id in hotels.ids for p in r.pms_property_ids]))
+        for tarifa in tarifas:
+            dic_tarifa.append(
+                {
+                    "ID_Hotel": hotels[0].id,
+                    "ID_Tarifa": tarifa["id"],
+                    "Descripción": tarifa["name"],
+                }
             )
-            # _logger.info(
-            #     "DataBi: Calculating %s fees in %s", str(len(tarifas)), prop.name
-            # )
-            for tarifa in tarifas:
-                dic_tarifa.append(
-                    {
-                        "ID_Hotel": prop.id,
-                        "ID_Tarifa": tarifa["id"],
-                        "Descripción": tarifa["name"],
-                    }
-                )
         return dic_tarifa
 
     @api.model
@@ -268,21 +257,22 @@ class DataBi(models.Model):
         # Diccionario con los Canales [2]
         dic_canal = []
         if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
-        channels = self.env["pms.sale.channel"].search([])
+            hotels = self.env["pms.property"].sudo().search([])
+        channels = self.env["pms.sale.channel"].sudo().search([]).filtered(
+            lambda r: not r.pms_property_ids or any(
+                [p.id in hotels.ids for p in r.pms_property_ids]))
         # _logger.info("DataBi: Calculating %s Channels", str(len(channels)))
-        for prop in hotels:
+        dic_canal.append(
+            {"ID_Hotel": hotels[0].id, "ID_Canal": 0, "Descripción": u"Ninguno"}
+        )
+        for channel in channels:
             dic_canal.append(
-                {"ID_Hotel": prop.id, "ID_Canal": 0, "Descripción": u"Ninguno"}
+                {
+                    "ID_Hotel": hotels[0].id,
+                    "ID_Canal": channel["id"],
+                    "Descripción": channel["name"],
+                }
             )
-            for channel in channels:
-                dic_canal.append(
-                    {
-                        "ID_Hotel": prop.id,
-                        "ID_Canal": channel["id"],
-                        "Descripción": channel["name"],
-                    }
-                )
         return dic_canal
 
     @api.model
@@ -630,29 +620,26 @@ class DataBi(models.Model):
         # Diccionario con los Board Services [5]
         dic_regimen = []
         if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
-        board_services = self.env["pms.board.service"].search_read([])
+            hotels = self.env["pms.property"].sudo().search([])
+        board_services = self.env["pms.board.service"].sudo().search([]).filtered(
+            lambda r: not r.pms_property_ids or any(
+                [p.id in hotels.ids for p in r.pms_property_ids]))
         # _logger.info("DataBi: Calculating %s board services",
-        #   str(len(board_services)))
-        for prop in hotels:
+        dic_regimen.append(
+            {
+                "ID_Hotel": board_services.pms_property_ids,
+                "ID_Regimen": 0,
+                "Descripción": u"Sin régimen",
+            }
+        )
+        for board_service in board_services:
             dic_regimen.append(
                 {
-                    "ID_Hotel": prop.id,
-                    "ID_Regimen": 0,
-                    "Descripción": u"Sin régimen",
+                    "ID_Hotel": board_service.pms_property_ids,
+                    "ID_Regimen": board_service["id"],
+                    "Descripción": board_service["name"],
                 }
             )
-            for board_service in board_services:
-                if (not board_service["pms_property_ids"]) or (
-                    prop.id in board_service["pms_property_ids"]
-                ):
-                    dic_regimen.append(
-                        {
-                            "ID_Hotel": prop.id,
-                            "ID_Regimen": board_service["id"],
-                            "Descripción": board_service["name"],
-                        }
-                    )
         return dic_regimen
 
     @api.model
@@ -687,7 +674,6 @@ class DataBi(models.Model):
                 [p.id in hotels.ids for p in r.pms_property_ids]))
         # _logger.info("DataBi: Calculating %s room types", str(len(rooms)))
         dic_tipo_habitacion = []
-        # for prop in hotels:
         for room in rooms:
             dic_tipo_habitacion.append(
                 {
@@ -743,39 +729,36 @@ class DataBi(models.Model):
     @api.model
     def data_bi_moti_bloq(self, hotels=False):
         # Diccionario con Motivo de Bloqueos [11]
-        dic_segmentos = []
-        if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
-        lineas = self.env["room.closure.reason"].search([])
         dic_moti_bloq = []
+        if not hotels:
+            hotels = self.env["pms.property"].sudo().search([])
+        lineas = self.env["room.closure.reason"].sudo().search([]).filtered(
+            lambda r: not r.pms_property_ids or any(
+                [p.id in hotels.ids for p in r.pms_property_ids]))
         # _logger.info("DataBi: Calculating %s blocking reasons",
         #   str(len(lineas)))
-        for prop in hotels:
+        dic_moti_bloq.append(
+            {
+                "ID_Hotel": hotels[0].id,
+                "ID_Motivo_Bloqueo": "B0",
+                "Descripción": u"Ninguno",
+            }
+        )
+        dic_moti_bloq.append(
+            {
+                "ID_Hotel": hotels[0].id,
+                "ID_Motivo_Bloqueo": "ST",
+                "Descripción": u"Staff",
+            }
+        )
+        for linea in lineas:
             dic_moti_bloq.append(
                 {
-                    "ID_Hotel": prop.id,
-                    "ID_Motivo_Bloqueo": "B0",
-                    "Descripción": u"Ninguno",
+                    "ID_Hotel": hotels[0].id,
+                    "ID_Motivo_Bloqueo": "B" + str(linea.id),
+                    "Descripción": linea.name,
                 }
             )
-            dic_moti_bloq.append(
-                {
-                    "ID_Hotel": prop.id,
-                    "ID_Motivo_Bloqueo": "ST",
-                    "Descripción": u"Staff",
-                }
-            )
-            for linea in lineas:
-                if (not linea.pms_property_ids) or (
-                    prop.id in linea.pms_property_ids.ids
-                ):
-                    dic_moti_bloq.append(
-                        {
-                            "ID_Hotel": prop.id,
-                            "ID_Motivo_Bloqueo": "B" + str(linea.id),
-                            "Descripción": linea.name,
-                        }
-                    )
         return dic_moti_bloq
 
     @api.model
@@ -783,22 +766,21 @@ class DataBi(models.Model):
         # Diccionario con Segmentación [12]
         dic_segmentos = []
         if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
-        lineas = self.env["res.partner.category"].search([])
+            hotels = self.env["pms.property"].sudo().search([])
+        lineas = self.env["res.partner.category"].sudo().search([])
         # _logger.info("DataBi: Calculating %s segmentations", str(len(lineas)))
-        for prop in hotels:
-            for linea in lineas:
-                if linea.parent_id.name:
-                    seg_desc = linea.parent_id.name + " / " + linea.name
-                else:
-                    seg_desc = linea.name
-                dic_segmentos.append(
-                    {
-                        "ID_Hotel": prop.id,
-                        "ID_Segmento": linea.id,
-                        "Descripción": seg_desc,
-                    }
-                )
+        for linea in lineas:
+            if linea.parent_id.name:
+                seg_desc = linea.parent_id.name + " / " + linea.name
+            else:
+                seg_desc = linea.name
+            dic_segmentos.append(
+                {
+                    "ID_Hotel": hotels[0].id,
+                    "ID_Segmento": linea.id,
+                    "Descripción": seg_desc,
+                }
+            )
         return dic_segmentos
 
     @api.model
@@ -806,23 +788,24 @@ class DataBi(models.Model):
         # Diccionario con Clientes (OTAs y agencias) [13]
         dic_clientes = []
         if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
-        lineas = self.env["res.partner"].search([("is_agency", "=", True)])
+            hotels = self.env["pms.property"].sudo().search([])
+        lineas = self.env["res.partner"].sudo().search([("is_agency", "=", True)]).filtered(
+            lambda r: not r.pms_property_ids or any(
+                [p.id in hotels.ids for p in r.pms_property_ids]))
         # _logger.info("DataBi: Calculating %s Operators", str(len(lineas)))
-        for prop in hotels:
+        dic_clientes.append(
+            {"ID_Hotel": hotels[0].id, "ID_Cliente": 0, "Descripción": u"Ninguno"}
+        )
+        for linea in lineas:
             dic_clientes.append(
-                {"ID_Hotel": prop.id, "ID_Cliente": 0, "Descripción": u"Ninguno"}
+                {
+                    "ID_Hotel": hotels[0].id,
+                    "ID_Cliente": linea.id,
+                    "Descripción": linea.data_bi_ref
+                    if linea.data_bi_ref
+                    else linea.name,
+                }
             )
-            for linea in lineas:
-                dic_clientes.append(
-                    {
-                        "ID_Hotel": prop.id,
-                        "ID_Cliente": linea.id,
-                        "Descripción": linea.data_bi_ref
-                        if linea.data_bi_ref
-                        else linea.name,
-                    }
-                )
         return dic_clientes
 
     @api.model
@@ -830,7 +813,7 @@ class DataBi(models.Model):
         # Diccionario con los Estados Reserva [14]
         # _logger.info("DataBi: Calculating states of the reserves")
         if not hotels:
-            hotels = self.env["pms.property"].sudo().search([], limit=1)
+            hotels = self.env["pms.property"].sudo().search([])
         dic_estados = []
         estado_array_txt = [
             "Borrador",
@@ -841,19 +824,18 @@ class DataBi(models.Model):
             "No Show",
             "No Checkout",
         ]
-        for prop in hotels:
-            for i in range(0, len(estado_array)):
-                dic_estados.append(
-                    {
-                        "ID_Hotel": prop.id,
-                        "ID_EstadoReserva": str(i),
-                        "Descripción": estado_array_txt[i],
-                    }
-                )
+        for i in range(0, len(estado_array)):
+            dic_estados.append(
+                {
+                    "ID_Hotel": hotels[0].id,
+                    "ID_EstadoReserva": str(i),
+                    "Descripción": estado_array_txt[i],
+                }
+            )
         return dic_estados
 
     @api.model
-    def data_bi_rooms(self, hotels=False, filtro=False):
+    def data_bi_rooms(self, hotels=False):
         # Diccionario con las habitaciones [15]
         dic_rooms = []
         if not hotels:
@@ -861,13 +843,7 @@ class DataBi(models.Model):
         rooms = self.env["pms.room"].sudo().search([]).filtered(
             lambda r: not r.pms_property_id or any(
                 [p.id in hotels.ids for p in r.pms_property_id]))
-        # rooms = self.env["pms.room"].search([])
         # _logger.info("DataBi: Calculating %s name rooms.", str(len(rooms)))
-        # for prop in hotels:
-        #     if filtro:
-        #         r = rooms.filtered(lambda n: (n.pms_property_id.id == prop.id))
-        #     else:
-        #         r = rooms
         for room in rooms:
             dic_rooms.append(
                 {
