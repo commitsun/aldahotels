@@ -1096,7 +1096,7 @@ class DataBi(models.Model):
         for all not set or default_property = [0]
         """
         _logger.info("Exporting FTP data DataBI")
-        propertys = self.env["pms.property"].search([])
+        propertys = self.env["pms.property"].search([("data_bi_enabled", "=", True)])
         for prop in propertys:
             if (prop.id in default_property) or default_property == [0]:
                 self.data_bi_ftp_one(prop, fechafoto)
@@ -1105,17 +1105,20 @@ class DataBi(models.Model):
     @api.model
     def data_bi_ftp_one(self, prop, fechafoto):
         """ send 1 DataBI to ftp server """
-        data = json.dumps(
-            self.export_all(prop, self.calc_date_limit(fechafoto)), ensure_ascii=False
-        )
-        filename = (
-            "BI"
-            + str(prop.id)
-            + "-"
-            + (prop.pms_property_code if prop.pms_property_code else "00")
-        )
-        _logger.info("Send to ftp " + filename)
-        self.data_bi_ftp_write(data, filename)
+        if prop.data_bi_enabled:
+            data = json.dumps(
+                self.export_all(prop, self.calc_date_limit(fechafoto)), ensure_ascii=False
+            )
+            filename = (
+                "BI"
+                + str(prop.id)
+                + "-"
+                + (prop.pms_property_code if prop.pms_property_code else "00")
+            )
+            _logger.info("Send to ftp " + filename)
+            self.data_bi_ftp_write(data, filename)
+        else:
+            _logger.info("Exporting data DataBI not enabled in property")
         return
 
     @api.model
