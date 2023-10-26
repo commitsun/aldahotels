@@ -908,7 +908,7 @@ class DataBi(models.Model):
         lines = lines.filtered(
             lambda n: (
                 (n.reservation_id.reservation_type != "normal")
-                and (n.reservation_id.state != "cancelled")
+                and (n.reservation_id.state != "cancel")
             )
         )
         # _logger.info("DataBi: Calculating %s Bloqued", str(len(lines)))
