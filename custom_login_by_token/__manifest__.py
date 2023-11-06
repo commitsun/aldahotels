@@ -19,22 +19,17 @@
 ##############################################################################
 
 {
-    "name": "Custom POS PMS Link",
-    "summary": "Allows to access directly to the POS",
+    "name": "Custom login by token",
+    "summary": "Allows login using signup token",
     "version": "14.0.1.0.0",
     "author": "Comunitea Servicios Tecnológicos S.L.",
     "website": "www.comunitea.com",
     "license": "AGPL-3",
     "category": "Custom",
     "depends": [
-        "portal",
-        "point_of_sale",
         "auth_signup",
-        "custom_login_by_token",
     ],
-    "data": [
-        "data/ir_module_category_data.xml",
-    ],
+    "data": [],
     "assets": {
         "web.assets_frontend": [],
     },

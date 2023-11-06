@@ -26,7 +26,7 @@ from werkzeug.exceptions import BadRequest, Unauthorized
 
 from odoo.addons.portal.controllers import portal
 from odoo.addons.web.controllers.main import Home
-from odoo.addons.web.controllers.main import db_monodb, ensure_db, set_cookie_and_redirect, login_and_redirect
+from odoo.addons.web.controllers.main import ensure_db
 
 class BlockHome(Home):
     @http.route('/web', type='http', auth="none")
@@ -38,11 +38,12 @@ class BlockHome(Home):
 class CustomerPortal(portal.CustomerPortal):
     @http.route(['/pos_login_by_token/<int:user_id>'], type='http', auth="public", website=True)
     def portal_pos_login_by_token(self, user_id=None, access_token=None, **kw):
+        #localhost:14069/pos_login_by_token/381?signup_token=1LCzJ80sGoNu4ODEBl5C&config_id=1
         ensure_db()
-        portal_access_token = kw.get('portal_access_token', False)
+        signup_token = kw.get('signup_token', False)
         config_id = kw.get('config_id', False)
 
-        if not user_id or not portal_access_token:
+        if not user_id or not signup_token:
             raise Unauthorized("Wrong authentication")
         
         portal_user = request.env['res.users'].sudo().browse(user_id)
@@ -50,9 +51,9 @@ class CustomerPortal(portal.CustomerPortal):
         if portal_user:
             cur_user = request.env['res.users'].browse(request.env.uid)
             is_public = cur_user._is_public()
-            if (is_public or cur_user.id != portal_user.id) and portal_access_token == portal_user.portal_access_token:
+            if (is_public or cur_user.id != portal_user.id) and signup_token == portal_user.signup_token:
                 request.session.logout(keep_db=True)
-                request.session.authenticate(request.db, portal_user.login, portal_access_token)
+                request.session.authenticate(request.db, portal_user.login, signup_token)
         url = "/pos/ui?config_id={}".format(config_id)
         return werkzeug.utils.redirect(url)
 

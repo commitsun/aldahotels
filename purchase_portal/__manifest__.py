@@ -31,6 +31,8 @@
         "portal",
         "purchase_request",
         "purchase_request_tier_validation",
+        "auth_signup",
+        "custom_login_by_token",
     ],
     "data": [
         'security/ir.model.access.csv',

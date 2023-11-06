@@ -17,7 +17,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from . import res_users
 from . import pos_config
 from . import pos_session
 from . import pos_order

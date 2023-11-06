@@ -17,26 +17,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-
-{
-    "name": "Custom POS PMS Link",
-    "summary": "Allows to access directly to the POS",
-    "version": "14.0.1.0.0",
-    "author": "Comunitea Servicios Tecnológicos S.L.",
-    "website": "www.comunitea.com",
-    "license": "AGPL-3",
-    "category": "Custom",
-    "depends": [
-        "portal",
-        "point_of_sale",
-        "auth_signup",
-        "custom_login_by_token",
-    ],
-    "data": [
-        "data/ir_module_category_data.xml",
-    ],
-    "assets": {
-        "web.assets_frontend": [],
-    },
-    "installable": True,
-}
+from . import res_users

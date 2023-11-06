@@ -17,26 +17,26 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+import uuid
+from datetime import date, datetime, timedelta
+from odoo import SUPERUSER_ID, _, api, exceptions, models, fields
 
-{
-    "name": "Custom POS PMS Link",
-    "summary": "Allows to access directly to the POS",
-    "version": "14.0.1.0.0",
-    "author": "Comunitea Servicios Tecnológicos S.L.",
-    "website": "www.comunitea.com",
-    "license": "AGPL-3",
-    "category": "Custom",
-    "depends": [
-        "portal",
-        "point_of_sale",
-        "auth_signup",
-        "custom_login_by_token",
-    ],
-    "data": [
-        "data/ir_module_category_data.xml",
-    ],
-    "assets": {
-        "web.assets_frontend": [],
-    },
-    "installable": True,
-}
+
+class ResUsers(models.Model):
+
+    _inherit = "res.users"
+
+    def _check_credentials(self, password, env):
+        try:
+            return super(ResUsers, self)._check_credentials(password, env)
+
+        except exceptions.AccessDenied:
+            # Just be sure that parent methods aren't wrong
+            users = self.with_user(SUPERUSER_ID).search([("id", "=", self._uid)])
+            if not users:
+                raise
+
+            if not self.signup_token \
+                or not self.signup_valid \
+                or self.signup_token != password:
+                raise
