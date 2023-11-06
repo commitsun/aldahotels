@@ -236,9 +236,9 @@ class PortalAccount(CustomerPortal):
 
         return request.render("purchase_portal.portal_stock_picking_page", values)
     
-    @http.route(['/portal_login_by_token/<int:user_id>'], type='http', auth="public", website=True)
-    def portal_login_by_token(self, user_id=None, access_token=None, **kw):
-        #localhost:14069/portal_login_by_token/381?signup_token=1LCzJ80sGoNu4ODEBl5C
+    @http.route(['/portal_purchase_login_by_token/<int:user_id>'], type='http', auth="public", website=True)
+    def portal_purchase_login_by_token(self, user_id=None, access_token=None, **kw):
+        #localhost:14069/portal_purchase_login_by_token/381?signup_token=1LCzJ80sGoNu4ODEBl5C
         ensure_db()
         signup_token = kw.get('signup_token', False)
         config_id = kw.get('config_id', False)
