@@ -87,6 +87,11 @@ class PurchaseRequestLineMakePurchaseOrder(models.TransientModel):
                 if self.purchase_order_id and self.purchase_order_id.partner_id.id == supplier.id:
                     purchase = self.purchase_order_id
                 if not purchase:
+                    purchase = self.env['purchase.order'].search([
+                        ('partner_id', '=', supplier.id),
+                        ('state', 'in', ['draft']),
+                    ], limit=1)
+                if not purchase:
                     po_data = {
                         "origin": line.origin,
                         "partner_id": supplier.id,

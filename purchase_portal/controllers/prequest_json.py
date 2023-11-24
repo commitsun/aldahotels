@@ -41,6 +41,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         search = kw.get('search', False)
         property_id = kw.get('property_id', False)
         category_id = kw.get('category_id', False)
+        seller_id = kw.get('seller_id', False)
         purchase_request = kw.get('purchase_request', False)
         if not property_id:
             return json.dumps(
@@ -79,14 +80,11 @@ class PurchaseRequestJsonMethods(http.Controller):
         if category_id and category_id != 'all':
             product_ids = product_ids.filtered(lambda x: x.categ_id.id == int(category_id))
         
-        print("product_ids : {}".format(product_ids))
-
-        print("request.env.user.banned_product_ids : {}".format(request.env.user.banned_product_ids))
+        if seller_id and seller_id != 'all':
+            product_ids = product_ids.filtered(lambda x: int(seller_id) in x.seller_ids.mapped('name').ids)
         
         if request.env.user.banned_product_ids:
             product_ids = product_ids - request.env.user.banned_product_ids
-        
-        print("product_ids : {}".format(product_ids))
         
         values = {
             "product_ids": product_ids,

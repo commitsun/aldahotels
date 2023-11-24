@@ -45,6 +45,7 @@
         'views/purchase_order.xml',
         'views/product_supplierinfo.xml',
         'views/res_users.xml',
+        'views/res_partner.xml',
         'wizard/purchase_request_line_make_purchase_order.xml',
         'wizard/stock_backorder_confirmation_views.xml',
         'wizard/import_supplier_data_wizard.xml',

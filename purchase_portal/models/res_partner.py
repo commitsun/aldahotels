@@ -17,26 +17,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from odoo import fields, models, api, _
-from odoo.exceptions import AccessDenied
+import uuid
+from datetime import date, datetime, timedelta
+from odoo import SUPERUSER_ID, _, api, exceptions, models, fields
 
 
-class ProductProduct(models.Model):
-    _inherit = 'product.product'
-    
-    purchase_property_ids = fields.Many2many(
-        'pms.property',
-        string='Allowed in properties',
-        relation="pms_property_product_product_rel",
-        column1="property_id",
-        column2="product_id",
-    )
+class ResPartner(models.Model):
 
-    def get_supplier_stock(self, purchase_request):
-        self.ensure_one()
-        supplier_stock = 0.0
-        if self.seller_ids:
-            seller = self.seller_ids.filtered(lambda x: x.name.id in purchase_request.property_id.seller_ids.ids).sorted(key=lambda r: r.price)[0]
-            if seller:
-                supplier_stock = seller.supplier_stock
-        return supplier_stock
+    _inherit = "res.partner"
+
+    min_purchase_amount = fields.Float('Minimum purchase amount')

@@ -14,6 +14,7 @@ publicWidget.registry.PurchaseRequestPortal = publicWidget.Widget.extend({
         "change select.purchase_select": "_onChangeSelect",
         "click button.request_validation": "_onValidation",
         "click button.restart_validation": "_onRestarValidation",
+        "change select.purchase_seller": "_onChangeSeller",
     },
 
     //--------------------------------------------------------------------------
@@ -172,6 +173,24 @@ publicWidget.registry.PurchaseRequestPortal = publicWidget.Widget.extend({
             } catch (e) {
                 $("#edit_errors").empty();
             }
+        });
+    },
+
+    _onChangeSeller: function (ev) {
+        let seller_id = $(ev.currentTarget).val();
+        let property_id = $(ev.currentTarget).attr("data-property_id");
+        let purchase_request = $(ev.currentTarget).attr("data-purchase_request");
+
+        this._rpc({
+            route: "/purchase_request_product_table",
+            params: {
+                'seller_id': seller_id,
+                'property_id': property_id,
+                'purchase_request': purchase_request,
+            },
+        }).then(function (new_data) {
+            $("#purchase_request_product_list").empty();
+            $("#purchase_request_product_list").html(new_data);
         });
     },
 });

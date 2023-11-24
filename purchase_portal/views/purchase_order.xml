@@ -8,6 +8,16 @@
             <field name="company_id" position="after">
                 <field name="property_id" />
             </field>
+            <header position="inside">
+                <button name="button_confirm"
+                    groups="purchase.group_purchase_manager"
+                    type="object"
+                    states="draft"
+                    string="Force Confirm Order"
+                    context="{'force_confirm':True}"
+                    class="oe_highlight"
+                />
+            </header>
         </field>
     </record>
 </odoo>

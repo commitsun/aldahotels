@@ -216,6 +216,7 @@
                                         <tr>
                                             <th>Products</th>
                                             <th class="text-right">Quantity</th>
+                                            <th class="text-right">UOM</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -245,7 +246,15 @@
                                                     <t t-esc="categorie.name"/>
                                                 </option>
                                             </t>
-                                    </select>
+                                        </select>
+                                        <select name="product_seller" class="purchase_seller ml-2" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id">
+                                            <option value="all">All sellers</option>
+                                            <t t-foreach="current_property_id.product_ids.mapped('seller_ids').mapped('name')" t-as="seller">
+                                                <option t-att-value="seller.id">
+                                                    <t t-esc="seller.name"/>
+                                                </option>
+                                            </t>
+                                        </select>
                                     </div>
                                     <table class="table table-sm">
                                         <thead class="bg-100">
@@ -253,7 +262,9 @@
                                                 <th>Product</th>
                                                 <th>Category</th>
                                                 <th class="text-right">Quantity</th>
+                                                <th class="text-right">UOM</th>
                                                 <th class="text-right">Estimated stock</th>
+                                                <th class="text-right">Seller</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -287,7 +298,17 @@
                     <input class="form-control input_mx_70" name="product_qty" type="number" value="1"/>
                 </td>
                 <td class="text-right">
+                    <span t-field="product.uom_id"/>
+                </td>
+                <td class="text-right">
                     <span t-esc="product.get_supplier_stock(purchase_request)"/>
+                </td>
+                <td class="text-right">
+                    <t t-if="product.mapped('seller_ids').mapped('name')">
+                        <t t-foreach="product.mapped('seller_ids').mapped('name')" t-as="seller">
+                            <span class="ml-2" t-esc="seller.name"/>
+                        </t>
+                    </t>
                 </td>
                 <td class="text-right">
                     <button class="btn btn-primary request_add_to_cart" t-att-data-purchase_request="purchase_request.id" t-att-data-product_id="product.id">Add</button>
@@ -306,6 +327,9 @@
                 </td>
                 <td class="text-right">
                     <input class="form-control input_mx_70 purchase_update_line" t-att-data-line_id="ol.id" name="product_qty" type="number" t-att-value="ol.product_qty"/>
+                </td>
+                <td class="text-right">
+                    <span t-field="ol.product_uom_id"/>
                 </td>
                 <td class="text-right">
                     <a href="#" class="purchase_delete_line" t-att-data-line_id="ol.id">

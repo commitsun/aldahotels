@@ -40,4 +40,4 @@ class PMSProperty(models.Model):
             seller_products = self.env['product.supplierinfo'].search([('name', 'in', self.seller_ids.ids)])
             seller_product_product = seller_products.mapped('product_tmpl_id.product_variant_ids')
             seller_product_product += seller_products.mapped('product_id')
-            self.product_ids = seller_product_product.ids
+            self.product_ids = [(6, 0, seller_product_product.ids)]

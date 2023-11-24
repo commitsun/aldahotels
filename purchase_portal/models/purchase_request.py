@@ -18,6 +18,8 @@
 #
 ##############################################################################
 
+import logging
+
 from datetime import datetime
 from uuid import uuid4
 import pytz
@@ -28,6 +30,7 @@ from odoo import api, fields, models, tools, _
 from odoo.exceptions import ValidationError, UserError
 from odoo.addons.base.models.ir_mail_server import MailDeliveryException
 
+_logger = logging.getLogger(__name__)
 
 class PurchaseRequest(models.Model):
     _name = 'purchase.request'
@@ -118,3 +121,30 @@ class PurchaseRequestLine(models.Model):
         if self.request_id.review_ids:
             self.request_id.message_post(body=_('Line deleted by {user}: <strong> {product}</strong>'.format(user=self.env.user.name, product=self.product_id.name)))
         return super().unlink()
+    
+    def _autocreate_purchase_orders_from_lines(self):
+        lines = self.env['purchase.request.line'].search([
+            ('request_state', '=', 'approved'),
+            ('purchase_state', '=', False),
+        ])
+
+        if lines:
+            for hotel in lines.mapped('property_id'):
+                ctx = self.env.context.copy()
+                ctx['active_model'] = 'purchase.request.line'
+                ctx['active_ids'] = lines.filtered(lambda r: r.property_id == hotel).ids
+                wiz = self.env['purchase.request.line.make.purchase.order'].with_context(ctx).create({
+                    'supplier_id': hotel.seller_ids[0].id,
+                    'multiple_suppliers': True if len(hotel.seller_ids) > 1 else False,
+                    'property_id': hotel.id,
+                    'sync_data_planned': True,
+                })
+                try:
+                    res = wiz.make_purchase_order()
+                    orders = res['domain'][0][2]
+                    order_ids = self.env['purchase.order'].browse(orders)
+                    for order in order_ids:
+                        order.button_confirm()
+                except UserError as e:
+                    _logger.warning(e)
+                    continue
