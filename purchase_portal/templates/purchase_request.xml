@@ -19,6 +19,11 @@
                 <t t-set="url" t-value="'/my/purchase_requests'"/>
                 <t t-set="placeholder_count" t-value="'purchase_request_count'"/>
             </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Products</t>
+                <t t-set="url" t-value="'/my/product_list'"/>
+                <t t-set="placeholder_count" t-value="'product_product_count'"/>
+            </t>
         </xpath>
         <xpath expr="//div[hasclass('o_portal_docs')]" position="after">
             <a class="btn btn-radius btn-primary btn-pms_pwa mt-4" t-attf-href="/my/new_purchase_request?{{ keep_query() }}">New purchase request</a>
@@ -128,6 +133,13 @@
                                     </div>
                                 </div>
                             </li>
+
+                            <li class="list-group-item flex-grow-1">
+                                Save it as a recurrent purchase.<br/>
+                                <a type="button" t-att-href="'/save_purchase_request/' + str(purchase_request.id)" class="btn btn-primary" string="Save request" role="button">
+                                    <span>Save </span><i class="fa fa-floppy-o" aria-hidden=""></i>
+                                </a>
+                            </li>
                         </ul>
                     </t>
                 </t>
@@ -191,6 +203,9 @@
                             </h3>
                         </div>
                         <div class="col-lg-6 text-right">
+                            <a type="button" t-att-href="'/save_purchase_request/' + str(purchase_request.id)" class="btn btn-primary" string="Save request" role="button">
+                                <span>Save </span><i class="fa fa-floppy-o" aria-hidden=""></i>
+                            </a>
                             <button t-if="purchase_request and purchase_request.state == 'draft' and not purchase_request.review_ids" class="btn btn-primary request_validation" t-att-data-purchase_request="purchase_request.id">Request validation</button>
                             <button t-if="purchase_request and purchase_request.rejected" class="btn btn-primary restart_validation" t-att-data-purchase_request="purchase_request.id">Restart validation</button>
                         </div>

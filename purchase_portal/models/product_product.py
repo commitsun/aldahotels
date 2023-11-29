@@ -40,3 +40,14 @@ class ProductProduct(models.Model):
             if seller:
                 supplier_stock = seller.supplier_stock
         return supplier_stock
+    
+    def get_supplier_lowest_price(self):
+        self.ensure_one()
+        lowest_price = self.standard_price
+        if self.seller_ids:
+            lowest_price = self.seller_ids.sorted(key=lambda r: r.price)[0].price
+        return lowest_price
+    
+    def get_first_attachment(self):
+        self.ensure_one()
+        return self.env['ir.attachment'].search([('res_model', '=', 'product.template'), ('res_id', '=', self.product_tmpl_id.id)], limit=1)

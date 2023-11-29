@@ -125,6 +125,10 @@
                                     </div>
                                 </div>
                             </li>
+
+                            <li class="list-group-item flex-grow-1" t-if="stock_picking.state not in ['cancel', 'done']" id="stock_picking_controls">
+                                <button t-if="stock_picking.state not in ['cancel', 'done']" class="btn btn-primary picking_validate" t-att-data-stock_picking="stock_picking.id">Validate</button>
+                            </li>
                         </ul>
                     </t>
                 </t>
@@ -140,24 +144,16 @@
                                 <th class="text-right">Done</th>
                             </tr>
                             </thead>
-                            <tbody>
-                            <t t-foreach="stock_picking.move_lines" t-as="ol">
-                                <tr>
-                                    <td>
-                                        <img t-att-src="'/web/image/product.product/%s/image_128' % ol.product_id.id" alt="Product" class="d-none d-lg-inline"/>
-                                        <span t-esc="ol.name"/>
-                                    </td>
-                                    <td class="text-right">
-                                        <span t-esc="ol.product_uom_qty"/>
-                                    </td>
-                                    <td class="text-right">
-                                        <span t-esc="ol.quantity_done"/>
-                                    </td>
-                                </tr>
-                            </t>
+                            <tbody id="stock_picking_container">
+                                <t t-call="purchase_portal.stock_picking_lines_table">
+                                    <t t-set="stock_picking" t-value="stock_picking"/>
+                                    <t t-set="move_lines" t-value="stock_picking.move_lines"/>
+                                </t>
                             </tbody>
                         </table>
                     </div>
+                    <!-- errors -->
+                    <div id="edit_errors"/>
                     <!-- chatter -->
                     <div id="stock_picking_communication" class="mt-4">
                         <h2>History</h2>
@@ -168,6 +164,100 @@
                 </div>
             </div>
         </xpath>
+    </template>
+
+    <template id="stock_picking_lines_table" name="Stock picking lines table">
+        <t t-foreach="move_lines" t-as="ol" t-key="ol_index">
+            <tr>
+                <td>
+                    <img t-att-src="'/web/image/product.product/%s/image_128' % ol.product_id.id" alt="Product" class="d-none d-lg-inline"/>
+                    <span t-esc="ol.name"/>
+                </td>
+                <td class="text-right">
+                    <span t-esc="ol.product_uom_qty"/>
+                </td>
+                <td class="text-right">
+                    <span
+                        t-att-class="'set_quantity_done' if stock_picking.state not in ['cancel', 'done'] else ''"
+                        t-esc="ol.quantity_done"
+                    />
+                    <input
+                        t-if="stock_picking.state not in ['cancel', 'done']"
+                        name="quantity_done"
+                        type="number"
+                        class="o_hidden_quantity_done_input input_mx_70 d-none"
+                        t-att-data-line_id="ol.id"
+                        t-att-value="ol.quantity_done"
+                    />
+                </td>
+            </tr>
+        </t>
+    </template>
+
+    <template id="portal_product_product" name="Portal product list">
+      <t t-call="portal.portal_layout">
+        <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+        <t t-call="portal.portal_searchbar">
+            <t t-set="title">product_products</t>
+        </t>
+        <t t-if="not product_products">
+            <p>There are currently no product_products and payments for your account.</p>
+        </t>
+        <t t-if="product_products" t-call="portal.portal_table">
+            <thead>
+                <tr class="active">
+                    <th>Product #</th>
+                    <th>Reference</th>
+                    <th>Seller</th>
+                    <th>Category</th>
+                    <th>Active</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <t t-foreach="product_products" t-as="product_product">
+                    <tr>
+                        <td>
+                            <img t-att-src="'/web/image/product.product/%s/image_128' % product_product.id" alt="Product" class="d-none d-lg-inline"/>
+                            <span t-esc="product_product.name"/>
+                        </td>
+                        <td>
+                            <span t-field="product_product.default_code"/><br/>
+                            <t t-set="attachment" t-value="product_product.get_first_attachment()"/>
+                            <t t-if="attachment">
+                                <a t-att-href="'/web/content/%s?download=True' % attachment.id">
+                                    <i class="fa fa-file-pdf-o"></i> Data sheet
+                                </a>
+                            </t>
+                        </td>
+                        <td>
+                            <t t-if="product_product.mapped('seller_ids')">
+                                <t t-set="seller" t-value="product_product.mapped('seller_ids')[0]"/>
+                                <span>
+                                    <t t-esc="seller.name.name"/><br/>
+                                    <span t-if="seller.product_code">
+                                        Ref. <t t-esc="seller.product_code"/>
+                                    </span>
+                                </span>
+                            </t>
+                        </td>
+                        <td>
+                            <span t-field="product_product.categ_id"/>
+                        </td>
+                        <td>
+                            <span t-att-class="product_product.active and 'text-success' or 'text-danger'">
+                                <t t-esc="product_product.active and 'Yes' or 'No'"/>
+                            </span>
+                        </td>
+                        <td class="tx_status">
+                            <span t-esc="product_product.get_supplier_lowest_price()"/>
+                        </td>
+                    </tr>
+                </t>
+            </tbody>
+        </t>
+      </t>
     </template>
 
 </odoo>

@@ -288,7 +288,10 @@ class PurchaseRequestJsonMethods(http.Controller):
             )
         
         try:
-            purchase_request.request_validation()
+            if purchase_request.estimated_cost <= 300:
+                purchase_request.button_approved()
+            else:
+                purchase_request.request_validation()
         except Exception as e:
             return json.dumps(
                 {

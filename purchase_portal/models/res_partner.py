@@ -27,3 +27,9 @@ class ResPartner(models.Model):
     _inherit = "res.partner"
 
     min_purchase_amount = fields.Float('Minimum purchase amount')
+    saved_cart_count = fields.Integer(compute='_compute_saved_cart_count', string='Saved Cart Count')
+    saved_cart_ids = fields.One2many('purchase.request.saved.cart', 'partner_id', string='Saved carts')
+
+    def _compute_saved_cart_count(self):
+        for partner in self:
+            partner.saved_cart_count = len(partner.saved_cart_ids)
