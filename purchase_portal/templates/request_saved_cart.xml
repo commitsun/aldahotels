@@ -102,8 +102,9 @@
                             </div>
                         </div>
                     </div>
-                    <section id="products" style="page-break-inside: auto;" class="mt32">
+                    <section id="products" style="page-break-inside: auto;" class="mt32 o_saved_cart_summary">
                         <h3 id="details">Products</h3>
+                        <span id="edit_errors"/>
                         <table class="table table-sm" id="sales_order_table">
                             <thead class="bg-100">
                                 <tr>
@@ -113,23 +114,30 @@
                                     <th class="text-right">Options</th>
                                 </tr>
                             </thead>
-                            <tbody class="sale_tbody">
-                                <t t-foreach="saved_cart.item_ids" t-as="item">
-                                    <tr>
-                                        <td id="product_name"><span t-field="item.product_id.display_name"/></td>
-                                        <td class="text-right">
-                                            <span t-field="item.product_qty"/>
-                                        </td>
-                                        <td class="text-right">
-                                            <a t-att-href="item.delete_url"><span class="small text-info orders_label_text_align"><i class="fa fa-trash-o"></i> Delete</span></a>
-                                        </td>
-                                    </tr>
+                            <tbody class="sale_tbody" id="o_saved_cart_summary_container">
+                                <t t-call="purchase_portal.portal_my_saved_items">
+                                    <t t-value="saved_cart" t-set="saved_cart"/>
                                 </t>
                             </tbody>
                         </table>
                     </section>
                 </t>
             </t>
+        </t>
+    </template>
+
+    <template id="portal_my_saved_items" name="My Saved Cart Items">
+        <t t-foreach="saved_cart.item_ids" t-as="item">
+            <tr>
+                <td id="product_name"><span t-field="item.product_id.display_name"/></td>
+                <td class="text-right">
+                    <span t-field="item.product_qty" class="o_cart_line_change_qty"/>
+                    <input type="number" t-att-data-item_id="item.id" name="product_qty" class="d-none o_hidden_cart_line_quantity_input" t-att-value="item.product_qty"/>
+                </td>
+                <td class="text-right">
+                    <a t-att-href="item.delete_url"><span class="small text-info orders_label_text_align"><i class="fa fa-trash-o"></i> Delete</span></a>
+                </td>
+            </tr>
         </t>
     </template>
 </odoo>
