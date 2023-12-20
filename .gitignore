@@ -64,6 +64,11 @@ coverage.xml
 # Rope
 .ropeproject
 
+#ssh
+*.ssh
+*ssh*
+
+
 # Sphinx documentation
 docs/_build/
 
