@@ -23,7 +23,6 @@ import json
 import logging
 import tempfile
 from datetime import date, datetime, timedelta
-
 from odoo import api, models
 
 _logger = logging.getLogger(__name__)
