@@ -15,3 +15,10 @@ class InheritResCompany(models.Model):
         Expedia company, expressed with two digits. \
         Example: 18 = 18% commission.",
     )
+
+    status_send_property = fields.Boolean(
+        "Send property DataBi",
+        default = True,
+        help = "the condition of property that must be met \
+            for it to be shared."
+    )

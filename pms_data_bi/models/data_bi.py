@@ -90,9 +90,9 @@ class DataBi(models.Model):
 
     @api.model
     def calc_hoteles(self, hotelsdata):
-        hotels = self.env["pms.property"].search([])
         if hotelsdata != [0]:
-            hotels = self.env["pms.property"].search([("id", "in", hotelsdata)])
+            hotels = self.env["pms.property"].search([("id", "in", hotelsdata), ("status_send_property", "=", True)])
+        else: hotels = self.env["pms.property"].search([("status_send_property", "=", True)])
         return hotels
 
     @api.model
@@ -141,7 +141,7 @@ class DataBi(models.Model):
         limit_ago = self.calc_date_limit(fechafoto)
         hotels = self.calc_hoteles(default_property)
 
-        _logger.warning(
+        _logger.info(
             "-- ### Init Export Data_Bi Module parameters:  %s, %s, %s ### --",
             archivo,
             hotels.ids,
@@ -153,7 +153,7 @@ class DataBi(models.Model):
         else:
             dic_export = self.export_one(hotels, limit_ago, archivo)
 
-        _logger.warning("--- ### End Export Data_Bi Module to Json ### ---")
+        _logger.info("--- ### End Export Data_Bi Module to Json ### ---")
         return json.dumps(dic_export, ensure_ascii=False)
 
     @api.model
@@ -1096,7 +1096,8 @@ class DataBi(models.Model):
         for all not set or default_property = [0]
         """
         _logger.info("Exporting FTP data DataBI")
-        propertys = self.env["pms.property"].search([])
+        #propertys = self.env["pms.property"].search([])
+        propertys = self.env["pms.property"].search([("status_send_property", "=", True)])
         for prop in propertys:
             if (prop.id in default_property) or default_property == [0]:
                 self.data_bi_ftp_one(prop, fechafoto)
