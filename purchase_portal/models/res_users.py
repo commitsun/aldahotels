@@ -27,3 +27,4 @@ class ResUsers(models.Model):
     _inherit = "res.users"
 
     banned_product_ids = fields.Many2many('product.product', string='User banned products')
+    hide_menus = fields.Boolean('Hide menus')

@@ -1,13 +1,13 @@
-odoo.define('purchase_portal.SavedCart', function (require) {
+odoo.define('purchase_portal.SavedCartItems', function (require) {
 'use strict';
 
     var publicWidget = require('web.public.widget');
 
-    publicWidget.registry.SavedCart = publicWidget.Widget.extend({
-        selector: '.o_saved_cart_data_container',
+    publicWidget.registry.SavedCartItems = publicWidget.Widget.extend({
+        selector: '.o_saved_cart_summary',
         events: {
-            "click span.o_saved_cart_change_name": "_onClickChangeName",
-            'focusout .o_hidden_saved_cart_name_input': '_onNameInputFocusout',
+            "click span.o_cart_line_change_qty": "_onClickChangeQty",
+            'focusout .o_hidden_cart_line_quantity_input': '_onLineQtyInputFocusout',
         },
 
         //--------------------------------------------------------------------------
@@ -17,27 +17,27 @@ odoo.define('purchase_portal.SavedCart', function (require) {
         /**
          * @private
          */
-         _onClickChangeName: function (ev) {
+         _onClickChangeQty: function (ev) {
             ev.preventDefault();
-            $(ev.currentTarget).parent().find(".o_hidden_saved_cart_name_input").removeClass("d-none");
+            $(ev.currentTarget).parent().find(".o_hidden_cart_line_quantity_input").removeClass("d-none");
             $(ev.currentTarget).addClass("d-none");
         },
 
-        _onNameInputFocusout: function (ev) {
+        _onLineQtyInputFocusout: function (ev) {
             ev.preventDefault();
-            $(ev.currentTarget).parent().find(".o_saved_cart_change_name").removeClass("d-none");
+            $(ev.currentTarget).parent().find(".o_cart_line_change_qty").removeClass("d-none");
             $(ev.currentTarget).addClass("d-none");
 
             var attr_name = $(ev.currentTarget).attr("name");
             var o_val = $(ev.currentTarget).parent().find("span")[0].innerText;
             var new_val = $(ev.currentTarget).val();
-            var saved_cart = $(ev.currentTarget).attr("data-saved_cart");
+            var item_id = $(ev.currentTarget).attr("data-item_id");
 
             if(parseFloat(o_val) != new_val) {
                 this._rpc({
-                    route: "/saved_cart_edit",
+                    route: "/saved_cart_item_edit",
                     params: {
-                        'saved_cart': parseInt(saved_cart),
+                        'item_id': parseInt(item_id),
                         'attr_name': attr_name,
                         'value': new_val,
                     },
@@ -49,8 +49,8 @@ odoo.define('purchase_portal.SavedCart', function (require) {
                         }                
                     } catch (e) {
                         $("#edit_errors").empty();
-                        $("#o_saved_cart_data_container").empty();
-                        $("#o_saved_cart_data_container").html(new_data);
+                        $("#o_saved_cart_summary_container").empty();
+                        $("#o_saved_cart_summary_container").html(new_data);
                     }
                 });
             }

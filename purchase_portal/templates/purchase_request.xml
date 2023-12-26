@@ -203,7 +203,7 @@
                             </h3>
                         </div>
                         <div class="col-lg-6 text-right">
-                            <a type="button" t-att-href="'/save_purchase_request/' + str(purchase_request.id)" class="btn btn-primary" string="Save request" role="button">
+                            <a type="button" t-if="purchase_request" t-att-href="'/save_purchase_request/' + str(purchase_request.id)" class="btn btn-primary" string="Save request" role="button">
                                 <span>Save </span><i class="fa fa-floppy-o" aria-hidden=""></i>
                             </a>
                             <button t-if="purchase_request and purchase_request.state == 'draft' and not purchase_request.review_ids" class="btn btn-primary request_validation" t-att-data-purchase_request="purchase_request.id">Request validation</button>
