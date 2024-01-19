@@ -159,7 +159,7 @@
                                 <tr>
                                     <td>
                                         <img t-att-src="'/web/image/product.product/%s/image_128' % ol.product_id.id" alt="Product" class="d-none d-lg-inline"/>
-                                        <span t-esc="ol.name"/>
+                                        [<span t-field="ol.product_id.id"/>] <span t-esc="ol.name"/>
                                     </td>
                                     <td class="text-right">
                                         <span t-esc="ol.product_qty"/>
@@ -304,7 +304,7 @@
             <tr>
                 <td>
                     <img t-att-src="'/web/image/product.product/%s/image_128' % product.id" alt="Product" class="d-none d-lg-inline"/>
-                    <span t-esc="product.name"/>
+                    [<span t-field="product.id"/>] <span t-esc="product.name"/>
                 </td>
                 <td class="text-right">
                     <span t-field="product.categ_id"/>
@@ -313,7 +313,7 @@
                     <input class="form-control input_mx_70" name="product_qty" type="number" value="1"/>
                 </td>
                 <td class="text-right">
-                    <span t-field="product.uom_id"/>
+                    <span t-field="product.uom_po_id"/>
                 </td>
                 <td class="text-right">
                     <span t-esc="product.get_supplier_stock(purchase_request)"/>
@@ -338,13 +338,13 @@
                 <td>
                     <img t-att-src="'/web/image/product.product/%s/image_128' % ol.product_id.id" alt="Product"
                         class="d-none d-lg-inline"/>
-                    <span t-esc="ol.name"/>
+                    [<span t-field="ol.product_id.id"/>] <span t-esc="ol.name"/>
                 </td>
                 <td class="text-right">
                     <input class="form-control input_mx_70 purchase_update_line" t-att-data-line_id="ol.id" name="product_qty" type="number" t-att-value="ol.product_qty"/>
                 </td>
                 <td class="text-right">
-                    <span t-field="ol.product_uom_id"/>
+                    <span t-field="ol.product_id.uom_po_id"/>
                 </td>
                 <td class="text-right">
                     <a href="#" class="purchase_delete_line" t-att-data-line_id="ol.id">

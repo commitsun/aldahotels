@@ -132,7 +132,7 @@
     <template id="portal_my_saved_items" name="My Saved Cart Items">
         <t t-foreach="saved_cart.item_ids" t-as="item">
             <tr>
-                <td id="product_name"><span t-field="item.product_id.display_name"/></td>
+                <td id="product_name">[<span t-field="item.product_id.id"/>] <span t-field="item.product_id.display_name"/></td>
                 <td class="text-right">
                     <span t-field="item.product_qty" class="o_cart_line_change_qty"/>
                     <input type="number" t-att-data-item_id="item.id" name="product_qty" class="d-none o_hidden_cart_line_quantity_input" t-att-value="item.product_qty"/>
