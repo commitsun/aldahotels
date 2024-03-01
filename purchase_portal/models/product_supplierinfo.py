@@ -25,3 +25,12 @@ class ProductSupplierinfo(models.Model):
     _inherit = 'product.supplierinfo'
     
     supplier_stock = fields.Float('Supplier stock')
+
+    @api.model
+    def create(self, values):
+        ctx = self.env.context.copy()
+        res = super(ProductSupplierinfo, self.with_context(ctx).sudo()).create(values)
+        properties = self.env['pms.property'].search([('seller_ids', 'in', res.name.ids)])
+        if properties:
+            properties.onchange_seller_ids()
+        return res 

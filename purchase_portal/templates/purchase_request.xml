@@ -214,7 +214,7 @@
                         <div class="col-lg-6 offset-lg-3">
                             <select name="property_id">
                                 <t t-foreach="allowed_property_ids" t-as="property">
-                                    <option t-att-value="property.id" t-att-selected="property.id == current_property_id.id">
+                                    <option t-att-value="property.id">
                                         <t t-esc="property.name"/>
                                     </option>
                                 </t>
@@ -321,7 +321,12 @@
                 <td class="text-right">
                     <t t-if="product.mapped('seller_ids').mapped('name')">
                         <t t-foreach="product.mapped('seller_ids').mapped('name')" t-as="seller">
-                            <span class="ml-2" t-esc="seller.name"/>
+                            <span class="ml-2"><t t-esc="seller.name"/><br/>
+                                <t t-esc="seller.email"/><br/>
+                                <t t-esc="seller.phone"/>
+                            </span>
+                            <br  t-if="seller.id != product.mapped('seller_ids').mapped('name')[-1].id" />
+                            <hr t-if="seller.id != product.mapped('seller_ids').mapped('name')[-1].id" />
                         </t>
                     </t>
                 </td>

@@ -139,7 +139,7 @@ class PortalAccount(CustomerPortal):
         if not purchase_request and kw and kw.get('property_id', False):
             property_id = kw.get('property_id', False)
             purchase_request = request.env['purchase.request'].create({
-                'property_id': property_id,
+                'property_id': int(property_id),
             })
             return request.redirect('/my/new_purchase_request/%s' % purchase_request.id)
         if not purchase_request:
@@ -159,8 +159,10 @@ class PortalAccount(CustomerPortal):
             values = self._purchase_request_get_page_view_values(purchase_request_sudo, access_token, **kw)
         
         allowed_pms_property_ids = request.env.user.get_active_property_ids()
-        
-        values['current_property_id'] = request.env['pms.property'].browse(allowed_pms_property_ids[0]) if allowed_pms_property_ids else False
+        if values['purchase_request'] and values['purchase_request'].property_id:
+            values['current_property_id'] = values['purchase_request'].property_id
+        else:
+            values['current_property_id'] = request.env['pms.property'].browse(allowed_pms_property_ids[0]) if allowed_pms_property_ids else False
         values['allowed_property_ids'] = request.env['pms.property'].browse(allowed_pms_property_ids) if allowed_pms_property_ids else False
 
         return request.render("purchase_portal.portal_new_purchase_request_page", values)
