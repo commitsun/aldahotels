@@ -36,8 +36,8 @@ class GlassofExporterWizard(models.TransientModel):
     date_end = fields.Date("End Date")
     export_journals = fields.Boolean("Export Account Movements?", default=True)
     export_invoices = fields.Boolean("Export Invoices?", default=True)
-    property_id = fields.Many2one(
-        string="Property", help="The property", comodel_name="pms.property"
+    property_ids = fields.Many2many(
+        string="Properties", comodel_name="pms.property"
     )
     company_id = fields.Many2one(
         string="Company",
@@ -52,7 +52,7 @@ class GlassofExporterWizard(models.TransientModel):
         relation="glasof_exporter_wizard_journal_rel",
         column1="wizard_id",
         column2="journal_id",
-        domain="[('pms_property_ids', 'in', property_id),('company_id', '=', company_id),('type', 'in', ['sale', 'purchase'])]",
+        domain="[('pms_property_ids', 'in', property_ids),('company_id', '=', company_id),('type', 'in', ['sale', 'purchase'])]",
     )
     seat_num = fields.Integer("Seat Number Start", default=1)
     xls_journals_filename = fields.Char()
@@ -60,21 +60,16 @@ class GlassofExporterWizard(models.TransientModel):
     xls_invoices_filename = fields.Char()
     xls_invoices_binary = fields.Binary()
 
-    @api.onchange("property_id")
-    def onchangey_property_id(self):
-        if self.property_id:
-            self.company_id = self.property_id.company_id
-
     @api.onchange("company_id")
     def onchange_property_id(self):
         if (
-            self.property_id
+            self.property_ids
             and self.company_id
-            and self.property_id.company_id != self.company_id
+            and any(x.company_id != self.company_id for x in self.property_ids)
         ):
             raise UserError(
                 _(
-                    "El hotel seleccionado no es de esta compañía, eliminar o modifica el hotel para seleccionar esta compañía"
+                    "Alguno de los hoteles seleccionados no es de esta compañía, elimina o modifica los hoteles para seleccionar esta compañía"
                 )
             )
 
@@ -111,13 +106,15 @@ class GlassofExporterWizard(models.TransientModel):
         worksheet.write("E1", _("Origen"), xls_cell_format_header)
         worksheet.write("F1", _("Fecha de Factura"), xls_cell_format_header)
         worksheet.write("G1", _("NIF"), xls_cell_format_header)
-        worksheet.write("H1", _("Total"), xls_cell_format_header)
-        worksheet.write("I1", _("Pendiente"), xls_cell_format_header)
-        worksheet.write("J1", _("Tipo"), xls_cell_format_header)
-        worksheet.write("K1", _("Pagos"), xls_cell_format_header)
-        worksheet.write("L1", _("Importe"), xls_cell_format_header)
-        worksheet.write("M1", _("Fecha"), xls_cell_format_header)
-        worksheet.write("N1", _("Referencia"), xls_cell_format_header)
+        worksheet.write("H1", _("Base Imponible"), xls_cell_format_header)
+        worksheet.write("I1", _("Impuestos"), xls_cell_format_header)
+        worksheet.write("J1", _("Total"), xls_cell_format_header)
+        worksheet.write("K1", _("Pendiente"), xls_cell_format_header)
+        worksheet.write("L1", _("Tipo"), xls_cell_format_header)
+        worksheet.write("M1", _("Pagos"), xls_cell_format_header)
+        worksheet.write("N1", _("Importe"), xls_cell_format_header)
+        worksheet.write("O1", _("Fecha"), xls_cell_format_header)
+        worksheet.write("P1", _("Referencia"), xls_cell_format_header)
 
         worksheet.set_column("A:A", 25)
         worksheet.set_column("B:B", 10)
@@ -128,18 +125,20 @@ class GlassofExporterWizard(models.TransientModel):
         worksheet.set_column("G:G", 15)
         worksheet.set_column("H:H", 9)
         worksheet.set_column("I:I", 9)
-        worksheet.set_column("J:J", 18)
-        worksheet.set_column("K:K", 25)
-        worksheet.set_column("L:L", 9)
-        worksheet.set_column("M:M", 15)
-        worksheet.set_column("N:N", 20)
+        worksheet.set_column("J:J", 9)
+        worksheet.set_column("K:K", 9)
+        worksheet.set_column("L:L", 18)
+        worksheet.set_column("M:M", 25)
+        worksheet.set_column("N:N", 9)
+        worksheet.set_column("O:O", 15)
+        worksheet.set_column("P:P", 20)
 
         account_inv_obj = self.env["account.move"]
         domain = [
             ("date", ">=", self.date_start),
             ("date", "<=", self.date_end),
             ("company_id", "=", self.company_id.id),
-            ("pms_property_id", "=", self.property_id.id if self.property_id else False),
+            ("pms_property_id", "in", self.property_ids.ids if self.property_ids else []),
             ("move_type", "!=", "entry"),
         ]
         if self.journal_ids:
@@ -192,14 +191,19 @@ class GlassofExporterWizard(models.TransientModel):
             if not payments_dict:
                 worksheet.write(nrow, 0, inv.journal_id.name)
                 worksheet.write(nrow, 1, state)
-                worksheet.write(nrow, 2, inv.name)
+                worksheet.write(
+                    nrow, 2,
+                    inv.move_type in ('in_invoice', 'in_refund') and inv.ref or inv.
+                    name)
                 worksheet.write(nrow, 3, inv.partner_id.name)
                 worksheet.write(nrow, 4, origin)
                 worksheet.write(nrow, 5, inv.invoice_date, date_format)
                 worksheet.write(nrow, 6, vat_partner)
-                worksheet.write(nrow, 7, inv.amount_total, money_format)
-                worksheet.write(nrow, 8, inv.amount_residual, money_format)
-                worksheet.write(nrow, 9, move_type)
+                worksheet.write(nrow, 7, inv.amount_untaxed, money_format)
+                worksheet.write(nrow, 8, inv.amount_tax, money_format)
+                worksheet.write(nrow, 9, inv.amount_total, money_format)
+                worksheet.write(nrow, 10, inv.amount_residual, money_format)
+                worksheet.write(nrow, 11, move_type)
                 worksheet.set_row(nrow, cell_format=data_format)
                 nrow += 1
             else:
@@ -207,18 +211,22 @@ class GlassofExporterWizard(models.TransientModel):
                     payment_date = fields.Date.from_string(payment.get("date"))
                     worksheet.write(nrow, 0, inv.journal_id.name)
                     worksheet.write(nrow, 1, state)
-                    worksheet.write(nrow, 2, inv.name)
+                    worksheet.write(
+                        nrow, 2, inv.move_type in ('in_invoice', 'in_refund') and inv.
+                        ref or inv.name)
                     worksheet.write(nrow, 3, inv.partner_id.name)
                     worksheet.write(nrow, 4, origin)
                     worksheet.write(nrow, 5, inv.invoice_date, date_format)
                     worksheet.write(nrow, 6, vat_partner)
-                    worksheet.write(nrow, 7, inv.amount_total, money_format)
-                    worksheet.write(nrow, 8, inv.amount_residual, money_format)
-                    worksheet.write(nrow, 9, move_type)
-                    worksheet.write(nrow, 10, payment["journal_name"])
-                    worksheet.write(nrow, 11, payment["amount"], money_format)
-                    worksheet.write(nrow, 12, payment_date, date_format)
-                    worksheet.write(nrow, 13, payment["ref"])
+                    worksheet.write(nrow, 7, inv.amount_untaxed, money_format)
+                    worksheet.write(nrow, 8, inv.amount_tax, money_format)
+                    worksheet.write(nrow, 9, inv.amount_total, money_format)
+                    worksheet.write(nrow, 10, inv.amount_residual, money_format)
+                    worksheet.write(nrow, 11, move_type)
+                    worksheet.write(nrow, 12, payment["journal_name"])
+                    worksheet.write(nrow, 13, payment["amount"], money_format)
+                    worksheet.write(nrow, 14, payment_date, date_format)
+                    worksheet.write(nrow, 15, payment["ref"])
                     worksheet.set_row(nrow, cell_format=data_format)
                     nrow += 1
         workbook.close()
@@ -266,8 +274,8 @@ class GlassofExporterWizard(models.TransientModel):
         ]
         if self.journal_ids:
             domain.append(("journal_id", "in", self.journal_ids.ids))
-        if self.property_id:
-            domain.append(("pms_property_id", "=", self.property_id.id))
+        if self.property_ids:
+            domain.append(("pms_property_id", "in", self.property_ids.ids))
         account_invs = account_inv_obj.search(domain)
         nrow = 1
         for inv in account_invs:
@@ -296,7 +304,9 @@ class GlassofExporterWizard(models.TransientModel):
             if not vat_partner and inv.partner_id.vat:
                 vat_partner = inv.partner_id.vat
 
-            worksheet.write(nrow, 0, inv.name)
+            worksheet.write(
+                nrow, 0, inv.move_type in ('in_invoice', 'in_refund') and inv.
+                ref or inv.name)
             worksheet.write(nrow, 1, inv.invoice_date, xls_cell_format_date)
             worksheet.write(nrow, 2, "")
             worksheet.write(nrow, 3, country_code)
