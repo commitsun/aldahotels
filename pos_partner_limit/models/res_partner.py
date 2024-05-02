@@ -38,7 +38,7 @@ class ResPartner(models.Model):
         for partner in self:
             today = datetime.now()
             date_orders = partner.pms_reservation_ids.mapped('date_order')
-            if partner.pms_reservation_ids and any(relativedelta.relativedelta(date, today).years < 1 for date in date_orders):
+            if partner.pms_reservation_ids and any(relativedelta.relativedelta(date, today).months < 6 for date in date_orders):
                 partner.show_in_pos = True
             else:
                 partner.show_in_pos = False
@@ -49,7 +49,7 @@ class ResPartner(models.Model):
         reservation_ids = self.search([('pms_reservation_ids', '!=', False)])
         reservation_within_the_year = []
         for reservation_id in reservation_ids:
-            if any(relativedelta.relativedelta(date, date_start).years < 1 for date in reservation_id.mapped('pms_reservation_ids').mapped('date_order')):
+            if any(relativedelta.relativedelta(date, date_start).months < 6 for date in reservation_id.mapped('pms_reservation_ids').mapped('date_order')):
                 reservation_within_the_year.append(reservation_id.id)            
         return [("id", "in", reservation_within_the_year)]
     
