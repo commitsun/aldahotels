@@ -90,7 +90,11 @@ class PurchaseRequestLine(models.Model):
             
             request = self.env['purchase.request'].browse(request_id)
             product = self.env['product.product'].browse(product_id)
+            if not product.seller_ids:
+                raise UserError(_('There are no sellers for this product in the current company.'))
             min_cost_productinfo = product.seller_ids.filtered(lambda x: x.name.id in request.property_id.seller_ids.ids).sorted(key=lambda r: r.price)[0]
+            if not min_cost_productinfo:
+                raise UserError(_('There are no sellers allowed for this request.'))
             values['suggested_supplier_id'] = min_cost_productinfo.name.id
             #min_qty = product.seller_ids.filtered(lambda x: x.name.id == request.property_id.seller_id.id).min_qty
             min_qty = min_cost_productinfo.min_qty

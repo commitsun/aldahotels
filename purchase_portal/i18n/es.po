@@ -1117,3 +1117,15 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_stock_pickings
 msgid "stock_pickings"
 msgstr ""
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/models/purchase_request.py:0
+#, python-format
+msgid "There are no sellers allowed for this request."
+msgstr "No hay proveedores para esta solicitud."
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/models/purchase_request.py:0
+#, python-format
+msgid "There are no sellers for this product in the current company."
+msgstr "No hay proveedores para este producto en la compañía actual."

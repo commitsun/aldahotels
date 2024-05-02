@@ -157,13 +157,16 @@ class PortalAccount(CustomerPortal):
                 return request.redirect('/my/purchase_requests/%s' % purchase_request_sudo.id)
 
             values = self._purchase_request_get_page_view_values(purchase_request_sudo, access_token, **kw)
-        
+
         allowed_pms_property_ids = request.env.user.get_active_property_ids()
+        if allowed_pms_property_ids:
+            allowed_pms_property_ids = request.env['pms.property'].browse(allowed_pms_property_ids).filtered(lambda x: x.company_id == request.env.company)
+
         if values['purchase_request'] and values['purchase_request'].property_id:
             values['current_property_id'] = values['purchase_request'].property_id
         else:
-            values['current_property_id'] = request.env['pms.property'].browse(allowed_pms_property_ids[0]) if allowed_pms_property_ids else False
-        values['allowed_property_ids'] = request.env['pms.property'].browse(allowed_pms_property_ids) if allowed_pms_property_ids else False
+            values['current_property_id'] = allowed_pms_property_ids[0] if allowed_pms_property_ids else False
+        values['allowed_property_ids'] = allowed_pms_property_ids if allowed_pms_property_ids else False
 
         return request.render("purchase_portal.portal_new_purchase_request_page", values)
 

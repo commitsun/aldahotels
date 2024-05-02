@@ -124,7 +124,6 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No purchase_request or wrong state",
                 }
             )
-        
         try:
             product_info = request.env['product.supplierinfo'].search([
                 ('name', 'in', purchase_request.property_id.seller_ids.ids), '|', ('product_id', '=', int(product_id)), ('product_tmpl_id.product_variant_ids', '=', int(product_id))], order='price asc', limit=1
