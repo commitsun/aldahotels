@@ -1101,6 +1101,7 @@ class DataBi(models.Model):
         for prop in propertys:
             if (prop.id in default_property) or default_property == [0]:
                 self.data_bi_ftp_one(prop, fechafoto)
+            self.invalidate_cache()
         return
 
     @api.model
