@@ -48,7 +48,10 @@ class PurchaseRequest(models.Model):
     def request_validation(self):
         res = super(PurchaseRequest, self).request_validation()
         if res.reviewer_ids:
-            text = _("A new review %s has been asigned to you." % self.display_name)
+            base_url = self.env["ir.config_parameter"].sudo().get_param("web.base.url")
+            text = _("A new <a href='{link}'>review {review}</a> has been asigned to you.".format(
+                review=self.display_name, link=base_url + '/web#id=%s&model=purchase.request&view_type=form' % self.id
+            ))
             message = html.DIV(
                 html.P(_('Hello,')),
                 html.P(text)
