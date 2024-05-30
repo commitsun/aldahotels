@@ -87,7 +87,7 @@ class PurchaseRequestLine(models.Model):
             request_id = values.get('request_id', False)
             product_id = values.get('product_id', False)
             product_qty = values.get('product_qty', False)
-            
+
             request = self.env['purchase.request'].browse(request_id)
             product = self.env['product.product'].browse(product_id)
             if not product.seller_ids:
@@ -125,7 +125,7 @@ class PurchaseRequestLine(models.Model):
         if self.request_id.review_ids:
             self.request_id.message_post(body=_('Line deleted by {user}: <strong> {product}</strong>'.format(user=self.env.user.name, product=self.product_id.name)))
         return super().unlink()
-    
+
     def _autocreate_purchase_orders_from_lines(self):
         lines = self.env['purchase.request.line'].search([
             ('request_state', '=', 'approved'),
@@ -146,9 +146,22 @@ class PurchaseRequestLine(models.Model):
                 try:
                     res = wiz.make_purchase_order()
                     orders = res['domain'][0][2]
-                    order_ids = self.env['purchase.order'].browse(orders)
+                    orno_duplicates = []
+                    [orno_duplicates.append(item) for item in orders if item not in orno_duplicates]
+                    order_ids = self.env['purchase.order'].browse(orno_duplicates)
                     for order in order_ids:
                         order.button_confirm()
+
+                        ir_model_data = self.env['ir.model.data']
+                        template_id = ir_model_data.get_object_reference('purchase', 'email_template_edi_purchase_done')[1]
+                        mail_wiz = self.env['mail.compose.message'].create({
+                            'res_id': order.id,
+                            'template_id': template_id or False,
+                            'model': 'purchase.order',
+                            'composition_mode': 'comment'}
+                        )
+                        mail_wiz.onchange_template_id_wrapper()
+                        mail_wiz.action_send_mail()
                 except UserError as e:
                     _logger.warning(e)
                     continue

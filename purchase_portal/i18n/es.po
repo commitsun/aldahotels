@@ -631,7 +631,7 @@ msgstr "Contenido mail a proveedor"
 #: model:ir.model.fields,field_description:purchase_portal.field_res_partner__min_purchase_amount
 #: model:ir.model.fields,field_description:purchase_portal.field_res_users__min_purchase_amount
 msgid "Minimum purchase amount"
-msgstr "Cantidad mínima de compra"
+msgstr "Importe mínimo de compra"
 
 #. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order__multiple_suppliers

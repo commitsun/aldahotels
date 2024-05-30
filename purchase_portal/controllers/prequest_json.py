@@ -50,7 +50,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No property_id",
                 }
             )
-        
+
         property_id = request.env['pms.property'].browse(int(property_id))
         if not property_id:
             return json.dumps(
@@ -59,7 +59,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No property_id",
                 }
             )
-        
+
         purchase_request = request.env['purchase.request'].browse(int(purchase_request))
         if not purchase_request:
             return json.dumps(
@@ -68,7 +68,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No purchase_request",
                 }
             )
-        
+
         product_ids = property_id.product_ids
         if search:
             product_ids = request.env["product.product"].search([
@@ -79,13 +79,13 @@ class PurchaseRequestJsonMethods(http.Controller):
             ])
         if category_id and category_id != 'all':
             product_ids = product_ids.filtered(lambda x: x.categ_id.id == int(category_id))
-        
+
         if seller_id and seller_id != 'all':
             product_ids = product_ids.filtered(lambda x: int(seller_id) in x.seller_ids.mapped('name').ids)
-        
+
         if request.env.user.banned_product_ids:
             product_ids = product_ids - request.env.user.banned_product_ids
-        
+
         values = {
             "product_ids": product_ids,
             "purchase_request": purchase_request,
@@ -94,7 +94,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         return request.env["ir.ui.view"].with_context(lang=lang)._render_template(
             "purchase_portal.purchase_request_product_table", values
         )
-    
+
     @http.route(
         ["/purchase_request_add_product"],
         type="json",
@@ -107,7 +107,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         purchase_request = kw.get('purchase_request', False)
         product_id = kw.get('product_id', False)
         qty = kw.get('qty', False)
-        
+
         if not purchase_request or not product_id or not qty:
             return json.dumps(
                 {
@@ -115,7 +115,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "Missing parameters",
                 }
             )
-        
+
         purchase_request = request.env['purchase.request'].browse(int(purchase_request))
         if not purchase_request or not purchase_request.state in ["to_approve", "draft"]:
             return json.dumps(
@@ -133,12 +133,13 @@ class PurchaseRequestJsonMethods(http.Controller):
                 'product_id': int(product_id),
                 'product_qty': float(qty),
                 'estimated_cost': (product_info.price * float(qty)) if product_info else 0,
-            })          
+            })
 
             # portal=False to avoid onchange_product_id to be raise error
             request_line.with_context(portal=False).onchange_product_id()
             request_line.with_context(portal=True, no_msg=True).write({
                 'product_qty': float(qty),
+                'product_uom_id': product_info.product_uom.id if product_info else False,
             })
         except Exception as e:
             return json.dumps(
@@ -147,7 +148,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": str(e),
                 }
             )
-        
+
         values = {
             "line_ids": purchase_request.line_ids,
         }
@@ -155,7 +156,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         return request.env["ir.ui.view"].with_context(lang=lang)._render_template(
             "purchase_portal.purchase_request_details_table", values
         )
-    
+
     @http.route(
         ["/purchase_request_update_line"],
         type="json",
@@ -167,7 +168,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         lang = get_lang(request.env).code
         line_id = kw.get('line_id', False)
         qty = kw.get('qty', False)
-        
+
         if not line_id or not qty:
             return json.dumps(
                 {
@@ -175,7 +176,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "Missing parameters",
                 }
             )
-        
+
         line_id = request.env['purchase.request.line'].browse(int(line_id))
         if not line_id:
             return json.dumps(
@@ -184,9 +185,9 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No line_id",
                 }
             )
-        
+
         request_id = line_id.request_id
-        
+
         try:
             if float(qty) == 0.0:
                 line_id.unlink()
@@ -201,7 +202,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": str(e),
                 }
             )
-        
+
         values = {
             "line_ids": request_id.line_ids,
         }
@@ -209,7 +210,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         return request.env["ir.ui.view"].with_context(lang=lang)._render_template(
             "purchase_portal.purchase_request_details_table", values
         )
-    
+
     @http.route(
         ["/purchase_delete_line"],
         type="json",
@@ -220,7 +221,7 @@ class PurchaseRequestJsonMethods(http.Controller):
     def purchase_delete_line(self, **kw):
         lang = get_lang(request.env).code
         line_id = kw.get('line_id', False)
-        
+
         if not line_id:
             return json.dumps(
                 {
@@ -228,7 +229,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "Missing parameters",
                 }
             )
-        
+
         line_id = request.env['purchase.request.line'].browse(int(line_id))
         if not line_id:
             return json.dumps(
@@ -237,9 +238,9 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No line_id",
                 }
             )
-        
+
         request_id = line_id.request_id
-        
+
         try:
             line_id.unlink()
         except Exception as e:
@@ -249,7 +250,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": str(e),
                 }
             )
-        
+
         values = {
             "line_ids": request_id.line_ids,
         }
@@ -257,7 +258,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         return request.env["ir.ui.view"].with_context(lang=lang)._render_template(
             "purchase_portal.purchase_request_details_table", values
         )
-    
+
     @http.route(
         ["/purchase_request_validation"],
         type="json",
@@ -268,7 +269,7 @@ class PurchaseRequestJsonMethods(http.Controller):
     def purchase_request_validation(self, **kw):
         lang = get_lang(request.env).code
         purchase_request = kw.get('purchase_request', False)
-        
+
         if not purchase_request:
             return json.dumps(
                 {
@@ -276,7 +277,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No purchase_request",
                 }
             )
-        
+
         purchase_request = request.env['purchase.request'].browse(int(purchase_request))
         if not purchase_request:
             return json.dumps(
@@ -285,7 +286,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No purchase_request",
                 }
             )
-        
+
         try:
             if purchase_request.estimated_cost <= 300:
                 purchase_request.button_approved()
@@ -315,7 +316,7 @@ class PurchaseRequestJsonMethods(http.Controller):
     def purchase_request_restart_validation(self, **kw):
         lang = get_lang(request.env).code
         purchase_request = kw.get('purchase_request', False)
-        
+
         if not purchase_request:
             return json.dumps(
                 {
@@ -323,7 +324,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No purchase_request",
                 }
             )
-        
+
         purchase_request = request.env['purchase.request'].browse(int(purchase_request))
         if not purchase_request:
             return json.dumps(
@@ -332,7 +333,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": "No purchase_request",
                 }
             )
-        
+
         try:
             purchase_request.restart_validation()
         except Exception as e:

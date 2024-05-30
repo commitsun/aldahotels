@@ -319,8 +319,8 @@
                     <span t-esc="product.get_supplier_stock(purchase_request)"/>
                 </td>
                 <td class="text-right">
-                    <t t-if="product.mapped('seller_ids').mapped('name')">
-                        <t t-foreach="product.mapped('seller_ids').mapped('name')" t-as="seller">
+                    <t t-if="product.mapped('seller_ids').mapped('name') and purchase_request.property_id.seller_ids">
+                        <t t-foreach="product.mapped('seller_ids').filtered(lambda x: x.name in purchase_request.property_id.seller_ids).mapped('name')" t-as="seller">
                             <span class="ml-2"><t t-esc="seller.name"/><br/>
                                 <t t-esc="seller.email"/><br/>
                                 <t t-esc="seller.phone"/>
