@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pms_property_region_view_form" model="ir.ui.view">
+        <field name="name">pms.property.region.employee.tree</field>
+        <field name="model">pms.property</field>
+        <field name="inherit_id" ref="pms.pms_property_views_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page name="team_alda2" string="Alda Members2">
+                    <group>
+                        <div class="o_horizontal_separator">
+                            Select a department to add to the property
+                        </div>
+                        <field name="employee_id"/>
+                    </group>
+                    <field name="cod_region">
+                        <tree>
+                            <field name="cod_region"/>
+                            <field name="position1_id"/>
+                            <field name="employee1_id"/>
+                            <field name="position2_id"/>
+                            <field name="employee2_id"/>
+                            <field name="position3_id"/>
+                            <field name="employee3_id"/>
+                            <field name="position4_id"/>
+                            <field name="employee4_id"/>
+                            <field name="position5_id"/>
+                            <field name="employee5_id"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

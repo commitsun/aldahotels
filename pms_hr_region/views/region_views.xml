@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <odoo>
+        <record id="view_region_form" model="ir.ui.view">
+            <field name="name">region.form</field>
+            <field name="model">pms.property.region</field>
+            <field name="arch" type="xml">
+                <form string="Region aquí">
+                    <sheet>
+                        <group>
+                            <field name="cod_region"/>
+                            <field name="employee_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
+                        </group>
+                        <notebook>
+                            <page string="Properties">
+                                <field name="property_cod_regions">
+                                    <tree>
+                                        <field name="pms_property_id"/>
+                                        <field name="position1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="employee1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="position2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="employee2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="position3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="employee3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="position4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="employee4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="position5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                        <field name="employee5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                                    </tree>
+                                    <form>
+                                        <group>
+                                            <field name="pms_property_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
+                                        </group>
+                                        <group>
+                                            <field name="position1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
+                                            <field name="employee1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
+                                        </group>
+                                        <group>
+                                            <field name="position2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" onchange="1"/>
+                                            <field name="employee2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
+                                        </group>
+                                        <group>
+                                            <field name="position3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
+                                            <field name="employee3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
+                                        </group>
+                                        <group>
+                                            <field name="position4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" onchange="1"/>
+                                            <field name="employee4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
+                                        </group>
+                                        <group>
+                                            <field name="position5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
+                                            <field name="employee5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
+                                        </group>
+                                    </form>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Tree view for pms.property.region -->
+        <record id="view_region_tree" model="ir.ui.view">
+            <field name="name">region.tree</field>
+            <field name="model">pms.property.region</field>
+            <field name="arch" type="xml">
+                    <field name="employee_id"/>
+                    <field
+                        name="property_cod_regions"
+                        options="{'no_create_edit': 1}"
+                    >
+                    <tree>
+                        <field name="cod_region"/>
+                        <field name="pms_property_id" widget="many2many_tags" 
+                            options="{'no_create_edit': 1}" groups="base.group_no_one">
+                        </field>
+                    </tree>
+                </field>
+            </field>
+        </record>
+
+
+        <!-- Action for pms.property.region -->
+        <record id="action_region" model="ir.actions.act_window">
+            <field name="name">Regions</field>
+            <field name="res_model">pms.property.region</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Menuitem in PMS Property Management -->
+        <menuitem id="menu_pms_property_management" name="PMS Property Management"/>
+
+        <!-- Submenu for Regions -->
+        <menuitem id="menu_region_management" name="Regions" parent="menu_pms_property_management" action="action_region"/>
+
+        <!-- New Menu for Settings under Users & Companies -->
+        <menuitem id="menu_region_settings" name="Region Settings" parent="base.menu_users" action="action_region"/>
+    </odoo>
