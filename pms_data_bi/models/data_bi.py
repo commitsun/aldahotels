@@ -995,9 +995,9 @@ class DataBi(models.Model):
                     / len(linea.reservation_id.reservation_line_ids),
                     2,
                 )
-                precio_iva = round(
-                    (linea.reservation_id.tax_ids.amount * linea.price / 100), 2
-                )
+                precio_iva = 0
+                for iva in linea.reservation_id.tax_ids:
+                    precio_iva += round(iva.amount * linea.price / 100, 2)
 
                 dic_reservas.append(
                     {
