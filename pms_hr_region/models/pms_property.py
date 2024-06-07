@@ -31,47 +31,6 @@ class PmsPropertyRegion(models.Model):
                 # region = self.env['pms.property.region'].sudo().search([('cod_region', '=', property.cod_region[0].cod_region)], limit=1)
                 if region:
                     property.employee_id = region.employee_id
-                    print("AQUIIIIIIIIIIIII........", property.employee_id)
                 else:
                     property.employee_id = False
-                    print("AQUIIIIIIIIIIIII222222222222222........", property.employee_id)
                 
-
-    # @api.model
-    # def create(self, vals):
-    #     record = super(PmsPropertyRegion, self).create(vals)
-    #     record._update_employee_id()
-    #     return record
-
-    # def write(self, vals):
-    #     result = super(PmsPropertyRegion, self).write(vals)
-    #     self._update_employee_id()
-    #     return result
-
-    # def _update_employee_id(self):
-    #     for property in self:
-    #         if property.cod_region:
-    #             region = self.env['pms.property.region'].sudo().search([('cod_region', '=', property.cod_region[0].cod_region)], limit=1)
-    #             if region:
-    #                 # Si employee_id está vacío, inicializa con el valor de region.employee_id
-    #                 if not property.employee_id:
-    #                     property.employee_id = region.employee_id
-    #                 else:
-    #                     # Si employee_id tiene un valor, actualiza el region correspondiente
-    #                     region.employee_id = property.employee_id
-    #         else:
-    #             property.employee_id = False
-
-    # @api.model
-    # def get_region_employee_list(self):
-    #     result = []
-    #     property_regions = self.env['pms.property.region'].search([])
-        
-    #     for region in property_regions:
-    #         for assignment in region.property_cod_regions:
-    #             if assignment.pms_property_id.id == self.id:
-    #                 result.append({
-    #                     'region': region.cod_region,
-    #                     'employee': region.employee_id.name
-    #                 })
-    #     return result
