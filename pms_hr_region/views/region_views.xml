@@ -1,98 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <odoo>
-        <record id="view_region_form" model="ir.ui.view">
-            <field name="name">region.form</field>
-            <field name="model">pms.property.region</field>
-            <field name="arch" type="xml">
-                <form string="Region aquí">
-                    <sheet>
-                        <group>
-                            <field name="cod_region"/>
-                            <field name="employee_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
-                        </group>
-                        <notebook>
-                            <page string="Properties">
-                                <field name="property_cod_regions">
-                                    <tree>
-                                        <field name="pms_property_id"/>
-                                        <field name="position1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="employee1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="position2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="employee2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="position3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="employee3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="position4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="employee4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="position5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                        <field name="employee5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                                    </tree>
-                                    <form>
-                                        <group>
-                                            <field name="pms_property_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
-                                        </group>
-                                        <group>
-                                            <field name="position1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
-                                            <field name="employee1_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
-                                        </group>
-                                        <group>
-                                            <field name="position2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" onchange="1"/>
-                                            <field name="employee2_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
-                                        </group>
-                                        <group>
-                                            <field name="position3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
-                                            <field name="employee3_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
-                                        </group>
-                                        <group>
-                                            <field name="position4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" onchange="1"/>
-                                            <field name="employee4_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
-                                        </group>
-                                        <group>
-                                            <field name="position5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
-                                            <field name="employee5_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}"/>
-                                        </group>
-                                    </form>
-                                </field>
-                            </page>
-                        </notebook>
-                    </sheet>
-                </form>
-            </field>
-        </record>
+<odoo>
+    <record id="view_region_form" model="ir.ui.view">
+        <field name="name">region.form</field>
+        <field name="model">pms.property.region</field>
+        <field name="arch" type="xml">
+            <form string="Region">
+                <sheet>
+                    <group name="main">
+                        <div class="oe_title">
+                            <h1 class="oe_title">
+                                <field name="cod_region" options="{'name_get': True}"/>
+                            </h1>
+                            <h2 class="o_row" style="color:#714B67;">
+                                <field 
+                                    name="company_id" 
+                                    options="{'no_create': True, 'no_edit': True, 'no_open': True}" 
+                                    onchange="1"
+                                />
+                            </h2>
+                            <h2 class="o_row" style="color:#714B67;">
+                            </h2>
+                            <h2 class="o_row" style="color:#714B67;">
+                                <field name="employee_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" />
+                            </h2>
+                            <h6 style="color:#714B67;">Regional Manager</h6>
+                        </div>
+                    </group>
+                    <notebook attrs="{'invisible': [('company_id', '=', False)]}">
+                        <page string="Property and Staff" name="staff" >
+                            <field name="property_ids"  >
+                                <tree view="custom.region.assignment.tree" string="List properties" editable="bottom">
+                                    <!-- <field name="select" widget="boolean_toggle"/> -->
+                                    <field name="active" invisible="1"/>                                    
+                                    <field 
+                                        name="property_id" 
+                                        options="{'no_create': True, 'no_edit': True, 'no_open': True}" 
+                                         domain="[('company_id', '=', parent.company_id), ('id', 'not in', parent.assigned_properties)]"
+                                    />
+                                    <field 
+                                        name="rvm_employee1_id" 
+                                        attrs="{'readonly': [('property_id', '=', False)]}" 
+                                        options="{'no_create': True, 'no_edit': True, 'no_open': True}"
+                                    />
+                                    <field 
+                                        name="taz_employee_id" 
+                                        attrs="{'readonly': [('property_id', '=', False)]}" 
+                                        string="TAZ" options="{'no_create': True, 'no_edit': True, 'no_open': True}"
+                                    />
+                                    <field 
+                                        name="taz2_employee_id" 
+                                        attrs="{'readonly': [('property_id', '=', False)]}" 
+                                        string="TAZ" options="{'no_create': True, 'no_edit': True, 'no_open': True}"
+                                    />
+                                    <field 
+                                        name="tmz_employee_id" 
+                                        attrs="{'readonly': [('property_id', '=', False)]}" 
+                                        string="TMZ" options="{'no_create': True, 'no_edit': True, 'no_open': True}"
+                                    />
+                                    <field 
+                                        name="tmz2_employee_id" 
+                                        attrs="{'readonly': [('property_id', '=', False)]}" 
+                                        string="TMZ" options="{'no_create': True, 'no_edit': True, 'no_open': True}"
+                                    />
+                                    <field name="rvm_position_id" invisible="1"/>
+                                    <field name="taz_position_id" invisible="1"/>
+                                    <field name="tmz_position_id" invisible="1"/>
+                                </tree>
+                            </field>
+                                                        <!-- Campo invisible para assigned_properties -->
+                            <field name="assigned_properties" invisible="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
 
-        <!-- Tree view for pms.property.region -->
-        <record id="view_region_tree" model="ir.ui.view">
-            <field name="name">region.tree</field>
-            <field name="model">pms.property.region</field>
-            <field name="arch" type="xml">
-                    <field name="employee_id"/>
-                    <field
-                        name="property_cod_regions"
-                        options="{'no_create_edit': 1}"
-                    >
-                    <tree>
-                        <field name="cod_region"/>
-                        <field name="pms_property_id" widget="many2many_tags" 
-                            options="{'no_create_edit': 1}" groups="base.group_no_one">
-                        </field>
+    <!-- Tree view for pms.property.region -->
+    <record id="view_region_tree" model="ir.ui.view">
+        <field name="name">region.tree</field>
+        <field name="model">pms.property.region</field>
+        <field name="arch" type="xml">
+            <tree string="List properties">
+                <field name="company_id"/>
+                <field name="employee_id"/>
+                <field name="cod_region"/>
+                <field name="property_ids">
+                    <tree editable="bottom" create="true">
+                                <field name="property_id"/>
+                                <field name="rvm_employee1_id"/>
+                                <field name="taz_employee_id"/>
+                                <field name="taz2_employee_id"/>
+                                <field name="tmz_employee_id"/>
+                                <field name="tmz2_employee_id"/>
                     </tree>
                 </field>
-            </field>
-        </record>
+            </tree>
+        </field>
+    </record>
 
+    <record id="view_region_kanban" model="ir.ui.view">
+        <field name="name">region.kanban</field>
+        <field name="model">pms.property.region</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="oe_kanban_card">
+                                <div class="oe_kanban_card_header">
+                                    <field name="cod_region"/>
+                                </div>
+                                <div class="oe_kanban_card_content">
+                                    <field name="company_id"/>
+                                    <field name="employee_id"/>
+                                    <field name="property_ids" widget="tree"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
 
-        <!-- Action for pms.property.region -->
-        <record id="action_region" model="ir.actions.act_window">
-            <field name="name">Regions</field>
-            <field name="res_model">pms.property.region</field>
-            <field name="view_mode">tree,form</field>
-        </record>
+    <!-- Action for pms.property.region -->
+    <record id="action_region" model="ir.actions.act_window">
+        <field name="name">Regions</field>
+        <field name="res_model">pms.property.region</field>
+        <field name="view_mode">tree,form,kanban</field>
+    </record>
 
-        <!-- Menuitem in PMS Property Management -->
-        <menuitem id="menu_pms_property_management" name="PMS Property Management"/>
+    <!-- Menuitem in PMS Property Management -->
+    <menuitem id="menu_pms_property_management" name="PMS Property Management"/>
 
-        <!-- Submenu for Regions -->
-        <menuitem id="menu_region_management" name="Regions" parent="menu_pms_property_management" action="action_region"/>
+    <!-- Submenu for Regions -->
+    <menuitem id="menu_region_management" name="Regions" parent="menu_pms_property_management" action="action_region"/>
 
-        <!-- New Menu for Settings under Users & Companies -->
-        <menuitem id="menu_region_settings" name="Region Settings" parent="base.menu_users" action="action_region"/>
-    </odoo>
+    <!-- New Menu for Settings under Users & Companies -->
+    <menuitem id="menu_region_settings" name="Region Settings" parent="base.menu_users" action="action_region"/>
+</odoo>

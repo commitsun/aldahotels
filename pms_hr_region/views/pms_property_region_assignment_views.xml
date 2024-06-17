@@ -7,74 +7,53 @@
             <form string="PMS Property Region Assignment">
                 <sheet>
                     <group>
-                        <field name="cod_region"/>
-                        <field name="pms_property_id"/>
+                        <field name="region_id"/>
+                        <field name="property_id"/>
                     </group>
                     <group>
-                        <field name="position1_id"  options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
-                        <field name="employee1_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="rvm_position_id" options="{'no_create': True, 'no_edit': True, 'no_open': True}" readonly="1"/>
+                        <field name="rvm_employee1_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
                     </group>
                     <group>
-                        <field name="position2_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
-                        <field name="employee2_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="taz_position_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="taz_employee_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
                     </group>
                     <group>
-                        <field name="position3_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
-                        <field name="employee3_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="taz_position_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="taz2_employee_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
                     </group>
                     <group>
-                        <field name="position4_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
-                        <field name="employee4_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="tmz_position_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="tmz_employee_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
                     </group>
                     <group>
-                        <field name="position5_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
-                        <field name="employee5_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="tmz2_employee_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
+                        <field name="tmz2_employee_id" options="{'no_create': True, 'no_edit': True}" readonly="1"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
 
+    <!-- Tree view for pms.property.region.assignment -->
     <record id="view_custom_region_assignment_tree" model="ir.ui.view">
         <field name="name">custom.region.assignment.tree</field>
         <field name="model">pms.property.region.assignment</field>
         <field name="arch" type="xml">
             <tree string="Region Assignments">
-                <field name="cod_region" string="Regional Manager"/>
-                <field name="pms_property_id" string="Hotel"/>
-                <field name="position1_id" string="RVM"/>
-                <field name="employee1_id" string="Employee 1"/>
-                <field name="position2_id" string="TAZ"/>
-                <field name="employee2_id" string="Employee 2"/>
-                <field name="position3_id" string="TAZ 2"/>
-                <field name="employee3_id" string="Employee 3"/>
-                <field name="position4_id" string="TMZ"/>
-                <field name="employee4_id" string="Employee 4"/>
-                <field name="position5_id" string="TMZ 2"/>
-                <field name="employee5_id" string="Employee 5"/>
+                <field name="region_id" string="Regional Manager"/>
+                <field name="property_id" string="Property"/>
+                <field name="rvm_position_id" string="RVM"/>
+                <field name="rvm_employee1_id" string="Employee 1"/>
+                <field name="taz_position_id" string="TAZ"/>
+                <field name="taz_employee_id" string="Employee 2"/>
+                <field name="taz_position_id" string="TAZ 2"/>
+                <field name="taz2_employee_id" string="Employee 3"/>
+                <field name="tmz_position_id" string="TMZ"/>
+                <field name="tmz_employee_id" string="Employee 4"/>
+                <field name="tmz2_employee_id" string="TMZ 2"/>
+                <field name="tmz2_employee_id" string="Employee 5"/>
             </tree>
         </field>
-    </record>
-    <record id="action_custom_region_assignment_tree" model="ir.actions.act_window">
-        <field name="name">Region Assignments</field>
-        <field name="res_model">pms.property.region.assignment</field>
-        <field name="view_mode">tree</field>
-        <field name="view_id" ref="view_custom_region_assignment_tree"/>
-    </record>
-
-    <!-- Action for pms.property.region -->
-    <!-- <record id="action_region" model="ir.actions.act_window">
-        <field name="name">Regions Detals</field>
-        <field name="res_model">pms.property.region.assignment</field>
-        <field name="view_mode">tree,form</field>
-    </record> -->
-
-    <!-- Menuitem in PMS Property Management -->
-    <!-- <menuitem id="menu_pms_property_management" name="PMS Property Management"/> -->
-
-    <!-- Submenu for Regions -->
-    <!-- <menuitem id="menu_region_management" name="Regions" parent="menu_pms_property_management" action="action_region"/> -->
-
-    <!-- New Menu for Settings under Users & Companies -->
-    <!-- <menuitem id="menu_region_settings" name="Region Settings" parent="base.menu_users" action="action_custom_region_assignment_tree"/> -->
+    </record>s
 </odoo>

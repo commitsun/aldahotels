@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="region_hr_employee_form" model="ir.ui.view">
+        <field name="name">region.hr.employee.form</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='hr_settings']/group/group[@name='active_group']/field[@name='job_id']" position="after">
+            <group 
+                name="name" 
+                string="Alda Region" 
+                attrs="{'invisible': [('cod_region', '=', '')]}"
+            >
+                <field 
+                    name="cod_region" 
+                    string="Region Code" 
+                    attrs="{'invisible': [('cod_region', '=', '')]}"
+                />
+            </group>
+            </xpath>
+            <xpath expr="//field[@name='job_title']" position="after">
+                <h6 style="color:#714B67;">
+                    <field 
+                        name="cod_region" 
+                        string="Region Code" 
+                        attrs="{'invisible': [('cod_region', '=', '')]}"
+                        options="{'color_field': 'color', 'no_create_edit': True}"
+                    />
+                </h6>
+            </xpath>
+        </field>
+    </record>
+</odoo>

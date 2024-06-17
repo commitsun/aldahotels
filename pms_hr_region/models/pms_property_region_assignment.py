@@ -1,99 +1,180 @@
+# Copyright 2024 OsoTranquilo - José Luis Algara
+# Copyright 2024 Irlui Ramírez
+# From Consultores Hoteleros Integrales (ALDA Hotels) - 2024
+# License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
+from odoo.exceptions import ValidationError
 from odoo import models, fields, api
 
 class PMSPropertyRegionAssignment(models.Model):
     _name = 'pms.property.region.assignment'
     _description = 'PMS Property Region Assignment'
 
-    cod_region = fields.Many2one('pms.property.region', string='Region', required=True,store=True)
-    
-    pms_property_id = fields.Many2one('pms.property', string='Property', required=True, store=True)
-    
-    position1_id = fields.Many2one('hr.job', string='RVM', default=14, readonly=True)
-    employee1_id = fields.Many2one('hr.employee', string='Employee 1', domain="[('job_id', '=', position1_id)]")
+    region_id = fields.Many2one(
+        comodel_name='pms.property.region', 
+        string='Region', 
+        required=True,
+        store=True, 
+        ondelete='cascade'
+    )
+    property_id = fields.Many2one(
+        comodel_name='pms.property', 
+        string='Property', 
+        required=True, 
+        store=True
+    )
+    rvm_position_id = fields.Integer(
+        string='RVM Position ID', 
+        compute='_compute_position_id', 
+        store=True
+        )
+    taz_position_id = fields.Integer(
+        string='TAZ Position ID', 
+        compute='_compute_position_id', 
+        store=True
+    )
+    tmz_position_id = fields.Integer(
+        string='TMZ Position ID', 
+        compute='_compute_position_id', 
+        store=True
+    )
+    rvm_employee1_id = fields.Many2one(
+        comodel_name='hr.employee', 
+        string='RVM', 
+        domain="[('job_id', '=', rvm_position_id)]"
+    )
+    taz_employee_id = fields.Many2one(
+        comodel_name='hr.employee', 
+        string='TAZ', 
+        domain="[('job_id', '=', taz_position_id)]"
+    )
+    taz2_employee_id = fields.Many2one(
+        comodel_name='hr.employee', 
+        string='TAZ', 
+        domain="[('job_id', '=', taz_position_id)]"
+    )
+    tmz_employee_id = fields.Many2one(
+        comodel_name='hr.employee', 
+        string='TMZ', 
+        domain="[('job_id', '=', tmz_position_id)]"
+    )
+    tmz2_employee_id = fields.Many2one(
+        comodel_name='hr.employee', 
+        string='TMZ', 
+        domain="[('job_id', '=', tmz_position_id)]"
+    )
+    active = fields.Boolean(
+        string='Select',
+        default=True,
+        help="If unchecked, it will allow you to disable the"
+        "Availability the property and staff without it."
+    )
 
-    position2_id = fields.Many2one('hr.job', string='TAZ', default=11, readonly=True)
-    employee2_id = fields.Many2one('hr.employee', string='Employee 2', domain="[('job_id', '=', position2_id)]")
+    assigned_properties = fields.Many2many(
+        'pms.property', compute='_compute_assigned_properties', store=False
+    )
 
-    position3_id = fields.Many2one('hr.job', string='TAZ 2', default=11, readonly=True)
-    employee3_id = fields.Many2one('hr.employee', string='Employee 3', domain="[('job_id', '=', position3_id)]")
 
-    position4_id = fields.Many2one('hr.job', string='TMZ', default=10, readonly=True)
-    employee4_id = fields.Many2one('hr.employee', string='Employee 4', domain="[('job_id', '=', position4_id)]")
+    @api.depends('region_id')
+    def _compute_position_id(self):
+        rvm_position = self.env['hr.job'].sudo().search([('name', '=', 'Revenue Manager')], limit=1)
+        taz_position = self.env['hr.job'].sudo().search([('name', '=', 'TAZ')], limit=1)
+        tmz_position = self.env['hr.job'].sudo().search([('name', '=', 'TMZ')], limit=1)
+        for record in self:
+            record.rvm_position_id = rvm_position.id if rvm_position else False
+            record.taz_position_id = taz_position.id if taz_position else False
+            record.tmz_position_id = tmz_position.id if tmz_position else False
 
-    position5_id = fields.Many2one('hr.job', string='TMZ 2', default=10, readonly=True)
-    employee5_id = fields.Many2one('hr.employee', string='Employee 5', domain="[('job_id', '=', position5_id)]")
+    @api.onchange("active")
+    def _check_is_active(self):
+        for record in self:
+            if record.active:
+                assigned_properties = (
+                    self.env['pms.property.region.assignment']
+                    .search([('active', '=', True)])
+                    .mapped('property_id.id')
+                )
+                if assigned_properties:
+                    return {
+                        'domain': {
+                            'property_id': [('id', 'not in', assigned_properties)]
+                        }
+                    }
+                else:
+                    raise ValidationError('All properties have been assigned')
 
-    @api.depends('position1_id')
+
+    @api.depends('rvm_position_id')
     def _compute_position1_name(self):
         for record in self:
-            record.position1_name = record.position1_id.name if record.position1_id else ''
+            record.position1_name = record.rvm_position_id.name if record.rvm_position_id else ''
 
-    @api.onchange('employee2_id')
+    @api.onchange('taz_employee_id')
     def _onchange_employee2_id(self):
-        if self.employee2_id:
+        if self.taz_employee_id:
             return {
                 'domain': {
-                    'employee3_id': [
-                        ('job_id', '=', self.position3_id.id),
-                        ('id', '!=', self.employee2_id.id)
+                    'taz2_employee_id': [
+                        ('job_id', '=', self.taz_position_id),
+                        ('id', '!=', self.taz_employee_id.id)
                     ]
                 }
             }
         else:
             return {
                 'domain': {
-                    'employee3_id': [('job_id', '=', self.position3_id.id)]
+                    'taz2_employee_id': [('job_id', '=', self.taz_position_id)]
                 }
             }
-    @api.onchange('employee3_id')
+
+    @api.onchange('taz2_employee_id')
     def _onchange_employee3_id(self):
-        if self.employee3_id:
+        if self.taz2_employee_id:
             return {
                 'domain': {
-                    'employee2_id': [
-                        ('job_id', '=', self.position2_id.id),
-                        ('id', '!=', self.employee3_id.id)
+                    'taz_employee_id': [
+                        ('job_id', '=', self.taz_position_id),
+                        ('id', '!=', self.taz2_employee_id.id)
                     ]
                 }
             }
         else:
             return {
                 'domain': {
-                    'employee3_id': [('job_id', '=', self.position2_id.id)]
+                    'taz2_employee_id': [('job_id', '=', self.taz_position_id)]
                 }
             }
     
-    @api.onchange('employee4_id')
+    @api.onchange('tmz_employee_id')
     def _onchange_employee4_id(self):
-        if self.employee4_id:
+        if self.tmz_employee_id:
             return {
                 'domain': {
-                    'employee5_id': [
-                        ('job_id', '=', self.position5_id.id),
-                        ('id', '!=', self.employee4_id.id)
+                    'tmz2_employee_id': [
+                        ('job_id', '=', self.tmz_position_id),
+                        ('id', '!=', self.tmz_employee_id.id)
                     ]
                 }
             }
         else:
             return {
                 'domain': {
-                    'employee5_id': [('job_id', '=', self.position5_id.id)]
+                    'tmz2_employee_id': [('job_id', '=', self.tmz2_employee_id.id)]
                 }
             }
-    @api.onchange('employee5_id')
+    @api.onchange('tmz2_employee_id')
     def _onchange_employee5_id(self):
-        if self.employee5_id:
+        if self.tmz2_employee_id:
             return {
                 'domain': {
-                    'employee4_id': [
-                        ('job_id', '=', self.position4_id.id),
-                        ('id', '!=', self.employee5_id.id)
+                    'tmz_employee_id': [
+                        ('job_id', '=', self.tmz_position_id),
+                        ('id', '!=', self.tmz2_employee_id.id)
                     ]
                 }
             }
         else:
             return {
                 'domain': {
-                    'employee5_id': [('job_id', '=', self.position4_id.id)]
+                    'tmz2_employee_id': [('job_id', '=', self.tmz_position_id)]
                 }
             }
