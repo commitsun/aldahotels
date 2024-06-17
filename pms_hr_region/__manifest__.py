@@ -11,6 +11,7 @@
     "depends": ["base", "pms", "hr"],
     'data': [
         'views/region_views.xml',
+        'views/pms_property_views.xml',
         'views/pms_property_region_assignment_views.xml',
         'views/region_hr_employee.xml'
     ],
