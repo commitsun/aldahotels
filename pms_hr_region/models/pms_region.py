@@ -3,9 +3,9 @@
 # From Consultores Hoteleros Integrales (ALDA Hotels) - 2024
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 
-class Region(models.Model):
+class PmsPropertyRegion(models.Model):
     _name = 'pms.property.region'
     _description = 'PMS Property Region'
     _rec_name = 'cod_region'
@@ -46,7 +46,6 @@ class Region(models.Model):
         for region in self:
             if region.company_id:
                 try:
-                    # assigned_properties = self.env['pms.property.region.assignment'].search([]).mapped('property_id.id')
                     assigned_properties = (
                         self.env['pms.property.region.assignment']
                         .search([('active', '=', True)])
@@ -74,8 +73,6 @@ class Region(models.Model):
     @api.depends('employee_id', 'company_id')
     def _compute_region_code(self):
         for region in self:
-            base_code = 'RGM'
-            total_regions = self.env['pms.property.region'].search_count([])
             company_id = region.company_id.name or ''
             employee_id = region.employee_id.name or ''
             region.cod_region = '{}-{}'.format(company_id, employee_id)
@@ -111,3 +108,19 @@ class Region(models.Model):
         return self.env.ref('pms_hr_region.view_region_kanban').id
 
     kanban_view_id = fields.Many2one('ir.ui.view', string="Kanban View", default=_get_default_kanban_view)
+
+    def write(self, vals):
+        if 'company_id' in vals:
+            for region in self:
+                if region.company_id.id != vals['company_id']:
+                    if region.property_ids:
+                        self = self.with_context(remove_property_ids=True)
+                        raise UserError("Changing the company is not allowed. Please delete the Region and create a new one to assign a different company.")
+                    region.property_ids.unlink()
+        return super(PmsPropertyRegion, self).write(vals)
+
+    @api.model
+    def create(self, vals):
+        if vals.get('property_ids') and self._context.get('remove_property_ids'):
+            vals.pop('property_ids')
+        return super(PmsPropertyRegion, self).create(vals)

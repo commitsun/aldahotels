@@ -10,6 +10,7 @@ class PmsPropertyRegion(models.Model):
     _rec_name = 'name'
 
     region_info = fields.Text(string="Region Information", compute="_compute_region_info", store=False)
+    # region_info = fields.Text(string="Region Information", compute="_compute_region_assignment", store=False)
 
     def _compute_region_info(self):
         for property_rec in self:
@@ -34,14 +35,13 @@ class PmsPropertyRegion(models.Model):
     
     def action_open_region_form(self):
         self.ensure_one()
-        region_assignment = self.env['pms.property.region.assignment'].sudo().search([
+        region_assignment = self.env['pms.property.region.assignment'].search([
             ('property_id', '=', self.id)
         ], limit=1)
         if region_assignment:
             region_id = region_assignment.region_id.id
         else:
             region_id = False
-
         return {
             'type': 'ir.actions.act_window',
             'name': 'Region',
@@ -49,5 +49,8 @@ class PmsPropertyRegion(models.Model):
             'view_mode': 'form',
             'res_id': region_id,
             'target': 'new',
+            'context': {
+                'default_property_id': self.id,
+                'form_view_initial_mode': 'edit'
+            }
         }
-                

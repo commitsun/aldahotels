@@ -84,24 +84,35 @@ class PMSPropertyRegionAssignment(models.Model):
             record.taz_position_id = taz_position.id if taz_position else False
             record.tmz_position_id = tmz_position.id if tmz_position else False
 
-    @api.onchange("active")
-    def _check_is_active(self):
-        for record in self:
-            if record.active:
-                assigned_properties = (
-                    self.env['pms.property.region.assignment']
-                    .search([('active', '=', True)])
-                    .mapped('property_id.id')
-                )
-                if assigned_properties:
-                    return {
-                        'domain': {
-                            'property_id': [('id', 'not in', assigned_properties)]
-                        }
-                    }
-                else:
-                    raise ValidationError('All properties have been assigned')
+    @api.onchange('active')
+    def _onchange_region_id(self):
+        if self.region_id:
+            assigned_properties = self.env['pms.property.region.assignment'].search([('active', '=', True)]).mapped('property_id.id')
+            available_properties = self.env['pms.property'].sudo().search([
+                ('company_id', '=', self.region_id.company_id.id),
+                ('id', 'not in', assigned_properties)
+            ])
+            return {
+                'domain': {
+                    'property_id': [('company_id', '=', self.region_id.company_id.id), ('id', 'in', available_properties.ids)]
+                }
+            }
 
+    # @api.onchange("active")
+    # def _check_is_active(self):
+    #     for record in self:
+    #         if record.active:
+    #             assigned_properties = (
+    #                 self.env['pms.property.region.assignment']
+    #                 .search([('active', '=', True)])
+    #                 .mapped('property_id.id')
+    #             )
+    #             if assigned_properties:
+    #                 return {
+    #                     'domain': {
+    #                         'property_id': [('id', 'not in', assigned_properties)]
+    #                     }
+    #                 }
 
     @api.depends('rvm_position_id')
     def _compute_position1_name(self):

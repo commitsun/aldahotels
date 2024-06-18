@@ -11,13 +11,14 @@
                     <sheet>
                         <div class="container">
                             <group>
-                                <field name="region_info"/>
+                                <field name="region_info" readonly="1"/>
                             </group>
                             <group>
                                 <button name="action_open_region_form" 
                                         type="object" 
                                         string="Edit Region" 
                                         class="btn-primary"
+                                        groups="pms.group_pms_manager"
                                 />
                             </group>
                         </div>
