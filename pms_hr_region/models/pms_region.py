@@ -51,17 +51,25 @@ class PmsPropertyRegion(models.Model):
                         .search([('active', '=', True)])
                         .mapped('property_id.id')
                     )
-                    available_properties = self.env['pms.property'].sudo().search([
-                        ('company_id', '=', region.company_id.id),
-                        ('id', 'not in', assigned_properties)
-                    ])
-                    if available_properties:
+                    if assigned_properties:
+                        available_properties = self.env['pms.property'].sudo().search([
+                            ('company_id', '=', region.company_id.id),
+                            ('id', 'not in', assigned_properties)
+                        ])
+                        if available_properties:
+                            return {
+                                'domain': {
+                                    'property_ids.property_id': [('company_id', '=', region.company_id.id), ('id', 'in', available_properties)]
+                                }
+                            }
+                        else: raise ValidationError('All properties have been assigned')
+                    else: 
                         return {
                             'domain': {
-                                'property_ids.property_id': [('company_id', '=', region.company_id.id), ('id', 'in', available_properties)]
+                                'property_ids.property_id': self.env['pms.property'].sudo().search([
+                            ('company_id', '=', region.company_id.id)])
                             }
                         }
-                    else: raise ValidationError('All properties have been assigned')
                 except Exception as e:
                     raise ValidationError(f"An error occurred while updating available properties: {e}")
 

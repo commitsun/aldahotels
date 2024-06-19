@@ -98,22 +98,6 @@ class PMSPropertyRegionAssignment(models.Model):
                 }
             }
 
-    # @api.onchange("active")
-    # def _check_is_active(self):
-    #     for record in self:
-    #         if record.active:
-    #             assigned_properties = (
-    #                 self.env['pms.property.region.assignment']
-    #                 .search([('active', '=', True)])
-    #                 .mapped('property_id.id')
-    #             )
-    #             if assigned_properties:
-    #                 return {
-    #                     'domain': {
-    #                         'property_id': [('id', 'not in', assigned_properties)]
-    #                     }
-    #                 }
-
     @api.depends('rvm_position_id')
     def _compute_position1_name(self):
         for record in self:

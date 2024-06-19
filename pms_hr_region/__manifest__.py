@@ -13,7 +13,8 @@
         'views/region_views.xml',
         'views/pms_property_views.xml',
         'views/pms_property_region_assignment_views.xml',
-        'views/region_hr_employee.xml'
+        'views/region_hr_employee.xml',
+        'security/ir.model.access.csv'
     ],
     "application": True,
     "installable": True,
