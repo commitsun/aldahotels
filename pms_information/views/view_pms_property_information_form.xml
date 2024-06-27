@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pms_property_information_form" model="ir.ui.view">
+        <field name="name">pms.property.information.form</field>
+        <field name="model">pms.property.information</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="total_rooms" readonly="1"/>
+                    <field name="total_tourism_rooms"/>
+                    <field name="open_date"/>
+                    <field name="is_ramp_up"/>
+                    <field name="is_ramp_rate"/>
+                    <field name="months_to_ramp_rate"/>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -42,6 +42,17 @@ class PmsPropertyInformation(models.Model):
         compute='_compute_months_to_ramp_rate'
     )
 
+    _sql_constraints = [
+        ('unique_property_info', 'UNIQUE(pms_property_id)', 'There can only be one information record per property.')
+    ]
+
+    @api.constrains('pms_property_id')
+    def _check_unique_property_info(self):
+        for record in self:
+            count = self.search_count([('pms_property_id', '=', record.pms_property_id.id)])
+            if count > 1:
+                raise ValidationError('There is already an information registry for this property.')
+
     @api.depends('open_date')
     def _compute_total_rooms(self):
         for record in self:

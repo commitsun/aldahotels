@@ -9,17 +9,21 @@
                  <form name="Regional Staff">
                     <sheet>
                         <div class="container">
+                            <div class="o_horizontal_separator">Property Information</div>
+                                <group>
+                                    <field name="total_rooms" readonly="1"/>
+                                    <field name="total_tourism_rooms"/>
+                                    <field name="open_date"/>
+                                    <field name="is_ramp_up"/>
+                                    <field name="is_ramp_rate"/>
+                                    <field name="months_to_ramp_rate"/>
+                                </group>
                             <group>
-                                <field name="pms_property_information_ids" widget="one2many_list" readonly="1">
-                                    <tree>
-                                        <field name="total_rooms" readonly="1"/>
-                                        <field name="total_tourism_rooms"/>
-                                        <field name="open_date"/>
-                                        <field name="is_ramp_up"/>
-                                        <field name="is_ramp_rate"/>
-                                        <field name="months_to_ramp_rate"/>
-                                    </tree>
-                                </field>
+                                <field name="company_vat" readonly="1"/>
+                                <field name="email" readonly="1"/>
+                                <field name="bank" readonly="1"/>
+                                <field name="acc_number" readonly="1"/>
+                                <field name="swift" readonly="1"/>
                             </group>
                         </div>
                     </sheet>
