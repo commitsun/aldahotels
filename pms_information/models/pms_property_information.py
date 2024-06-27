@@ -9,6 +9,12 @@ class PmsPropertyInformation(models.Model):
     _name = 'pms.property.information'
     _description = 'PMS Property Information'
 
+    pms_property_id = fields.Many2one(
+        comodel_name='pms.property', 
+        string='Property', 
+        required=True, 
+        ondelete='cascade'
+    )
     #contar las habitaciones  
     total_rooms = fields.Integer(string='Total de Habitaciones', compute='_compute_total_rooms')
     #definir cantidad de habitaciones "en turismo"

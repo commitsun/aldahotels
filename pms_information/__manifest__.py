@@ -8,7 +8,7 @@
     'category': 'PMS',
     "summary": """ Information related of property """,
     "author": "Irlui Ramirez,José Luis Algara,Odoo Community Association (OCA)",
-    "depends": ["base", "pms", "partner-contact"],
+    "depends": ["base", "pms"],
     'data': [
         'views/pms_property_information_views.xml',
     ],

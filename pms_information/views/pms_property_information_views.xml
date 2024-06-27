@@ -10,7 +10,16 @@
                     <sheet>
                         <div class="container">
                             <group>
-                                <field name="total_rooms" readonly="1"/>
+                                <field name="pms_property_information_ids" widget="one2many_list" readonly="1">
+                                    <tree>
+                                        <field name="total_rooms" readonly="1"/>
+                                        <field name="total_tourism_rooms"/>
+                                        <field name="open_date"/>
+                                        <field name="is_ramp_up"/>
+                                        <field name="is_ramp_rate"/>
+                                        <field name="months_to_ramp_rate"/>
+                                    </tree>
+                                </field>
                             </group>
                         </div>
                     </sheet>
