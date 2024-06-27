@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pms_property_region_view_form" model="ir.ui.view">
+        <field name="name">pms.property.region.employee.form</field>
+        <field name="model">pms.property</field>
+        <field name="inherit_id" ref="pms.pms_property_views_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='property_general']" position="inside">
+                 <form name="Regional Staff">
+                    <sheet>
+                        <div class="container">
+                            <group>
+                                <field name="total_rooms" readonly="1"/>
+                            </group>
+                        </div>
+                    </sheet>
+                </form>
+            </xpath>
+        </field>
+    </record>
+</odoo>

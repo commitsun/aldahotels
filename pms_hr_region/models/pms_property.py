@@ -23,7 +23,7 @@ class PmsPropertyRegion(models.Model):
                 ('id', '=', region_assignment.region_id.id)
             ], limit=1)
                 region_info += f"Region ID: {region.cod_region}\n"
-                region_info += f"Regional Manager: {region.employee_id.name}\n"
+                region_info += f"Regional Manager: {region.employee_id.name}  Email: {region.employee_id.work_email}\n"
                 region_info += f"Revenue Manager: {region_assignment.rvm_employee1_id.name}\n"
                 region_info += f"TAZ: {region_assignment.taz_employee_id.name}\n"
                 region_info += f"TAZ: {region_assignment.taz2_employee_id.name}\n"

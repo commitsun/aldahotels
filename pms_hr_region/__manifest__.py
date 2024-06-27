@@ -3,7 +3,7 @@
 # From Consultores Hoteleros Integrales (ALDA Hotels) - 2024
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 {
-    'name': 'PMS HR Regions Alda Management',
+    'name': 'PMS HR Regions Alda',
     'version': '14.0.1.0.0',
     'category': 'PMS/HR',
     "summary": """ Region and Staff associated with the property """,
