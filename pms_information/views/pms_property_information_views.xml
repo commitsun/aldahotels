@@ -30,7 +30,7 @@
                                     <field name="is_ramp_up"/>
                                     <field name="is_ramp_rate"/>
                                     <field name="months_to_ramp_rate"/>
-                                    <field name="ine_category_id"/>
+                                    <!-- <field name="ine_category_id"/> -->
                                 </group>
                             </div>
                         </div>
