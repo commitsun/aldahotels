@@ -4,6 +4,7 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
+from datetime import datetime
 
 class PmsProperty(models.Model):
     _inherit = "pms.property"
@@ -62,6 +63,22 @@ class PmsProperty(models.Model):
         string='Month to Ramp-Rate', 
         compute='_compute_months_to_ramp_rate'
     )
+
+    months_open = fields.Integer(
+        string='Months Open',
+        compute='_compute_months_open',
+    )
+
+    @api.depends('open_date')
+    def _compute_months_open(self):
+        for record in self:
+            if record.open_date:
+                open_date = fields.Datetime.from_string(record.open_date)
+                today = datetime.now()
+                diff_months = (today.year - open_date.year) * 12 + today.month - open_date.month
+                record.months_open = diff_months
+            else:
+                record.months_open = 0
 
     @api.depends('open_date')
     def _compute_total_rooms(self):
