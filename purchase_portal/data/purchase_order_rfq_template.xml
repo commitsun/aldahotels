@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-        <record id="alda_purchase_pos" model="mail.template">
-            <field name="name">Alda Purchase  Email</field>
+        <record id="alda_purchase_rfq" model="mail.template">
+            <field name="name">Alda Purchase Order: Send RFQ</field>
             <field name="model_id" ref="purchase_portal.model_purchase_order" />
             <field
                 name="subject"
-            >${object.property_id.name}: Pedido (Ref ${object.name or 'n/a' }) - ${object.company_id.name}</field>
+            >${object.property_id.name}: Presupuesto - Pedido (Ref ${object.name or 'n/a' }) - ${object.company_id.name}</field>
             <field
                 name="email_from"
             >${object.property_id.partner_id.email | safe}</field>
@@ -40,10 +40,9 @@
                                         </tr>
                                         <tr>
                                             <td style="padding:60px 30px 20px 30px;">
-                                            
-                                                    <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                                                <table width="100%" cellspacing="0" cellpadding="0" border="0">
                                                     <tbody><tr>
-                                                        <td align="center" style="font-size:24px;">Pedido de Compra</td>
+                                                        <td align="center" style="font-size:24px;">Solicitud de Presupuesto</td>
                                                     </tr>
                                                     <tr>
                                                         <td align="center" style="padding:20px 0;">
@@ -51,40 +50,41 @@
                                                         </td>
                                                     </tr>
                                                     <tr>
-                                                        <td style="padding:20px 0;" align="justify">
-                                                            Estimado/a ${object.partner_id.name}
-                                                            % if object.partner_id.parent_id:
-                                                                (${object.partner_id.parent_id.name})
-                                                            % endif
-                                                            <br/>
-                                                            Le adjuntamos el pedido de compra:
-                                                            <ul>
-                                                                <li><strong>Número: ${object.name}</strong></li>
-                                                                % if object.partner_ref:
-                                                                    <li>Con referencia: ${object.partner_ref}</li>
+                                                        <td class="paragraph" style="padding:20px 0 0 0;" align="justify">
+                                                            Estimado/a ${object.partner_id.name} 
+                                                                % if object.partner_id.parent_id:
+                                                                    (${object.partner_id.parent_id.name})
                                                                 % endif
-                                                                <li>Por un valor de: <strong>${format_amount(object.amount_total, object.currency_id)}</strong> de ${object.company_id.name}</li>
-                                                                <li>Para ser entregado en: 
-                                                                    <strong>${object.picking_type_id.name} <br/>
-                                                                        Hotel: ${object.property_id.name} <br/>
-                                                                        Ciudad: ${object.property_id.city} <br/>
-                                                                        Provincia: ${object.property_id.state_id.name} <br/>
-                                                                        Código Postal: ${object.property_id.zip} <br/>
-                                                                        Teléfono: ${object.property_id.phone} <br/>
-                                                                    </strong>
-                                                                </li>
-                                                            </ul>
-                                                            % if object.date_planned:
-                                                                <br/>
-                                                                La recepción se espera para <strong>${format_date(object.date_planned)}</strong>.
-                                                                <br/>
-                                                                Por favor responda el correo confirmando la recepción del pedido. 
-                                                            % endif
                                                             <br/>
-                                                            Saludos cordiales,
+                                                                <br/>
+                                                                Aquí está adjunta la solicitud de presupuesto:
+                                                                <br/>
+                                                                <ul>
+                                                                    <li><strong>Número:</strong> ${object.name}
+                                                                        % if object.partner_ref:
+                                                                            ${object.partner_ref}
+                                                                        % endif 
+                                                                    </li>
+                                                                    <li>Por un valor de: <strong>${format_amount(object.amount_total, object.currency_id)}</strong></li>
+                                                                    <li><strong>Para ser entregado en el almacén:</strong> ${object.picking_type_id.name}
+                                                                    </li>
+                                                                    <li><strong>Dirección:
+                                                                        <br/>${object.property_id.name}
+                                                                        <br/>Ciudad:</strong> ${object.property_id.city}
+                                                                        <br/><strong>Calle:</strong> ${object.property_id.street}
+                                                                        <br/><strong>Provincia:</strong> ${object.property_id.state_id.name}
+                                                                        <br/><strong>Código Postal:</strong> ${object.property_id.zip}
+                                                                        <br/><strong>Teléfono:</strong> ${object.property_id.phone}
+                                                                    </li>
+                                                                </ul>
+                                                                <br/>
+                                                                Si tiene alguna pregunta, no dude en contactarnos.
+                                                                <br/>
+                                                                Saludos cordiales,
                                                             <br/>
                                                         </td>
-                                                    </tr><tr>
+                                                    </tr>
+                                                    <tr>
                                                         <td style="padding:30px;background-color:#242424;">
                                                             <table width="100%" cellspacing="0" cellpadding="0" border="0">
                                                                 <tbody><tr>
@@ -116,4 +116,3 @@
             <field name="lang">${object.partner_id.lang}</field>
         </record>
 </odoo>
-
