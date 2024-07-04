@@ -52,6 +52,7 @@
         'wizard/purchase_request_line_make_purchase_order.xml',
         'wizard/stock_backorder_confirmation_views.xml',
         'wizard/import_supplier_data_wizard.xml',
+        'data/purchase_pos_send_template.xml'
     ],
     "assets": {
         "web.assets_frontend": [],
