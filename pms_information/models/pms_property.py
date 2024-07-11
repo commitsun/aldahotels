@@ -9,6 +9,18 @@ from datetime import datetime
 class PmsProperty(models.Model):
     _inherit = "pms.property"
 
+    total_tourism_rooms = fields.Integer(
+        string='Tourism Rooms',
+        help="Number of rooms in the hotel.",
+        default= 0
+    )
+
+    open_date = fields.Datetime(
+        string='Open date',
+        default=fields.Datetime.now,
+        help="Property opening date."
+    )
+
     total_rooms = fields.Integer(
         string='Total rooms', 
         compute='_compute_total_rooms',
@@ -38,23 +50,11 @@ class PmsProperty(models.Model):
         compute='_compute_swift',
         help="Bank account number of the company to wich hotel belongs.",
     )
+
     swift= fields.Char(
         string='Swift', 
         compute='_compute_swift',
         help="Bank Swift number of the company to wich hotel belongs.",
-    )
-
-    total_tourism_rooms = fields.Integer(
-        string='Tourism Rooms',
-        help="Number of rooms in the hotel.",
-        default= 0
-        
-    )
-
-    open_date = fields.Datetime(
-        string='Open date',
-        default=fields.Datetime.now,
-        help="Property opening date."
     )
 
     is_ramp_up = fields.Boolean(
