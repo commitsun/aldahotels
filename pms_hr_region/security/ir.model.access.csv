@@ -1,6 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_region.model_category_manager,access_region.manager,pms_hr_region.model_pms_property_region,pms.group_pms_manager,1,1,1,1
-access_region.model_region_assignment_manager,access_region_assignment.manager,pms_hr_region.model_pms_property_region_assignment,pms.group_pms_manager,1,1,1,1
-access_region.model_category_user,access_region.user,pms_hr_region.model_pms_property_region,pms.group_pms_user,1,0,0,0
-access_region.model_region_property_user,access_property.user,pms_hr_region.model_pms_property,pms.group_pms_user,1,0,0,0
-access_region.model_region_assignment_user,access_region_assignment.user,pms_hr_region.model_pms_property_region_assignment,pms.group_pms_user,1,0,0,0
