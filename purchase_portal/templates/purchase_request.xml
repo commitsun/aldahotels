@@ -305,6 +305,11 @@
                 <td>
                     <img t-att-src="'/web/image/product.product/%s/image_128' % product.id" alt="Product" class="d-none d-lg-inline"/>
                     [<span t-field="product.id"/>] <span t-esc="product.name"/>
+                    <t t-if="product.product_template_attribute_value_ids">
+                        (<t t-foreach="product.product_template_attribute_value_ids" t-as="attribute_value">
+                            <span t-esc="attribute_value.name" class="mr-1"/>
+                        </t>)
+                    </t>
                 </td>
                 <td class="text-right">
                     <span t-field="product.categ_id"/>
@@ -344,6 +349,11 @@
                     <img t-att-src="'/web/image/product.product/%s/image_128' % ol.product_id.id" alt="Product"
                         class="d-none d-lg-inline"/>
                     [<span t-field="ol.product_id.id"/>] <span t-esc="ol.name"/>
+                    <t t-if="ol.product_id.product_template_attribute_value_ids">
+                        (<t t-foreach="ol.product_id.product_template_attribute_value_ids" t-as="attribute_value">
+                            <span t-esc="attribute_value.name" class="mr-1"/>
+                        </t>)
+                    </t>
                 </td>
                 <td class="text-right">
                     <input class="form-control input_mx_70 purchase_update_line" t-att-data-line_id="ol.id" name="product_qty" type="number" t-att-value="ol.product_qty"/>
