@@ -33,6 +33,7 @@
         "purchase_request_tier_validation",
         "auth_signup",
         "custom_login_by_token",
+        "point_of_sale",
     ],
     "data": [
         'security/ir.model.access.csv',
