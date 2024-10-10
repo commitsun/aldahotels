@@ -160,7 +160,10 @@ class GlassofExporterWizard(models.TransientModel):
             date_format = next(date_formats)
             money_format = next(money_formats)
             country_code = ""
-            vat_partner = inv.partner_id.vat if inv.partner_id.vat else ""
+            if inv.partner_id.vat:
+                vat_partner = inv.partner_id.vat
+            elif inv.partner_id.aeat_identificacion:
+                vat_partner = inv.partner_id.aeat_identificacion
             country_partner = inv.partner_id.country_id
             if country_partner:
                 country_code = country_partner.code
