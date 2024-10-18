@@ -8,7 +8,7 @@
     'category': 'PMS',
     "summary": """ Information related of property Alda Kpis """,
     "author": "Irlui Ramirez,José Luis Algara,Odoo Community Association (OCA)",
-    "depends": ["base", "pms", "pms_data_bi", "pms_property_opening"],
+    "depends": ["base", "pms", "pms_l10n_es"],
     'data': [
         'views/pms_alda_kpi_views.xml',
         'views/pms_alda_kpi_settings.xml',

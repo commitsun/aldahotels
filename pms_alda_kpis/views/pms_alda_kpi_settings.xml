@@ -1,5 +1,4 @@
 <odoo>
-    <!-- Acción para abrir el formulario y vista de árbol de KPI -->
     <record id="action_pms_alda_kpis" model="ir.actions.act_window">
         <field name="name">KPI</field>
         <field name="res_model">pms.alda.kpis</field>
@@ -11,7 +10,6 @@
         </field>
     </record>
 
-    <!-- Vista de árbol para KPI -->
     <record id="view_pms_alda_kpis_tree" model="ir.ui.view">
         <field name="name">pms.alda.kpis.tree</field>
         <field name="model">pms.alda.kpis</field>
@@ -23,7 +21,6 @@
         </field>
     </record>
 
-    <!-- Vista de formulario para KPI -->
     <record id="view_pms_alda_kpis_form" model="ir.ui.view">
         <field name="name">pms.alda.kpis.form</field>
         <field name="model">pms.alda.kpis</field>
@@ -39,7 +36,6 @@
         </field>
     </record>
 
-    <!-- Submenú KPI bajo el menú existente PMS Management -->
     <menuitem id="menu_pms_alda_kpis" 
               name="KPI" 
               parent="pms.pms_configuration_menu" 
