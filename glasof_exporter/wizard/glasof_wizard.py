@@ -162,8 +162,8 @@ class GlassofExporterWizard(models.TransientModel):
             country_code = ""
             if inv.partner_id.vat:
                 vat_partner = inv.partner_id.vat
-            elif inv.partner_id.aeat_identificacion:
-                vat_partner = inv.partner_id.aeat_identificacion
+            elif inv.partner_id.aeat_identification:
+                vat_partner = inv.partner_id.aeat_identification
             country_partner = inv.partner_id.country_id
             if country_partner:
                 country_code = country_partner.code
