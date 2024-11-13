@@ -17,13 +17,22 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from odoo import fields, models, api, _
-from odoo.exceptions import AccessDenied
+from odoo import fields, models, api
 
 
 class PMSProperty(models.Model):
     _inherit = 'pms.property'
-    
+    seller_ids = fields.Many2many('res.partner', string='Vendors allowed in this property')
+    seller_commercial_ids = fields.Many2many(
+        'res.partner',
+        string='Vendors commercial allowed in this property',
+        relation="pms_property_seller_commercial_rel",
+        column1="seller_id",
+        column2="commercial_id",
+        compute="_compute_seller_commercial_ids",
+        store=True
+    )
+
     product_ids = fields.Many2many(
         'product.product',
         string='Allowed products',
@@ -31,13 +40,43 @@ class PMSProperty(models.Model):
         column1="product_id",
         column2="property_id",
     )
-    seller_ids = fields.Many2many('res.partner', string='Vendors allowed in this property')
+
+    product_seller_ids = fields.Many2many(
+        'product.product',
+        string='Allowed products by seller',
+        relation="pms_property_product_product_seller_rel",
+        column1="product_id",
+        column2="property_id",
+    )
+
     wharehouse_id = fields.Many2one('stock.warehouse', 'Warehouse')
 
-    @api.onchange("seller_ids")
+    @api.depends('seller_ids')
+    def _compute_seller_commercial_ids(self):
+        for record in self:
+            record.seller_commercial_ids = record.seller_ids.mapped('commercial_partner_id')
+
+    @api.onchange("seller_ids", "seller_commercial_ids")
     def onchange_seller_ids(self):
-        if self.seller_ids:
-            seller_products = self.env['product.supplierinfo'].search([('name', 'in', self.seller_ids.ids)])
-            seller_product_product = seller_products.mapped('product_tmpl_id.product_variant_ids')
-            seller_product_product += seller_products.mapped('product_id')
-            self.product_ids = [(6, 0, seller_product_product.ids)]
+        for hotel in self:
+            if hotel.seller_ids:
+                seller_products = self.env['product.supplierinfo'].search([
+                    '|',
+                    ('name', 'in', hotel.seller_ids.ids),
+                    ('name', 'in', hotel.seller_commercial_ids.ids)
+                ])
+                seller_product_product = seller_products.mapped('product_tmpl_id.product_variant_ids')
+                seller_product_product += seller_products.mapped('product_id')
+                hotel.product_seller_ids = [(6, 0, seller_product_product.ids)]
+            else:
+                hotel.product_seller_ids = [(5,)]
+
+    def action_load_all_seller_products(self):
+        for prop in self:
+            prop.onchange_seller_ids()
+            prop.product_ids = prop.product_seller_ids
+
+    def action_remove_products_not_in_sellers(self):
+        for prop in self:
+            prop.onchange_seller_ids()
+            prop.product_ids = [(6, 0, prop.product_ids.filtered(lambda x: x.id in prop.product_seller_ids.ids).ids)]

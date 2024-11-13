@@ -17,20 +17,36 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from odoo import fields, models, api, _
-from odoo.exceptions import AccessDenied
+from odoo import fields, models, api
 
 
 class ProductSupplierinfo(models.Model):
     _inherit = 'product.supplierinfo'
-    
+
     supplier_stock = fields.Float('Supplier stock')
 
     @api.model
     def create(self, values):
         ctx = self.env.context.copy()
         res = super(ProductSupplierinfo, self.with_context(ctx).sudo()).create(values)
-        properties = self.env['pms.property'].search([('seller_ids', 'in', res.name.ids)])
+        properties = self.env['pms.property'].search([
+            '|',
+            ('seller_ids', 'in', res.name.ids),
+            ('seller_commercial_ids', 'in', res.name.ids)
+        ])
         if properties:
             properties.onchange_seller_ids()
-        return res 
+        return res
+
+    @api.model
+    def unlink(self):
+        partner_ids = self.mapped('name')
+        properties = self.env['pms.property'].search([
+            '|',
+            ('seller_ids', 'in', partner_ids.ids),
+            ('seller_commercial_ids', 'in', partner_ids.ids)
+        ])
+        res = super(ProductSupplierinfo, self).unlink()
+        if properties:
+            properties.onchange_seller_ids()
+        return res
