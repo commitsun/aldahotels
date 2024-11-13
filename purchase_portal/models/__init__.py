@@ -29,3 +29,4 @@ from . import stock_picking
 from . import product_supplierinfo
 from . import res_partner
 from . import request_saved_cart
+from . import stock_move

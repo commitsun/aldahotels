@@ -18,12 +18,8 @@
 #
 ##############################################################################
 
-from datetime import datetime
-from uuid import uuid4
-import pytz
-
-from odoo import api, fields, models, tools, _
-from odoo.exceptions import ValidationError, UserError
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 
 class PurchaseOrder(models.Model):
@@ -38,9 +34,9 @@ class PurchaseOrder(models.Model):
         if wharehouse_id:
             values['picking_type_id'] = self.env['stock.picking.type'].search([('warehouse_id', '=', wharehouse_id), ('code', '=', 'incoming')]).id
         return super().create(values)
-    
+
     def button_confirm(self):
         force_confirm = self.env.context.get('force_confirm', False)
         if not force_confirm and self.partner_id.min_purchase_amount and self.amount_total < self.partner_id.min_purchase_amount:
-            raise UserError(_('The minimum purchase amount for {} is {}'.format(self.partner_id.name, self.partner_id.min_purchase_amount)))
+            raise UserError(_('The minimum purchase amount for {} is {}').format(self.partner_id.name, self.partner_id.min_purchase_amount))
         return super().button_confirm()

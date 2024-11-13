@@ -16,14 +16,9 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-##############################################################################.
+###############################################################################
 
-from collections import defaultdict
-from datetime import timedelta
-
-from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tools import float_is_zero, float_compare
+from odoo import api, models
 
 
 class PosSession(models.Model):
@@ -41,4 +36,4 @@ class PosSession(models.Model):
                     'statement_ids': [(6, 0, statement_ids)],
                 })
                 res._compute_cash_all()
-        return res    
+        return res

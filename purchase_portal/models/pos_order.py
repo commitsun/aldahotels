@@ -17,17 +17,17 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from odoo import fields, models, api, _
+from odoo import models, api, _
 from odoo.exceptions import AccessDenied
 
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
-    
+
     @api.model
     def _process_order(self, order, draft, existing_order):
         order_data = order['data']
         pos_session = self.env['pos.session'].browse(order_data['pos_session_id'])
         if pos_session.state == 'closing_control' or pos_session.state == 'closed':
             raise AccessDenied(_("NO PUEDES CREAR SESIONES DE RESCATE"))
-        return super()._process_order(order, draft, existing_order)       
+        return super()._process_order(order, draft, existing_order)
