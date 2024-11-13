@@ -1,13 +1,13 @@
 # © 2023 Comunitea
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-from odoo import api, fields, models
+from odoo import fields, models
 
 
 class WebsiteSavedCart(models.Model):
 
     _name = "purchase.request.saved.cart"
     _inherit = "portal.mixin"
-    
+
     name = fields.Char()
     partner_id = fields.Many2one(
         'res.partner',
@@ -24,7 +24,7 @@ class WebsiteSavedCart(models.Model):
     def _compute_access_url(self):
         for cart in self:
             cart.access_url = '/my/saved_carts/{}'.format(cart.id)
-    
+
     def _compute_add_to_cart_url(self):
         for cart in self:
             cart.add_to_cart_url = '/shop/add_saved_cart/{}'.format(cart.id)
@@ -32,7 +32,7 @@ class WebsiteSavedCart(models.Model):
     def _compute_add_to_cart_and_delete_url(self):
         for cart in self:
             cart.add_to_cart_and_delete_url = '/shop/add_and_delete_saved_cart/{}'.format(cart.id)
-    
+
     def _compute_delete_url(self):
         for cart in self:
             cart.delete_url = '/shop/delete_saved_cart/{}'.format(cart.id)
@@ -41,7 +41,7 @@ class WebsiteSavedCart(models.Model):
 class WebsiteSavedCartItems(models.Model):
 
     _name = "purchase.request.saved.cart.item"
-    
+
     cart_id = fields.Many2one(
         'purchase.request.saved.cart',
     )
@@ -56,4 +56,3 @@ class WebsiteSavedCartItems(models.Model):
     def _compute_delete_url(self):
         for cart in self:
             cart.delete_url = '/shop/delete_saved_cart_item/{}'.format(cart.id)
-

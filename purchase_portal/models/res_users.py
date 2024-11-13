@@ -17,9 +17,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-import uuid
-from datetime import date, datetime, timedelta
-from odoo import SUPERUSER_ID, _, api, exceptions, models, fields
+from odoo import models, fields
 
 
 class ResUsers(models.Model):
