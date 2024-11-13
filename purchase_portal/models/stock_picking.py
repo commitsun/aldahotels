@@ -32,9 +32,10 @@ class StockPicking(models.Model):
     _name = 'stock.picking'
     _inherit = ['stock.picking', 'portal.mixin']
 
-    def get_portal_url(self):
-        res = super(StockPicking, self).get_portal_url()
-        return '/my/stock_pickings/%s' % (self.id) + res
+    def _compute_access_url(self):
+        super(StockPicking, self)._compute_access_url()
+        for picking in self:
+            picking.access_url = '/my/stock_pickings/%s' % (picking.id)
 
     def _create_backorder(self):
         res = super(StockPicking, self)._create_backorder()
