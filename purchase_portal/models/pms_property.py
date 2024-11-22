@@ -80,3 +80,15 @@ class PMSProperty(models.Model):
         for prop in self:
             prop.onchange_seller_ids()
             prop.product_ids = [(6, 0, prop.product_ids.filtered(lambda x: x.id in prop.product_seller_ids.ids).ids)]
+
+    def action_open_supplier_products(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Supplier Products',
+            'res_model': 'supplier.products.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_hotel_id': self.id,
+            }
+        }

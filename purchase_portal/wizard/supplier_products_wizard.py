@@ -1,0 +1,37 @@
+from odoo import fields, models, api
+
+
+class SupplierProductsWizard(models.TransientModel):
+    _name = 'supplier.products.wizard'
+    _description = 'Supplier Products Wizard'
+
+    hotel_id = fields.Many2one('pms.property', string='Hotel', required=True)
+    seller_ids = fields.Many2many('res.partner', string='Seller', related='hotel_id.seller_ids')
+    supplier_ids = fields.Many2many('res.partner', string='Suppliers', required=True, domain="[('id', 'not in', seller_ids)]")
+    supplier_commercial_ids = fields.Many2many('res.partner', string='Commercial Supplier', relation="supplier_commercial_rel")
+    product_ids = fields.Many2many('product.product', string='Products', domain="[('id', 'in', supplier_ids)]")
+
+    @api.onchange('supplier_ids')
+    def onchange_supplier_ids(self):
+        for record in self:
+            record.supplier_commercial_ids = record.supplier_ids.mapped('commercial_partner_id')
+
+    @api.onchange('supplier_ids', 'supplier_commercial_ids')
+    def onchange_supplier_commercial_ids(self):
+        for wizard in self:
+
+            suppliers = self.env['product.supplierinfo'].search([
+                '|',
+                ('name', 'in', wizard.supplier_ids.ids),
+                ('name', 'in', wizard.supplier_commercial_ids.ids)
+            ])
+
+            if suppliers:
+                wizard.product_ids = suppliers.mapped('product_tmpl_id.product_variant_ids') + suppliers.mapped('product_id')
+
+    def action_confirm(self):
+        for wizard in self:
+            wizard.hotel_id.product_ids += wizard.product_ids
+            wizard.hotel_id.seller_ids += wizard.supplier_ids
+
+        return {'type': 'ir.actions.act_window_close'}

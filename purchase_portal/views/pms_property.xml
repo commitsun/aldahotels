@@ -9,6 +9,7 @@
                 <header>
                     <button name="action_remove_products_not_in_sellers" string="Remove Products Not In Sellers" type="object" class="oe_highlight"/>
                     <button name="action_load_all_seller_products" string="Add all seller's products" type="object" class="oe_highlight"/>
+                    <button name="action_open_supplier_products" string="Add sellers and products" type="object" class="oe_highlight"/>
                 </header>
             </sheet>
             <notebook position="inside">
