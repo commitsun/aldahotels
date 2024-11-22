@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 14.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-11-13 15:59+0000\n"
-"PO-Revision-Date: 2024-11-13 15:59+0000\n"
+"POT-Creation-Date: 2024-11-21 17:24+0000\n"
+"PO-Revision-Date: 2024-11-21 17:24+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -655,6 +655,11 @@ msgid "Add all seller's products"
 msgstr "Añadir todos los productos de los vendedores"
 
 #. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.pms_property_views_form
+msgid "Add sellers and products"
+msgstr "Añadir proveedores y productos"
+
+#. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart__add_to_cart_url
 msgid "Add to cart URL"
 msgstr "Añadir al carrito URL"
@@ -681,11 +686,15 @@ msgstr "Permitido en propiedades"
 
 #. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__product_ids
-#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__product_seller_ids
 #: model:ir.model.fields,field_description:purchase_portal.field_pms_property__product_ids
-#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__product_seller_ids
 msgid "Allowed products"
 msgstr "Productos permitidos"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__product_seller_ids
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__product_seller_ids
+msgid "Allowed products by seller"
+msgstr "Productos permitidos por vendedor"
 
 #. module: purchase_portal
 #: model:ir.model,name:purchase_portal.model_stock_backorder_confirmation
@@ -694,6 +703,7 @@ msgstr "Confirmación de entrega parcial"
 
 #. module: purchase_portal
 #: model_terms:ir.ui.view,arch_db:purchase_portal.import_supplier_data_wizard_form
+#: model_terms:ir.ui.view,arch_db:purchase_portal.supplier_products_wizard
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -714,6 +724,16 @@ msgid "Close"
 msgstr "Cerrar"
 
 #. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__supplier_commercial_ids
+msgid "Commercial Supplier"
+msgstr "Comercial del proveedor"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.supplier_products_wizard
+msgid "Confirm"
+msgstr "Confirmar"
+
+#. module: purchase_portal
 #: model:ir.model,name:purchase_portal.model_res_partner
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_saved_cart_page
@@ -730,6 +750,7 @@ msgstr "Crear"
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__create_uid
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart__create_uid
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart_item__create_uid
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__create_uid
 msgid "Created by"
 msgstr "Creado por"
 
@@ -737,6 +758,7 @@ msgstr "Creado por"
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__create_date
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart__create_date
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart_item__create_date
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__create_date
 msgid "Created on"
 msgstr "Creado el"
 
@@ -788,6 +810,7 @@ msgstr "Descripción"
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_backorder_confirmation__display_name
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_move__display_name
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__display_name
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__display_name
 msgid "Display Name"
 msgstr "Nombre"
 
@@ -855,6 +878,11 @@ msgid "History"
 msgstr "Historial"
 
 #. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__hotel_id
+msgid "Hotel"
+msgstr ""
+
+#. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__id
 #: model:ir.model.fields,field_description:purchase_portal.field_pms_property__id
 #: model:ir.model.fields,field_description:purchase_portal.field_pos_config__id
@@ -873,6 +901,7 @@ msgstr "Historial"
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_backorder_confirmation__id
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_move__id
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_picking__id
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__id
 msgid "ID"
 msgstr "Identificación"
 
@@ -922,6 +951,7 @@ msgstr "Elementos"
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_backorder_confirmation____last_update
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_move____last_update
 #: model:ir.model.fields,field_description:purchase_portal.field_stock_picking____last_update
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard____last_update
 msgid "Last Modified on"
 msgstr "Última modificación en"
 
@@ -929,6 +959,7 @@ msgstr "Última modificación en"
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__write_uid
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart__write_uid
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart_item__write_uid
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__write_uid
 msgid "Last Updated by"
 msgstr "Módificado por última vez por"
 
@@ -936,6 +967,7 @@ msgstr "Módificado por última vez por"
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__write_date
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart__write_date
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_saved_cart_item__write_date
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__write_date
 msgid "Last Updated on"
 msgstr "Última modificación en"
 
@@ -1129,6 +1161,7 @@ msgid "Product: <b>{}</b>, quantity: <b>{}</b><br/>"
 msgstr "Producto: <b>{}</b>, cantidad: <b>{}</b><br/>"
 
 #. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__product_ids
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_home_purchase_request
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_purchase_request_page
@@ -1315,6 +1348,7 @@ msgid "Security Token"
 msgstr "Token de seguridad"
 
 #. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__seller_ids
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_product_product
 msgid "Seller"
@@ -1350,8 +1384,9 @@ msgstr "Proveedor sugerido"
 
 #. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__supplier_id
-msgid "Supplier"
-msgstr "Proveedor"
+#: model:ir.model.fields,field_description:purchase_portal.field_supplier_products_wizard__supplier_ids
+msgid "Suppliers"
+msgstr "Proveedores"
 
 #. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_import_supplier_data_wizard__supplier_file
@@ -1362,6 +1397,16 @@ msgstr "Archivo proveedor"
 #: model:ir.model,name:purchase_portal.model_product_supplierinfo
 msgid "Supplier Pricelist"
 msgstr "Tarifa de proveedor"
+
+#. module: purchase_portal
+#: model_terms:ir.ui.view,arch_db:purchase_portal.supplier_products_wizard
+msgid "Supplier Products"
+msgstr "Productos Proveedor"
+
+#. module: purchase_portal
+#: model:ir.model,name:purchase_portal.model_supplier_products_wizard
+msgid "Supplier Products Wizard"
+msgstr "Asistente de productos proveedor"
 
 #. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_product_supplierinfo__supplier_stock
@@ -1457,12 +1502,16 @@ msgid "Validate"
 msgstr "Validar"
 
 #. module: purchase_portal
-#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__seller_commercial_ids
 #: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__seller_ids
-#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__seller_commercial_ids
 #: model:ir.model.fields,field_description:purchase_portal.field_pms_property__seller_ids
 msgid "Vendors allowed in this property"
 msgstr "Proveedores permitidos en este hotel"
+
+#. module: purchase_portal
+#: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__seller_commercial_ids
+#: model:ir.model.fields,field_description:purchase_portal.field_pms_property__seller_commercial_ids
+msgid "Vendors commercial allowed in this property"
+msgstr ""
 
 #. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_channel_wubook_pms_property_availability__wharehouse_id
