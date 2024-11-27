@@ -9,17 +9,19 @@ class SupplierProductsWizard(models.TransientModel):
     seller_ids = fields.Many2many('res.partner', string='Seller', related='hotel_id.seller_ids')
     supplier_ids = fields.Many2many('res.partner', string='Suppliers', required=True, domain="[('id', 'not in', seller_ids)]")
     supplier_commercial_ids = fields.Many2many('res.partner', string='Commercial Supplier', relation="supplier_commercial_rel")
-    product_ids = fields.Many2many('product.product', string='Products', domain="[('id', 'in', supplier_ids)]")
-
-    @api.onchange('supplier_ids')
-    def onchange_supplier_ids(self):
-        for record in self:
-            record.supplier_commercial_ids = record.supplier_ids.mapped('commercial_partner_id')
+    product_supplier_ids = fields.Many2many(
+        'product.product',
+        string='Allowed products by seller',
+        relation="wizard_pms_property_product_supplier_rel",
+        column1="product_id",
+        column2="property_id",
+    )
+    product_ids = fields.Many2many('product.product', string='Products', domain="[('id', 'in', product_supplier_ids)]")
 
     @api.onchange('supplier_ids', 'supplier_commercial_ids')
     def onchange_supplier_commercial_ids(self):
         for wizard in self:
-
+            wizard.supplier_commercial_ids = wizard.supplier_ids.mapped('commercial_partner_id')
             suppliers = self.env['product.supplierinfo'].search([
                 '|',
                 ('name', 'in', wizard.supplier_ids.ids),
@@ -27,7 +29,13 @@ class SupplierProductsWizard(models.TransientModel):
             ])
 
             if suppliers:
-                wizard.product_ids = suppliers.mapped('product_tmpl_id.product_variant_ids') + suppliers.mapped('product_id')
+                supplier_products = suppliers.mapped('product_tmpl_id.product_variant_ids')
+                supplier_products += suppliers.mapped('product_id')
+                wizard.product_ids = [(6, 0, supplier_products.ids)]
+                wizard.product_supplier_ids = [(6, 0, supplier_products.ids)]
+            else:
+                wizard.product_ids = [(5,)]
+                wizard.product_supplier_ids = [(5,)]
 
     def action_confirm(self):
         for wizard in self:

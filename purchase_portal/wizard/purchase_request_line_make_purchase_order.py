@@ -62,7 +62,7 @@ class PurchaseRequestLineMakePurchaseOrder(models.TransientModel):
                 res["supplier_id"] = request_lines.mapped("supplier_id").ids[0]
                 res["multiple_suppliers"] = True
         return res
-    
+
     def make_purchase_order(self):
         res = []
         purchase_obj = self.env["purchase.order"]
@@ -72,7 +72,7 @@ class PurchaseRequestLineMakePurchaseOrder(models.TransientModel):
 
         if len(self.item_ids.mapped('line_id').mapped('suggested_supplier_id')) == 1:
             return super(PurchaseRequestLineMakePurchaseOrder, self).make_purchase_order()
-        
+
         # We use the original method with a few moditifications to create a PO for each supplier
 
         suppliers = self.item_ids.mapped('line_id').mapped('suggested_supplier_id')

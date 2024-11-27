@@ -9,6 +9,7 @@
                     <field name="hotel_id" invisible="1"/>
                     <field name="seller_ids" invisible="1"/>
                     <field name="supplier_ids" widget="many2many"/>
+                    <field name="product_supplier_ids" invisible="1" widget="many2many"/>
                     <field name="product_ids" widget="many2many"/>
                 </group>
                 <footer>
