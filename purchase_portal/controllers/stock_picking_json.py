@@ -20,9 +20,6 @@
 
 import json
 from odoo import http, _
-from odoo.addons.portal.controllers.portal import CustomerPortal, pager as portal_pager
-from odoo.exceptions import AccessError, MissingError
-from collections import OrderedDict
 from odoo.http import request
 from odoo.tools.misc import get_lang
 from odoo.tests import Form
@@ -50,7 +47,7 @@ class StockPickingJsonMethods(http.Controller):
                 line_id.sudo().update({
                     attr_name: value,
                 })
-                
+
                 values = {
                     "stock_picking": line_id.picking_id,
                     "move_lines": line_id.picking_id.move_lines,
@@ -66,7 +63,7 @@ class StockPickingJsonMethods(http.Controller):
                     }
                 )
         return json.dumps({"error": True, "message": _("Line not found")})
-    
+
     @http.route(
         ["/stock_picking_validate"],
         type="json",
@@ -79,7 +76,7 @@ class StockPickingJsonMethods(http.Controller):
         self, picking_id=None, **kw
     ):
         if picking_id:
-            lang = get_lang(request.env).code
+            # lang = get_lang(request.env).code
             picking_id = request.env['stock.picking'].browse(picking_id)
             if not picking_id:
                 return json.dumps({"error": True, "message": _("Picking not found")})
