@@ -19,10 +19,7 @@
 ##############################################################################
 
 import json
-from odoo import http, _
-from odoo.addons.portal.controllers.portal import CustomerPortal, pager as portal_pager
-from odoo.exceptions import AccessError, MissingError
-from collections import OrderedDict
+from odoo import http
 from odoo.http import request
 from odoo.tools.misc import get_lang
 
@@ -117,7 +114,7 @@ class PurchaseRequestJsonMethods(http.Controller):
             )
 
         purchase_request = request.env['purchase.request'].browse(int(purchase_request))
-        if not purchase_request or not purchase_request.state in ["to_approve", "draft"]:
+        if not purchase_request or purchase_request.state not in ["to_approve", "draft"]:
             return json.dumps(
                 {
                     "error": True,
@@ -267,7 +264,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         website=True,
     )
     def purchase_request_validation(self, **kw):
-        lang = get_lang(request.env).code
+        # lang = get_lang(request.env).code
         purchase_request = kw.get('purchase_request', False)
 
         if not purchase_request:
@@ -299,12 +296,10 @@ class PurchaseRequestJsonMethods(http.Controller):
                     "message": str(e),
                 }
             )
-        return json.dumps(
-                {
-                    "error": False,
-                    "message": "OK",
-                }
-            )
+        return json.dumps({
+            "error": False,
+            "message": "OK",
+        })
 
     @http.route(
         ["/purchase_request_restart_validation"],
@@ -314,7 +309,7 @@ class PurchaseRequestJsonMethods(http.Controller):
         website=True,
     )
     def purchase_request_restart_validation(self, **kw):
-        lang = get_lang(request.env).code
+        # lang = get_lang(request.env).code
         purchase_request = kw.get('purchase_request', False)
 
         if not purchase_request:
@@ -337,15 +332,11 @@ class PurchaseRequestJsonMethods(http.Controller):
         try:
             purchase_request.restart_validation()
         except Exception as e:
-            return json.dumps(
-                {
-                    "error": True,
-                    "message": str(e),
-                }
-            )
-        return json.dumps(
-                {
-                    "error": False,
-                    "message": "OK",
-                }
-            )
+            return json.dumps({
+                "error": True,
+                "message": str(e),
+            })
+        return json.dumps({
+            "error": False,
+            "message": "OK",
+        })

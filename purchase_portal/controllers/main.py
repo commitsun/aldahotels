@@ -21,7 +21,7 @@
 import werkzeug
 from odoo.http import request
 from werkzeug.exceptions import Unauthorized
-from odoo.osv.expression import AND, OR
+from odoo.osv.expression import OR
 from odoo import http, _
 from odoo.addons.portal.controllers.portal import CustomerPortal, pager as portal_pager
 from odoo.addons.web.controllers.main import ensure_db
@@ -37,19 +37,19 @@ class PortalAccount(CustomerPortal):
             purchase_request_count = request.env['purchase.request'].search_count(self._get_purchase_requests_domain()) \
                 if request.env['purchase.request'].check_access_rights('read', raise_exception=False) else 0
             values['purchase_request_count'] = purchase_request_count
-        
+
         # stock.picking
         if 'stock_picking_count' in counters:
             stock_picking_count = request.env['stock.picking'].search_count(self._get_stock_pickings_domain()) \
                 if request.env['stock.picking'].check_access_rights('read', raise_exception=False) else 0
             values['stock_picking_count'] = stock_picking_count
-        
+
         # product.product
         if 'product_product_count' in counters:
             product_product_count = request.env['product.product'].search_count(self._get_product_product_domain()) \
                 if request.env['product.product'].check_access_rights('read', raise_exception=False) else 0
             values['product_product_count'] = product_product_count
-        
+
         # purchase.request.saved.cart
         values['saved_carts_count'] = request.env['purchase.request.saved.cart'].search_count([])
         return values
@@ -119,7 +119,7 @@ class PortalAccount(CustomerPortal):
             'searchbar_sortings': searchbar_sortings,
             'sortby': sortby,
             'searchbar_filters': OrderedDict(sorted(searchbar_filters.items())),
-            'filterby':filterby,
+            'filterby': filterby,
         })
         return request.render("purchase_portal.portal_my_purchase_requests", values)
 
@@ -133,7 +133,7 @@ class PortalAccount(CustomerPortal):
         values = self._purchase_request_get_page_view_values(purchase_request_sudo, access_token, **kw)
 
         return request.render("purchase_portal.portal_purchase_request_page", values)
-    
+
     @http.route(['/my/new_purchase_request', '/my/new_purchase_request/<int:purchase_request>'], type='http', auth="public", website=True)
     def portal_my_new_purchase_requests_detail(self, purchase_request=None, access_token=None, report_type=None, download=False, **kw):
         if not purchase_request and kw and kw.get('property_id', False):
@@ -152,7 +152,7 @@ class PortalAccount(CustomerPortal):
                 purchase_request_sudo = self._document_check_access('purchase.request', purchase_request, access_token)
             except (AccessError, MissingError):
                 return request.redirect('/my')
-            
+
             if purchase_request_sudo.state not in ["to_approve", "draft"] or purchase_request_sudo.review_ids.filtered(lambda r: r.status == 'approved'):
                 return request.redirect('/my/purchase_requests/%s' % purchase_request_sudo.id)
 
@@ -236,7 +236,7 @@ class PortalAccount(CustomerPortal):
             'searchbar_sortings': searchbar_sortings,
             'sortby': sortby,
             'searchbar_filters': OrderedDict(sorted(searchbar_filters.items())),
-            'filterby':filterby,
+            'filterby': filterby,
         })
         return request.render("purchase_portal.portal_my_stock_pickings", values)
 
@@ -250,17 +250,17 @@ class PortalAccount(CustomerPortal):
         values = self._stock_picking_get_page_view_values(stock_picking_sudo, access_token, **kw)
 
         return request.render("purchase_portal.portal_stock_picking_page", values)
-    
+
     @http.route(['/portal_purchase_login_by_token/<int:user_id>'], type='http', auth="public", website=True)
     def portal_purchase_login_by_token(self, user_id=None, access_token=None, **kw):
-        #localhost:14069/portal_purchase_login_by_token/381?signup_token=1LCzJ80sGoNu4ODEBl5C
+        # localhost:14069/portal_purchase_login_by_token/381?signup_token=1LCzJ80sGoNu4ODEBl5C
         ensure_db()
         signup_token = kw.get('signup_token', False)
-        config_id = kw.get('config_id', False)
+        # config_id = kw.get('config_id', False)
 
         if not user_id or not signup_token:
             raise Unauthorized("Wrong authentication")
-        
+
         portal_user = request.env['res.users'].sudo().browse(user_id)
 
         if portal_user:
@@ -270,7 +270,7 @@ class PortalAccount(CustomerPortal):
                 request.session.logout(keep_db=True)
                 request.session.authenticate(request.db, portal_user.login, signup_token)
         url = "/my/new_purchase_request"
-        return werkzeug.utils.redirect(url)    
+        return werkzeug.utils.redirect(url)
 
     # ------------------------------------------------------------
     # My product product
@@ -278,14 +278,14 @@ class PortalAccount(CustomerPortal):
 
     def _get_product_product_domain(self):
         return []
-    
+
     def _get_product_searchbar_inputs(self):
         return {
             'all': {'input': 'all', 'label': _('Search in All')},
             'name': {'input': 'name', 'label': _('Search in Name')},
             'default_code': {'input': 'default_code', 'label': _('Search in reference')},
         }
-    
+
     def _get_product_search_domain(self, search_in, search):
         search_domain = []
         if search_in in ('default_code', 'all'):
@@ -347,11 +347,11 @@ class PortalAccount(CustomerPortal):
             'searchbar_sortings': searchbar_sortings,
             'sortby': sortby,
             'searchbar_filters': OrderedDict(sorted(searchbar_filters.items())),
-            'filterby':filterby,
+            'filterby': filterby,
             'searchbar_inputs': searchbar_inputs,
         })
         return request.render("purchase_portal.portal_product_product", values)
-    
+
     # ------------------------------------------------------------
     # My purchase requests saved carts
     # ------------------------------------------------------------
@@ -434,7 +434,7 @@ class PortalAccount(CustomerPortal):
 
         values = self._saved_cart_get_page_view_values(saved_cart_sudo, access_token, **kw)
         return request.render("purchase_portal.portal_saved_cart_page", values)
-    
+
     @http.route(['/save_purchase_request/<int:purchase_request>'], type='http', auth="public", website=True)
     def portal_save_current_cart(self, purchase_request=None, access_token=None, **kw):
         if purchase_request:
@@ -457,7 +457,7 @@ class PortalAccount(CustomerPortal):
             return request.redirect('/my/saved_carts/{}'.format(saved_cart.id))
 
         return request.redirect('/my')
-    
+
     def _add_saved_cart(self, saved_cart):
         purchase_r = request.env['purchase.request'].create({
             'requested_by': saved_cart.user_id.id,
@@ -472,18 +472,17 @@ class PortalAccount(CustomerPortal):
                 'name': line.description,
             })
         return purchase_r
-    
+
     def _delete_saved_cart(self, saved_cart):
         saved_cart.unlink()
-    
 
     @http.route(['/shop/add_saved_cart/<int:saved_cart_id>'], type='http', auth="public", website=True)
     def portal_add_saved_cart(self, saved_cart_id, access_token=None, report_type=None, download=False, **kw):
         try:
-            saved_cart_sudo = self._document_check_access('purchase.request.saved.cart', saved_cart_id, access_token)
+            self._document_check_access('purchase.request.saved.cart', saved_cart_id, access_token)
         except (AccessError, MissingError):
             return request.redirect('/my')
-        
+
         saved_cart = request.env['purchase.request.saved.cart'].browse(saved_cart_id)
         if saved_cart:
             purchase_r = self._add_saved_cart(saved_cart)
@@ -492,22 +491,22 @@ class PortalAccount(CustomerPortal):
                 return request.redirect('/my/new_purchase_request/' + str(purchase_r.id))
 
         return request.redirect('/my')
-    
+
     @http.route(['/shop/delete_saved_cart/<int:saved_cart_id>'], type='http', auth="public", website=True)
     def portal_delete_saved_cart(self, saved_cart_id, access_token=None, report_type=None, download=False, **kw):
         try:
-            saved_cart_sudo = self._document_check_access('purchase.request.saved.cart', saved_cart_id, access_token)
+            self._document_check_access('purchase.request.saved.cart', saved_cart_id, access_token)
         except (AccessError, MissingError):
             return request.redirect('/my')
         saved_cart = request.env['purchase.request.saved.cart'].browse(saved_cart_id)
         if saved_cart:
             self._delete_saved_cart(saved_cart)
         return request.redirect('/my/saved_carts')
-    
+
     @http.route(['/shop/add_and_delete_saved_cart/<int:saved_cart_id>'], type='http', auth="public", website=True)
     def portal_add_and_delete_saved_cart(self, saved_cart_id, access_token=None, report_type=None, download=False, **kw):
         try:
-            saved_cart_sudo = self._document_check_access('purchase.request.saved.cart', saved_cart_id, access_token)
+            self._document_check_access('purchase.request.saved.cart', saved_cart_id, access_token)
         except (AccessError, MissingError):
             return request.redirect('/my')
         saved_cart = request.env['purchase.request.saved.cart'].browse(saved_cart_id)
@@ -517,13 +516,13 @@ class PortalAccount(CustomerPortal):
 
             if purchase_r:
                 return request.redirect('/my/new_purchase_request/' + str(purchase_r.id))
-        
+
         return request.redirect('/my')
-    
+
     @http.route(['/shop/delete_saved_cart_item/<int:item_id>'], type='http', auth="public", website=True)
     def portal_delete_saved_cart_item(self, item_id, access_token=None, report_type=None, download=False, **kw):
         try:
-            saved_cart_sudo = self._document_check_access('purchase.request.saved.cart.item', item_id, access_token)
+            self._document_check_access('purchase.request.saved.cart.item', item_id, access_token)
         except (AccessError, MissingError):
             return request.redirect('/my')
         item = request.env['purchase.request.saved.cart.item'].browse(item_id)
