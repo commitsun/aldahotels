@@ -28,7 +28,6 @@ class ProductSupplierinfo(models.Model):
         'res.partner',
         string='Seller children',
         compute='_compute_seller_children_ids',
-        store=True,
         readonly=True
     )
 

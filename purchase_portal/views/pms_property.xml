@@ -16,6 +16,7 @@
                 <page string="Purchase Portal" name="purchase_portal">
                     <group>
                         <field name="seller_ids" widget="many2many"/>
+                        <field name="seller_commercial_ids" widget="many2many"/>
                         <field name="wharehouse_id" domain="[('company_id', '=', company_id)]"/>
                     </group>
                     <field name="product_seller_ids" widget="many2many" invisible="1"/>

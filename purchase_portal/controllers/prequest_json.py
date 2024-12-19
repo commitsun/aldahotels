@@ -19,7 +19,7 @@
 ##############################################################################
 
 import json
-from odoo import http
+from odoo import http, _
 from odoo.http import request
 from odoo.tools.misc import get_lang
 
@@ -78,7 +78,11 @@ class PurchaseRequestJsonMethods(http.Controller):
             product_ids = product_ids.filtered(lambda x: x.categ_id.id == int(category_id))
 
         if seller_id and seller_id != 'all':
-            product_ids = product_ids.filtered(lambda x: int(seller_id) in x.seller_ids.mapped('name').ids)
+            partner_id = request.env['res.partner'].browse(int(seller_id))
+            product_ids = product_ids.filtered(
+                lambda x: partner_id.id in x.seller_ids.mapped('name').ids
+                or partner_id.commercial_partner_id.id in x.seller_ids.mapped('name').ids
+            )
 
         if request.env.user.banned_product_ids:
             product_ids = product_ids - request.env.user.banned_product_ids
@@ -109,7 +113,7 @@ class PurchaseRequestJsonMethods(http.Controller):
             return json.dumps(
                 {
                     "error": True,
-                    "message": "Missing parameters",
+                    "message": _("Missing parameters"),
                 }
             )
 
@@ -118,13 +122,18 @@ class PurchaseRequestJsonMethods(http.Controller):
             return json.dumps(
                 {
                     "error": True,
-                    "message": "No purchase_request or wrong state",
+                    "message": _("No purchase_request or wrong state"),
                 }
             )
         try:
             product_info = request.env['product.supplierinfo'].search([
-                ('name', 'in', purchase_request.property_id.seller_ids.ids), '|', ('product_id', '=', int(product_id)), ('product_tmpl_id.product_variant_ids', '=', int(product_id))], order='price asc', limit=1
-            )
+                '|',
+                ('name', 'in', purchase_request.property_id.seller_ids.ids),
+                ('name', 'in', purchase_request.property_id.seller_commercial_ids.ids),
+                '|',
+                ('product_id', '=', int(product_id)),
+                ('product_tmpl_id.product_variant_ids', '=', int(product_id))
+            ], order='price asc', limit=1)
             request_line = request.env['purchase.request.line'].with_context(portal=True).create({
                 'request_id': purchase_request.id,
                 'product_id': int(product_id),
