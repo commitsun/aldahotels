@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 14.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-17 17:27+0000\n"
-"PO-Revision-Date: 2024-12-17 17:27+0000\n"
+"POT-Creation-Date: 2024-12-19 12:41+0000\n"
+"PO-Revision-Date: 2024-12-19 12:41+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -1024,6 +1024,12 @@ msgid "Minimum purchase amount"
 msgstr "Importe mínimo de compra"
 
 #. module: purchase_portal
+#: code:addons/purchase_portal/controllers/prequest_json.py:0
+#, python-format
+msgid "Missing parameters"
+msgstr "Faltan parámetros"
+
+#. module: purchase_portal
 #: model:ir.model.fields,field_description:purchase_portal.field_purchase_request_line_make_purchase_order__multiple_suppliers
 msgid "Multiple suppliers"
 msgstr "Múltiples proveedores"
@@ -1054,6 +1060,12 @@ msgstr "Nueva línea añadida por {user}: <strong> {product} ({quantity})</stron
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_new_purchase_request_page
 msgid "New purchase request"
 msgstr "Nueva solicitud de compra"
+
+#. module: purchase_portal
+#: code:addons/purchase_portal/controllers/prequest_json.py:0
+#, python-format
+msgid "No purchase_request or wrong state"
+msgstr "No hay solicitud de compra o estado incorrecto"
 
 #. module: purchase_portal
 #: model_terms:ir.ui.view,arch_db:purchase_portal.portal_my_saved_carts
