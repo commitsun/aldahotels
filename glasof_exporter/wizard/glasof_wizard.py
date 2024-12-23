@@ -177,8 +177,10 @@ class GlassofExporterWizard(models.TransientModel):
             if not vat_partner and inv.partner_id.vat:
                 vat_partner = inv.partner_id.vat
             origin = ""
+            signed = 1
             if inv.move_type == "out_refund":
                 origin = inv.invoice_origin
+                signed = -1
             elif inv.folio_ids:
                 origin = ",".join([fol.name for fol in inv.folio_ids])
 
@@ -202,10 +204,10 @@ class GlassofExporterWizard(models.TransientModel):
                 worksheet.write(nrow, 4, origin)
                 worksheet.write(nrow, 5, inv.invoice_date, date_format)
                 worksheet.write(nrow, 6, vat_partner)
-                worksheet.write(nrow, 7, inv.amount_untaxed, money_format)
-                worksheet.write(nrow, 8, inv.amount_tax, money_format)
-                worksheet.write(nrow, 9, inv.amount_total, money_format)
-                worksheet.write(nrow, 10, inv.amount_residual, money_format)
+                worksheet.write(nrow, 7, inv.amount_untaxed * signed, money_format)
+                worksheet.write(nrow, 8, inv.amount_tax * signed, money_format)
+                worksheet.write(nrow, 9, inv.amount_total * signed, money_format)
+                worksheet.write(nrow, 10, inv.amount_residual * signed, money_format)
                 worksheet.write(nrow, 11, move_type)
                 worksheet.set_row(nrow, cell_format=data_format)
                 nrow += 1
@@ -221,13 +223,13 @@ class GlassofExporterWizard(models.TransientModel):
                     worksheet.write(nrow, 4, origin)
                     worksheet.write(nrow, 5, inv.invoice_date, date_format)
                     worksheet.write(nrow, 6, vat_partner)
-                    worksheet.write(nrow, 7, inv.amount_untaxed, money_format)
-                    worksheet.write(nrow, 8, inv.amount_tax, money_format)
-                    worksheet.write(nrow, 9, inv.amount_total, money_format)
-                    worksheet.write(nrow, 10, inv.amount_residual, money_format)
+                    worksheet.write(nrow, 7, inv.amount_untaxed * signed, money_format)
+                    worksheet.write(nrow, 8, inv.amount_tax * signed, money_format)
+                    worksheet.write(nrow, 9, inv.amount_total * signed, money_format)
+                    worksheet.write(nrow, 10, inv.amount_residual * signed, money_format)
                     worksheet.write(nrow, 11, move_type)
                     worksheet.write(nrow, 12, payment["journal_name"])
-                    worksheet.write(nrow, 13, payment["amount"], money_format)
+                    worksheet.write(nrow, 13, float(payment["amount"]) * signed, money_format)
                     worksheet.write(nrow, 14, payment_date, date_format)
                     worksheet.write(nrow, 15, payment["ref"])
                     worksheet.set_row(nrow, cell_format=data_format)
