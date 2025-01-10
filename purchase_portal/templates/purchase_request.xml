@@ -252,10 +252,10 @@
                                 <div class="row">
                                     <div t-attf-class="col-6 input-group mb-2" role="search">
                                         <t t-set="search_placeholder">Search...</t>
-                                        <input type="search" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id" name="search" class="search-query form-control oe_search_box" t-att-placeholder="placeholder if placeholder else search_placeholder" t-att-value="search"/>
+                                        <input id="search" type="search" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id" name="search" class="search-query form-control oe_search_box" t-att-placeholder="placeholder if placeholder else search_placeholder" t-att-value="search"/>
                                     </div>
                                     <div t-attf-class="col-6 input-group mb-2">
-                                        <select name="product_category" class="purchase_select" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id">
+                                        <select id="product_category" name="product_category" class="purchase_select" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id">
                                             <option value="all">All categories</option>
                                             <t t-foreach="current_property_id.product_ids.mapped('categ_id')" t-as="categorie">
                                                 <option t-att-value="categorie.id">
@@ -263,9 +263,10 @@
                                                 </option>
                                             </t>
                                         </select>
-                                        <select name="product_seller" class="purchase_seller ml-2" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id">
+                                        <select id="product_seller" name="product_seller" class="purchase_seller ml-2" t-att-data-purchase_request="purchase_request.id" t-att-data-property_id="current_property_id.id">
                                             <option value="all">All sellers</option>
-                                            <t t-foreach="current_property_id.product_ids.seller_ids.filtered(lambda x: x.name in purchase_request.property_id.seller_ids).mapped('name')" t-as="seller">
+                                            <!-- <t t-foreach="current_property_id.product_ids.seller_ids.filtered(lambda x: x.name in purchase_request.property_id.seller_ids).mapped('name')" t-as="seller"> -->
+                                            <t t-foreach="current_property_id.seller_ids" t-as="seller">
                                                 <option t-att-value="seller.id">
                                                     <t t-esc="seller.name"/>
                                                 </option>
@@ -322,7 +323,7 @@
                 </td>
                 <td class="text-right">
                     <t t-if="product.mapped('seller_ids.name') and purchase_request.property_id.seller_ids">
-                        <t t-foreach="product.seller_ids.filtered(lambda x: x.name in (purchase_request.property_id.seller_ids + purchase_request.property_id.seller_commercial_ids)).mapped('name')" t-as="seller">
+                        <t t-foreach="product.seller_ids.filtered(lambda x: x.name in (purchase_request.property_id.seller_ids + purchase_request.property_id.seller_commercial_ids)).mapped('name')[0]" t-as="seller">
                             <t t-if="seller not in purchase_request.property_id.seller_ids">
                                 <t t-set="seller_child" t-value="purchase_request.property_id.seller_ids.filtered(lambda x: x.commercial_partner_id == seller)"/>
                                 <span class="ml-2">
@@ -338,7 +339,7 @@
                                     <t t-esc="seller.phone"/>
                                 </span>
                             </t>
-                            <br  t-if="seller.id != product.mapped('seller_ids.name')[-1].id" />
+                            <br t-if="seller.id != product.mapped('seller_ids.name')[-1].id" />
                             <hr t-if="seller.id != product.mapped('seller_ids.name')[-1].id" />
                         </t>
                     </t>

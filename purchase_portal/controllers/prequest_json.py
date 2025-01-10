@@ -66,23 +66,29 @@ class PurchaseRequestJsonMethods(http.Controller):
                 }
             )
 
-        product_ids = property_id.product_ids
-        if search:
-            product_ids = request.env["product.product"].search([
+        product_ids = property_id.sudo().product_ids
+        if search and search != '':
+            product_ids = request.env["product.product"].sudo().search([
                 ("id", "in", product_ids.ids),
                 "|",
                 ("name", "ilike", search),
                 ("default_code", "ilike", search)
             ])
         if category_id and category_id != 'all':
-            product_ids = product_ids.filtered(lambda x: x.categ_id.id == int(category_id))
+            product_ids = request.env["product.product"].sudo().search([
+                ("id", "in", product_ids.ids),
+                ("categ_id", "=", int(category_id))
+            ])
 
         if seller_id and seller_id != 'all':
-            partner_id = request.env['res.partner'].browse(int(seller_id))
-            product_ids = product_ids.filtered(
-                lambda x: partner_id.id in x.seller_ids.mapped('name').ids
-                or partner_id.commercial_partner_id.id in x.seller_ids.mapped('name').ids
-            )
+            partner_id = request.env['res.partner'].sudo().search([('id', '=', int(seller_id))])
+            commercial_partner_id = partner_id.commercial_partner_id
+            product_ids = request.env["product.product"].sudo().search([
+                ("id", "in", product_ids.ids),
+                "|",
+                ("seller_ids.name", "in", [partner_id.name]),
+                ("seller_ids.name", "in", [commercial_partner_id.name])
+            ])
 
         if request.env.user.banned_product_ids:
             product_ids = product_ids - request.env.user.banned_product_ids
