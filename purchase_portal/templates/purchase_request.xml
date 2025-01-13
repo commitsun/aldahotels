@@ -340,7 +340,7 @@
                                 </span>
                             </t>
                             <br t-if="seller.id != product.mapped('seller_ids.name')[-1].id" />
-                            <hr t-if="seller.id != product.mapped('seller_ids.name')[-1].id" />
+                            <!-- <hr t-if="seller.id != product.mapped('seller_ids.name')[-1].id" /> -->
                         </t>
                     </t>
                 </td>
