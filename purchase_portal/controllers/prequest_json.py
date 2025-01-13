@@ -86,8 +86,8 @@ class PurchaseRequestJsonMethods(http.Controller):
             product_ids = request.env["product.product"].sudo().search([
                 ("id", "in", product_ids.ids),
                 "|",
-                ("seller_ids.name", "in", [partner_id.name]),
-                ("seller_ids.name", "in", [commercial_partner_id.name])
+                ("seller_ids.name", "=", partner_id.id),
+                ("seller_ids.name", "=", commercial_partner_id.id)
             ])
 
         if request.env.user.banned_product_ids:

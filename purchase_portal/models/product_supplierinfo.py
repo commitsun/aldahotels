@@ -34,7 +34,10 @@ class ProductSupplierinfo(models.Model):
     @api.depends('name')
     def _compute_seller_children_ids(self):
         for record in self:
-            record.seller_children_ids = self.env['res.partner'].search([('parent_id', '=', record.name.id)])
+            if record.name:
+                record.seller_children_ids = self.env['res.partner'].search([('parent_id', '=', record.name.id)])
+            else:
+                record.seller_children_ids = False
 
     @api.model
     def create(self, values):
