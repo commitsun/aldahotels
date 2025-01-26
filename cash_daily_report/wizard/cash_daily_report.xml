@@ -5,7 +5,7 @@
 		<field name="name">cash.daily.report.wizard</field>
 		<field name="model">cash.daily.report.wizard</field>
 		<field name="arch" type="xml">
-			<form string="Cash Daily Report" >
+			<form string="Cash Daily Report">
 				<group>
                     <group>
                         <field name="pms_property_id" required="1" />
@@ -19,7 +19,7 @@
 				</group>
 				<group>
 					<group>
-						<field name="xls_filename" invisible="1"/>
+						<field name="xls_filename" invisible="1" />
 						<field name="xls_binary" filename="xls_filename" readonly="1" />
 					</group>
 				</group>
@@ -36,7 +36,7 @@
 		<field name="name">Cash Daily Report Wizard</field>
 		<field name="type">ir.actions.act_window</field>
 		<field name="res_model">cash.daily.report.wizard</field>
-		<field name="view_id" ref="view_cash_daily_report_wizard"/>
+		<field name="view_id" ref="view_cash_daily_report_wizard" />
 		<field name="view_mode">form</field>
 		<field name="target">new</field>
 	</record>

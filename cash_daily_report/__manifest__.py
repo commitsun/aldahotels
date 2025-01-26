@@ -22,7 +22,7 @@
     "name": "Cash Daily Report",
     "version": "1.0",
     "author": "Alexandre Díaz <dev@redneboa.es>",
-    "website": "https://github.com/OCA/aldahotels",
+    "website": "https://github.com/OCA/pms",
     "category": "reports",
     "summary": "Export payments report in xls format",
     "description": "Cash Daily Report",

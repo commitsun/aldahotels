@@ -64,7 +64,7 @@ class CashDailyReportWizard(models.TransientModel):
                 "title": "Exported data from " + company_id.name,
                 "subject": "Payments Data from Odoo of " + company_id.name,
                 "author": "Odoo",
-                "manager": u"Alexandre Díaz Cuadrado",
+                "manager": "Alexandre Díaz Cuadrado",
                 "company": company_id.name,
                 "category": "Hoja de Calculo",
                 "keywords": "payments, odoo, data, " + company_id.name,
