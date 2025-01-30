@@ -35,7 +35,7 @@ class DocumentAdapter(AbstractComponent):
     _docuware_path = "FileCabinets/{}/Documents"
 
     @retryable_error
-    def read(self, cabinet_id, document_id, attributes=None):  # noqa: W8106
+    def read(self, cabinet_id, document_id, attributes=None):  # pylint: disable=W8106
         """Returns the information of a record
         :rtype: dict
         """
@@ -52,5 +52,5 @@ class DocumentAdapter(AbstractComponent):
 
     def get_document_attachment(self, cabinet_id, document_id):
         return self.client.get_binary_data(
-            "/FileCabinets/{}/Documents/{}/Data".format(cabinet_id, document_id)
+            "FileCabinets/{}/Documents/{}/Data".format(cabinet_id, document_id)
         )
