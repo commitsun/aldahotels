@@ -47,7 +47,7 @@ class CashDailyReportWizard(models.TransientModel):
     pms_property_id = fields.Many2one(
         "pms.property",
         string="Property",
-        default=lambda self: self.env.user.get_active_property_ids()[0],
+        default=lambda self: self.env.user.pms_property_id.id or False,
     )
 
     @api.model
