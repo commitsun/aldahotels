@@ -378,7 +378,7 @@ class CashDailyReportWizard(models.TransientModel):
         tnow = str(fields.Datetime.now()).replace(" ", "_")
         return {
             "xls_filename": "cash_daily_report_%s.xlsx" % tnow,
-            "xls_binary": base64.encodestring(file_data.read()),
+            "xls_binary": base64.encodebytes(file_data.read()),
         }
 
     def export(self):

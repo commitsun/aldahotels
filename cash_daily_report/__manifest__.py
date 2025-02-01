@@ -20,7 +20,7 @@
 
 {
     "name": "Cash Daily Report",
-    "version": "1.0",
+    "version": "16.0.0.1.0"
     "author": "Alexandre Díaz <dev@redneboa.es>",
     "website": "https://github.com/OCA/pms",
     "category": "reports",
