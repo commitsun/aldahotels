@@ -132,7 +132,7 @@ class PurchaseRequestJsonMethods(http.Controller):
                 }
             )
         try:
-            product_info = request.env['product.supplierinfo'].search([
+            product_info = request.env['product.supplierinfo'].sudo().search([
                 '|',
                 ('name', 'in', purchase_request.property_id.seller_ids.ids),
                 ('name', 'in', purchase_request.property_id.seller_commercial_ids.ids),
