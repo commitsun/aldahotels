@@ -70,12 +70,15 @@ class PurchaseRequestLineMakePurchaseOrder(models.TransientModel):
         pr_line_obj = self.env["purchase.request.line"]
         purchase = False
 
-        if len(self.item_ids.mapped('line_id').mapped('suggested_supplier_id')) == 1:
+        line_ids = pr_line_obj.sudo().search([
+            ('id', 'in', self.item_ids.mapped("line_id").ids)
+        ])
+
+        if len(line_ids.mapped('suggested_supplier_id')) == 1:
             return super(PurchaseRequestLineMakePurchaseOrder, self).make_purchase_order()
 
         # We use the original method with a few moditifications to create a PO for each supplier
-
-        suppliers = self.item_ids.mapped('line_id').mapped('suggested_supplier_id')
+        suppliers = line_ids.mapped('suggested_supplier_id')
         for supplier in suppliers:
             purchase = None
             supplier_lines = self.item_ids.filtered(lambda x: x.line_id.suggested_supplier_id == supplier)
