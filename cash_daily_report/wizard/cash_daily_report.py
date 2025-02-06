@@ -47,11 +47,11 @@ class CashDailyReportWizard(models.TransientModel):
     pms_property_id = fields.Many2one(
         "pms.property",
         string="Property",
-        default=lambda self: self.env.user.get_active_property_ids()[0],
+        default=lambda self: self.env.user.pms_property_ids.ids,
     )
 
     @api.model
-    def _export(self):
+    def _export(self, pms_property_id):
         self.env["res.users"].browse(self.env.uid)
         file_data = BytesIO()
         workbook = xlsxwriter.Workbook(
@@ -259,30 +259,14 @@ class CashDailyReportWizard(models.TransientModel):
                 self.env["account.bank.statement"]
                 .sudo()
                 .search(
-                    [
-                        ("journal_id", "=", journal.id),
-                        ("state", "=", "open"),
-                        ("date", "=", fields.Date.today()),
-                    ],
+                    [("journal_id", "=", journal.id), ("balance_end", "!=", False)],
                     limit=1,
                 )
             )
             if not statement:
-                statement = (
-                    self.env["account.bank.statement"]
-                    .sudo()
-                    .search(
-                        [
-                            ("journal_id", "=", journal.id),
-                        ],
-                        limit=1,
-                    )
-                )
-            result_cash = (
-                statement.balance_end_real
-                if statement.state != "open"
-                else statement.balance_end
-            )
+                result_cash = 0
+            else:
+                result_cash = statement.balance_end_real
             worksheet.write(line + 3, 1, journal.name, cell_format)
             worksheet.write(line + 4, 1, result_cash, cell_format)
 
@@ -382,7 +366,7 @@ class CashDailyReportWizard(models.TransientModel):
         }
 
     def export(self):
-        self.write(self._export())
+        self.write(self._export(self.pms_property_id.id))
         return {
             "name": _("Informe de caja diaria"),
             "res_id": self.id,
