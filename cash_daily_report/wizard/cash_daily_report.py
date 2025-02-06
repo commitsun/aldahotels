@@ -259,7 +259,7 @@ class CashDailyReportWizard(models.TransientModel):
                 self.env["account.bank.statement"]
                 .sudo()
                 .search(
-                    [("journal_id", "=", journal.id), ("balance_end", "!=", False)],
+                    [("journal_id", "=", journal.id), ("balance_end", "!=", 0)],
                     limit=1,
                 )
             )
