@@ -238,7 +238,7 @@ class CashDailyReportWizard(models.TransientModel):
         line = offset
 
         worksheet.write(line + 1, 1, "Fecha/Hora:", cell_format)
-        timezone = pytz.timezone(self._context.get("tz") or "UTC")
+        timezone = pytz.timezone(self._context.get("tz") or self.env.user.tz or "UTC")
         event_date = datetime.datetime.now()
         event_date = pytz.UTC.localize(event_date)
 
@@ -359,7 +359,11 @@ class CashDailyReportWizard(models.TransientModel):
         #     worksheet_day.protect()
         workbook.close()
         file_data.seek(0)
-        tnow = str(fields.Datetime.now()).replace(" ", "_")
+        user = self.env.user
+        user.tz or "UTC"
+        now_utc = fields.Datetime.now()
+        now_user = fields.Datetime.context_timestamp(self, now_utc)
+        tnow = now_user.strftime("%Y-%m-%d_%H:%M:%S")
         return {
             "xls_filename": "cash_daily_report_%s.xlsx" % tnow,
             "xls_binary": base64.encodebytes(file_data.read()),
